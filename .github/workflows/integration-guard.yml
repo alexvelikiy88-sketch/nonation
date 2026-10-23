@@ -19,10 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Checkout trusted base (do not execute PR-provided guard)
+      - name: Checkout current trusted main (never the PR code)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          # Old PRs can report a stale base SHA from before this guard existed.
+          # Always execute the guard maintained on the latest protected target branch.
+          ref: main
           fetch-depth: 0
           persist-credentials: false
       - name: Fetch PR head for a read-only diff
@@ -33,7 +35,7 @@ jobs:
           set -euo pipefail
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || exit 1
           git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head"
-      - name: Test the base-version integration guard
+      - name: Test the trusted-main integration guard
         run: python3 -m unittest discover -s Tools/tests -p 'test_pr_integration_guard.py' -v
       - name: Enforce ownership and review dangerous changes
         run: python3 Tools/pr_integration_guard.py
