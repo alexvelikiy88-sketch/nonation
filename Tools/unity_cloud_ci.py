@@ -248,11 +248,11 @@ def verify_hosted(root: Path, page_url: str):
 
     This proves hosting/asset retrieval, NOT Unity WebGL scene execution.
     """
-    check_webgl(root)
     origin = urlparse(page_url)
     if (origin.scheme != "https" or not origin.hostname or
             origin.username or origin.password or origin.query or origin.fragment):
         raise ValueError("Deployed WebGL URL must be an HTTPS URL without credentials or query")
+    check_webgl(root)
     base = page_url.rstrip("/") + "/"
     from urllib.parse import quote
     paths = sorted(p for p in root.rglob("*") if p.is_file())
