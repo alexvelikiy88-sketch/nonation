@@ -122,11 +122,14 @@ def poll_build(number: int, revision: str) -> dict:
                       redact_log(str(diagnostic_error)), flush=True)
             raise RuntimeError(f"Unity Cloud WebGL build #{number} failed ({status})")
         if status in TERMINAL_GOOD:
-            actual = result.get("lastBuiltRevision") or result.get("requestedRevision")
+            # requestedRevision is only an instruction, not evidence of the
+            # source actually compiled by the builder. Publishing requires
+            # the completed build's lastBuiltRevision to match GitHub exactly.
+            actual = result.get("lastBuiltRevision")
             if not actual:
                 raise RuntimeError(
-                    f"Unity Cloud build #{number} succeeded but provided no source revision; "
-                    "refusing to publish an artifact with unverified provenance"
+                    f"Unity Cloud build #{number} lacks lastBuiltRevision; "
+                    "refusing to publish a build with unverified source provenance"
                 )
             if str(actual) != revision:
                 raise RuntimeError(f"Unity built the wrong revision: expected {revision}, got {actual}")
@@ -368,7 +371,9 @@ def primary_failure_lines(log: str):
     candidates = []
     for index, line in enumerate(lines):
         if "Unity Player Export Failure" in line:
-            continue
+            # Diagnostics emitted after the terminal summary cannot establish
+            # the first preceding failure that caused the export to abort.
+            break
         if re.search(r"(?i)(?:\berror\s+(?:CS|MSB|IL)\d+\b|"
                      r"\bBuildFailedException\b|"
                      r"\bException:\s|"
