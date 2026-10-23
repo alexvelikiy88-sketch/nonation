@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       unity_license_present: ${{ steps.check_activation.outputs.available }}
+      cloud_credentials_present: ${{ steps.check_activation.outputs.cloud_available }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate license-safe Unity project
@@ -42,6 +43,8 @@ jobs:
           echo 'Unity project and public asset checks passed'
       - name: C# source, build scene and manifest preflight
         run: python3 Tools/unity_source_preflight.py
+      - name: Test Unity Cloud artifact extraction without credentials
+        run: python3 -m unittest discover -s Tools/tests -p 'test_*.py' -v
       - name: Install .NET 8 for shared gameplay tests and server
         uses: actions/setup-dotnet@v4
         with:
@@ -75,7 +78,15 @@ jobs:
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
+          UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
         run: |
+          if [ -n "$UNITY_SA_KEY_ID" ] && [ -n "$UNITY_SA_SECRET_KEY" ]; then
+            echo "cloud_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cloud_available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Unity Cloud integration awaits two service-account secrets (UNITY_SA_KEY_ID and UNITY_SA_SECRET_KEY)."
+          fi
           if { [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; } && [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
@@ -143,9 +154,39 @@ jobs:
         with:
           path: build/WebGL/
 
+  cloud-webgl:
+    name: Unity Cloud WebGL (optional service account)
+    needs: source-validation
+    if: needs.source-validation.outputs.cloud_credentials_present == 'true' && needs.source-validation.outputs.unity_license_present != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      webgl_ready: ${{ steps.cloud.outputs.webgl_ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify WebGL through Unity Cloud API v2
+        id: cloud
+        env:
+          UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
+          UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
+        run: python3 Tools/unity_cloud_ci.py
+      - name: Upload downloadable Unity Cloud WebGL
+        if: steps.cloud.outputs.webgl_ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonation-unity-cloud-webgl
+          path: build/WebGL/
+          if-no-files-found: error
+      - name: Upload verified Unity Cloud WebGL for GitHub Pages
+        if: steps.cloud.outputs.webgl_ready == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/WebGL/
+
   deploy:
     name: Publish Unity WebGL to GitHub Pages
-    needs: webgl
+    needs: [webgl, cloud-webgl]
+    if: always() && (needs.webgl.result == 'success' || (needs.cloud-webgl.result == 'success' && needs.cloud-webgl.outputs.webgl_ready == 'true'))
     runs-on: ubuntu-latest
     permissions:
       contents: read

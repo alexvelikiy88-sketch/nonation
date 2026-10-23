@@ -1,44 +1,45 @@
-# nonation — состояние онлайн-запуска
+# nonation — состояние WebGL и проверки
 
-**Онлайн-игры Unity пока нет.** Unity Cloud уже запустил компиляцию, но сборки №1 и №2 остановились на ошибках CS0103 (MirCity.cs) и CS0117 (MirUnitySetup.cs). Обе ошибки исправлены в `main`; успешная WebGL-сборка новой ревизии ещё не подтверждена.
+**23.10.26. Публичная работающая Unity WebGL-сборка не подтверждена.**
 
-**Текущая проверенная база (23.10.26):** GitHub Actions проверил 22 C#-файла структурным анализатором (0 ошибок), корректность JSON и три настоящих CC0 FBX Quaternius по SHA-256. Эти проверки НЕ заменяют Unity Editor и WebGL-сборку.
+### Подтверждено
 
-## Что действительно проверено
+- Unity Cloud Build №1: `CS0103` в `MirCity.cs`; исправлено.
+- Unity Cloud Build №2: `CS0117` в `MirUnitySetup.cs`; исправлено.
+- Unity Cloud Build №3: **FAILED**, `Unity Player Export Failure` в конце журнала (строка 7897). Эта строка описывает итог, а не точную первопричину. Детальные предшествующие строки полного Unity-лога ещё не проанализированы.
+- [GitHub Actions №50](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/39994762908): **source-validation SUCCESS** — Python preflight, настоящая .NET 8-компиляция, тесты экономики, HTTP smoke-test запущенного сервера и сверка SHA-256 анимационных FBX. WebGL/Pages в этом запуске **SKIPPED** по причине отсутствия GameCI activation.
+- Unity-сцена теперь находится непосредственно в Git: `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`. Ссылки на `MirGame` и `EditorBuildSettings` зафиксированы GUID.
+- Unity Editor + IL2CPP + WebGL не проверены в текущей среде после архитектурных исправлений. Не считать статические тесты проверкой Unity.
 
-- Unity 6 исходники находятся в `main`: `Assets/`, `Packages/`, `ProjectSettings/`.
-- Source validation успешно завершён в [GitHub Actions](https://github.com/alexvelikiy88-sketch/nonation/actions).
-- GitHub Actions по-прежнему не запускает Unity Editor: нет UNITY_LICENSE/UNITY_SERIAL и учётных данных. Этот сбой относится только к GitHub Actions; в **Unity Cloud** лицензия активируется и C# уже компилировался.
-- Автосборка определена в `.github/workflows/unity-webgl.yml`, публикация — через официальный GitHub Pages deployment action, **только после успешного WebGL**.
-- До очередной Unity Cloud-сборки добавлены защита от отсутствующей сцены, автозаполнение Build Settings и фиксированная версия редактора **6000.0.58f2** (исправление безопасности). Сами изменения ещё не проверены Unity Editor.
-- WebGL-публикация не зависит от файлов с неясными правами: модели Maid, Girl, Floral, Casual, GIGN, Pinkdress, Freya и Honda исключены из публичной цепочки. Quaternius Standard CC0 скачивается на сборке.
+### Один автоматизированный конвейер
 
-## Вариант A: Unity Cloud Build Automation (не нужно устанавливать Unity на ПК)
+`main → GitHub source-validation → Unity WebGL → проверка артефактов → GitHub Pages`
 
-Если требуется только браузер, используйте Unity Cloud:
+Работают два **альтернативных** способа собрать WebGL (не активировать оба одновременно):
 
-1. Откройте [Unity Cloud](https://cloud.unity.com/) → проект `nonation` → **DevOps → Build Automation → Settings → Source Control**.
-2. Подключите GitHub `alexvelikiy88-sketch/nonation`, ветку `main`.
-3. **Configurations → New target → WebGL/Web**, Unity Editor `6000.0.58f2`. Дождитесь проверки редактора в списке поддерживаемых версий; при его отсутствии смена версии требует совместимого изменения `ProjectSettings/ProjectVersion.txt`.
-4. **Advanced → Pre-build script**: `Tools/unity_cloud_prebuild.sh`; **Pre-export method**: `NonationCloudBuildHook.PreExport`.
-5. Для автоматических повторных сборок включите **Auto-build** в настройках цели WebGL. Тогда каждый новый коммит в `main` будет запускать Unity Cloud без ручного нажатия Build. Для GitHub Personal Access Token может потребоваться разрешение управлять **Webhooks**; не отправляйте токен в чат.
-6. Запустите новую **Build** один раз, если Auto-build пока не включён. Unity Editor/IL2CPP может выявить новые ошибки, которые невозможно исключить одной статической проверкой.
-7. После статуса **Success** получите ZIP WebGL-файлов в Build History. Для публичного URL опубликуйте их на [Unity Play](https://play.unity.com/) или другом HTTPS-хостинге. Сам успех облачной сборки не создаёт автоматически публичную ссылку.
+1. **GitHub GameCI:** `UNITY_LICENSE` (или `UNITY_SERIAL`) + `UNITY_EMAIL` и `UNITY_PASSWORD` в GitHub Actions secrets. В этом варианте сам GitHub runner компилирует Unity и публикует WebGL.
+2. **Unity Cloud API v2:** сервисный аккаунт Unity с ролью Build Automation и GitHub secrets `UNITY_SA_KEY_ID`, `UNITY_SA_SECRET_KEY`. При отсутствии активного GameCI CI запускает или отслеживает облачный билд `default-webgl`, проверяет SHA исходного коммита и финальный Success, безопасно скачивает WebGL ZIP и передаёт его в GitHub Pages. Код: `Tools/unity_cloud_ci.py`. **Этот путь подготовлен, но ещё не испытан с реальным Unity service account.**
 
-Этот путь использует лицензирование Unity Cloud на его стороне и не требует локального Unity Editor. Для автоматического переноса результата Unity Cloud на GitHub Pages впоследствии понадобится отдельная авторизованная интеграция.
+Если в Unity Cloud уже включён Auto-build, скрипт **не запускает вторую сборку** — пытается найти и дождаться сборки того же SHA.
 
-## Вариант B: GitHub Actions + Pages
+**Важно:** Unity Cloud и GitHub Actions используют разные механизмы лицензирования. Секреты не нужны в репозитории и не должны попадать в чат.
 
-1. Откройте [Secrets and variables → Actions](https://github.com/alexvelikiy88-sketch/nonation/settings/secrets/actions).
-2. Для Unity Personal, согласно [GameCI Activation](https://game.ci/docs/github/activation/), задайте `UNITY_LICENSE` (содержимое активного ULF), `UNITY_EMAIL`, `UNITY_PASSWORD`. Для Pro вместо `UNITY_LICENSE` используйте `UNITY_SERIAL`. **Ничего из этого нельзя отправлять в чат или коммитить в GitHub.**
-3. Откройте [Settings → Pages](https://github.com/alexvelikiy88-sketch/nonation/settings/pages) → Source = **GitHub Actions**.
-4. Запустите [MIR Unity WebGL → Run workflow](https://github.com/alexvelikiy88-sketch/nonation/actions/workflows/unity-webgl.yml) на `main`. В будущем workflow также запускается автоматически при изменениях игровых исходников.
-5. Проверьте `source-validation`, `webgl` и `Publish Unity WebGL to GitHub Pages` — **все должны быть зелёными**. Только после этого можно делиться ссылкой `https://alexvelikiy88-sketch.github.io/nonation/`.
+### Проверка Unity Cloud target
 
-Для Unity Personal GameCI документирует получение лицензии через Unity Hub. Если установка на компьютер неприемлема, предпочтительнее вариант A.
+- Unity Project: `97c90bad-fafd-4410-8e4f-0ea68deb4232`
+- Organization: `18968527430273`
+- Target ID: `default-webgl`, GitHub `main`
+- Редактор в исходниках: `6000.0.58f2`
+- Pre-build script: `Tools/unity_cloud_prebuild.sh`
+- Pre-export method: `NonationCloudBuildHook.PreExport`
+- Главная сцена: `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`
+- [История сборок Unity Cloud](https://cloud.unity.com/organizations/18968527430273/projects/97c90bad-fafd-4410-8e4f-0ea68deb4232/cloud-build/history)
 
-## Важные ограничения
+Чтобы GitHub Pages принял артефакт, в репозитории должно быть разрешено деплоить через **GitHub Actions**. Предполагаемый URL `https://alexvelikiy88-sketch.github.io/nonation/` нельзя называть работающим до успешного деплоя и браузерного smoke-test.
 
-- Unity Cloud №2 подтвердил компиляцию runtime-сборки C#, но editor-сборка остановилась на CS0117. Исправленный код, генерация сцены и Unity 6000.0.58f2 пока не проверены облачной сборкой.
-- Имеющийся Unity-проект — самостоятельный playable district / vertical slice, а не полный перенос движка V10/V11.
-- При появлении WebGL-ссылки сначала проверьте загрузку сцены, Animator, автомобили, сохранение, мобильный UI и работу браузерных запросов. Только прошедшая проверку ссылка считается рабочей.
+### Не завершено
+
+- Полный журнал первопричины Build №3.
+- Реальная компиляция Unity Editor, WebGL/IL2CPP и проверка производительности в браузере.
+- Профессиональные Humanoid-персонажи, визуал улиц/машин, адаптивный интерфейс.
+- Общее сервер-авторитетное онлайн-состояние: .NET-сервер пока только read-only prototype, Unity-клиент в локальном режиме.

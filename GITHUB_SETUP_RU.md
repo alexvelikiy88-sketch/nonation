@@ -1,33 +1,23 @@
-# nonation: GitHub + Unity 6 WebGL
+# nonation — GitHub + Unity Cloud 6 / WebGL
 
-Repo: https://github.com/alexvelikiy88-sketch/nonation (публичный).
+Публичный репозиторий: https://github.com/alexvelikiy88-sketch/nonation
 
-Основной репозиторий включает C#-исходники, настройки Unity и общедоступные данные.
-Модели с непроверенными лицензиями в него НЕ загружайте: Maid, Floral, Casual, Girl, GIGN,
-Pinkdress, Freya. Honda Civic BTCC 2023 по CC BY-NC-SA несовместима с коммерческим релизом.
+## Актуальное состояние на 23.10.26
 
-На GitHub Actions подготовлена ручная облачная WebGL-сборка
-`.github/workflows/unity-webgl.yml` через game-ci/unity-builder@v4.
-При отсутствии лицензии сборка не будет завершена: настройте GitHub Actions secrets
-в Settings > Secrets and variables > Actions, по документации https://game.ci/docs/github/activation/.
-Никогда не размещайте логин, пароль, сертификат лицензии в исходном коде.
+Unity 6 версия `6000.0.58f2`. Unity Cloud Build №3 завершился с `Unity Player Export Failure`. GitHub Actions №50 успешно проверил общее .NET-ядро, серверный API и Python preflight, **не** выполняя Unity-компиляцию.
 
-После успешной сборки zip с WebGL будет доступен в GitHub Actions > Run > Artifacts.
-Публикация на веб-хостинге/Unity Play ещё НЕ настроена.
-В сборке через GitHub Actions клипы Quaternius CC0 автоматически загружаются и проходят SHA256.
+## Конфигурация сборки
 
-Для Unity Cloud Build Automation подключите GitHub repo `alexvelikiy88-sketch/nonation`, ветку `main`,
-редактор `6000.0.30f1`, целевую платформу WebGL и prebuild/scene generation через `MIR.Editor.MirCloudBuild`.
+- `main`, WebGL, target `default-webgl`.
+- `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` и `ProjectSettings/EditorBuildSettings.asset` находятся в Git.
+- Unity Cloud pre-build script: `Tools/unity_cloud_prebuild.sh`, pre-export: `NonationCloudBuildHook.PreExport`.
+- Для автоматического пути без Unity на ПК используйте Unity service account с разрешением Build Automation и храните пару `UNITY_SA_KEY_ID`/`UNITY_SA_SECRET_KEY` только в GitHub Actions secrets.
+- `Tools/unity_cloud_ci.py` (официальный REST API v2) запускает/отслеживает один билд, ждёт результат, проверяет исходный SHA и структуру WebGL, затем GitHub Actions может опубликовать артефакт в Pages.
+- Альтернатива — GameCI + официальная Unity activation в GitHub secrets. Если она настроена, CI предпочитает GameCI, чтобы не дублировать облачные сборки.
+- В настройках GitHub Pages источник публикации: **GitHub Actions**.
 
-Экспорт Unity Editor/WebGL НЕ проверен в ChatGPT; исходная версия была только static audited.
+**Ни одна из этих интеграций пока не подтверждает успешного Unity WebGL**. Без service account или GameCI activation source-validation зелёная, но игровые сборки пропускаются.
 
-## Unity Cloud Build Automation (без Unity на ПК)
+Исходные модели Maid/Girl/Floral/Casual/GIGN/Pinkdress/Freya/Honda не размещены в публичном репозитории без необходимых прав. Quaternius CC0 загружается со сверкой SHA-256.
 
-- Source Control → Git → GitHub: `https://github.com/alexvelikiy88-sketch/nonation.git`, branch `main` (public).
-- Configure target: WebGL, Editor 6000.0.30f1.
-- Advanced → Pre-build script: `Tools/unity_cloud_prebuild.sh` (скачивает CC0 Quaternius со сверкой SHA-256).
-- Advanced → Pre-export method: `NonationCloudBuildHook.PreExport` (создаёт сцену при импорте в редактор).
-- Configure scene build to `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` if Unity Cloud asks; it is created in pre-export.
-- Build → проверить Console и выдать URL только при успешном статусе.
-
-В текущем сеансе нет доступа к управлению Unity Cloud, поэтому сборка не была запущена.
+Детали: [DEPLOYMENT_STATUS_RU.md](DEPLOYMENT_STATUS_RU.md), [ARCHITECTURE_RU.md](Documentation/ARCHITECTURE_RU.md).
