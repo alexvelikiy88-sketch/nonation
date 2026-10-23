@@ -24,6 +24,23 @@ class CloudBuildTests(unittest.TestCase):
         self.assertTrue(cloud.matches_revision({"changeset": [{"commitId": sha}]}, sha))
         self.assertFalse(cloud.matches_revision({"requestedRevision": "b" * 40}, sha))
 
+    def test_cloud_success_cannot_use_requested_sha_as_publication_proof(self):
+        from unittest.mock import patch
+        sha = "a" * 40
+        with patch.object(cloud, "api", return_value=(
+                200, {"buildStatus": "success", "requestedRevision": sha})), \
+                patch.object(cloud.time, "monotonic", side_effect=[0, 1]):
+            with self.assertRaisesRegex(RuntimeError, "lacks lastBuiltRevision"):
+                cloud.poll_build(12, sha)
+
+    def test_cloud_success_requires_exact_built_commit(self):
+        from unittest.mock import patch
+        sha = "a" * 40
+        with patch.object(cloud, "api", return_value=(
+                200, {"buildStatus": "success", "lastBuiltRevision": sha})), \
+                patch.object(cloud.time, "monotonic", side_effect=[0, 1]):
+            self.assertEqual(cloud.poll_build(12, sha)["lastBuiltRevision"], sha)
+
     def test_zip_unpack_and_validation(self):
         with tempfile.TemporaryDirectory() as work:
             w = Path(work)
@@ -145,6 +162,9 @@ class CloudLogDiagnosisTests(unittest.TestCase):
 
     def test_no_invented_error_when_only_export_failure_exists(self):
         self.assertEqual(cloud.primary_failure_lines("Unity Player Export Failure"), [])
+        self.assertEqual(cloud.primary_failure_lines(
+            "Unity Player Export Failure\\nerror CS9999 after the summary"
+        ), [])
 
     def test_log_redaction_removes_credentials_and_signed_url(self):
         import os
