@@ -11,6 +11,13 @@ public sealed class WorldAuthority : IDisposable
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true, WriteIndented = true };
     // Avoid reading arbitrarily large saved JSON into memory before validation.
     internal const long MaxSaveBytes = 32L * 1024 * 1024;
+
+    // The UTF-8 limit must apply to BOTH reading and writing. Without a write
+    // check a valid running world might persist a file it cannot reopen.
+    internal static bool CanPersistPayload(string payload)
+    {
+        return payload != null && Encoding.UTF8.GetByteCount(payload) <= MaxSaveBytes;
+    }
     private readonly object gate = new();
     // Serializes snapshot capture AND disk replacement across concurrent saves.
     private readonly object saveGate = new();
@@ -267,6 +274,9 @@ public sealed class WorldAuthority : IDisposable
                 RequireActive();
                 content = JsonSerializer.Serialize(world, Json);
             }
+            // Fail closed before touching world.json.tmp or the last good save.
+            if (!CanPersistPayload(content))
+                throw new InvalidDataException("Saved world exceeds the supported 32 MiB limit");
             string? directory = Path.GetDirectoryName(savePath);
             if (directory is not null) Directory.CreateDirectory(directory);
             string temp = savePath + ".tmp";

@@ -861,6 +861,45 @@ static void BoundedTransactionHistoryTests()
 }
 BoundedTransactionHistoryTests();
 
+static void BoundedWorldSaveTests()
+{
+    // Uses UTF-8 bytes, not .NET UTF-16 character count: both limits must
+    // agree on the exact file bytes for the existing no-BOM StreamWriter.
+    string maxBytes = new string('\u00e9', (int)(WorldAuthority.MaxSaveBytes / 2));
+    Check(WorldAuthority.CanPersistPayload(maxBytes),
+        "world save accepts exactly 32 MiB of UTF-8 bytes");
+    Check(!WorldAuthority.CanPersistPayload(maxBytes + "\u00e9") &&
+          !WorldAuthority.CanPersistPayload(null!),
+        "world save rejects oversized or null payloads before file mutation");
+
+    var path = Path.Combine(Path.GetTempPath(),
+        "nonation-write-size-" + Guid.NewGuid().ToString("N") + ".json");
+    var old = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
+        using var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        authority.Save();
+        string durable = File.ReadAllText(path);
+        Check(WorldAuthority.CanPersistPayload(durable) &&
+              new FileInfo(path).Length <= WorldAuthority.MaxSaveBytes,
+            "ordinary saved world stays within the new read/write limit");
+        authority.Advance(.1f);
+        authority.Save();
+        Check(File.Exists(path) && !File.Exists(path + ".tmp"),
+            "saving a bounded snapshot still replaces the canonical file normally");
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", old);
+        if (File.Exists(path)) File.Delete(path);
+        if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+        if (File.Exists(path + ".lock")) File.Delete(path + ".lock");
+    }
+}
+BoundedWorldSaveTests();
+
+
 
 
 
