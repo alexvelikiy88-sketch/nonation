@@ -97,6 +97,12 @@ namespace MIR
             // Saturating at Int32.MaxValue is safer than a wrapped freight ID.
             if(qty<1 || s.jobSequence<=0 || s.jobSequence==int.MaxValue ||
                 s.ActiveFreight()!=null)return null;
+            // Existing terminal freight remains in the saved history. A restored
+            // or externally corrupted sequence must not reuse its order ID.
+            string nextOrderId = "freight-" + s.jobSequence;
+            foreach(var historic in s.freight)
+                if(historic!=null && String.Equals(historic.id,nextOrderId,StringComparison.Ordinal))
+                    return null;
             var from=s.Business(supplierId);var to=s.Business(consumerId);
             if(from==null || to==null || from==to || from.productId!=to.productId ||
                 from.stock<qty || from.stock<0 || to.stock<0 || (long)to.stock+qty>to.capacity)return null;
@@ -107,8 +113,9 @@ namespace MIR
             if(to.cash<cost+fee)return null;
             // Reserve goods and money now. Escrow is stored explicitly and paid only on physical completion.
             to.cash-=cost+fee;from.stock-=qty;
-            var order=new MirFreightOrder{id="freight-"+s.jobSequence++,supplierId=supplierId,consumerId=consumerId,
+            var order=new MirFreightOrder{id=nextOrderId,supplierId=supplierId,consumerId=consumerId,
                 productId=from.productId,quantity=qty,escrow=cost,freightFee=fee,stockReserved=true,status=MirOrderStatus.Created};
+            s.jobSequence++;
             s.freight.Add(order);Log("Заказан реальный груз: "+qty+" ед. "+from.productId);return order;
         }
         // Persisted orders and Unity references may contain inconsistent fields.

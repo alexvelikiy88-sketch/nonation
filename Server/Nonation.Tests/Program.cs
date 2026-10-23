@@ -665,6 +665,84 @@ static void PersistedIdentifierSequenceTests()
 }
 PersistedIdentifierSequenceTests();
 
+static void FreightSequenceReuseTests()
+{
+    var state = MirWorldState.NewWorld();
+    var economy = new MirEconomy(state);
+    long moneyBefore = economy.TotalKnownMoney();
+    var supplier = state.Business("warehouse")!;
+    var buyer = state.Business("market")!;
+    int initialSupplier = supplier.stock;
+    int initialBuyer = buyer.stock;
+    var first = economy.CreateRestock(qty: 3)!;
+    Check(first != null && first.id == "freight-1" &&
+          economy.CancelFreight(first),
+        "first completed freight history remains available after cancellation");
+
+    // Simulate a rolled-back persisted counter. The cancelled order no longer
+    // counts as active, but its ID must never be used again.
+    state.jobSequence = 1;
+    int beforeCount = state.freight.Count;
+    int beforeSupplier = supplier.stock, beforeBuyer = buyer.stock;
+    Check(economy.CreateRestock(qty: 3) == null &&
+          state.jobSequence == 1 && state.freight.Count == beforeCount &&
+          supplier.stock == beforeSupplier && buyer.stock == beforeBuyer &&
+          economy.TotalKnownMoney() == moneyBefore,
+        "rolled-back freight sequence rejects duplicate ID without reserving funds or goods");
+
+    var path = Path.Combine(Path.GetTempPath(),
+        "nonation-freight-sequence-" + Guid.NewGuid().ToString("N") + ".json");
+    var previous = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+    var json = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
+        string corrupted = System.Text.Json.JsonSerializer.Serialize(state, json);
+        File.WriteAllText(path, corrupted);
+        bool rejected = false;
+        try { using var invalid = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+        catch (InvalidDataException) { rejected = true; }
+        Check(rejected && File.ReadAllText(path) == corrupted,
+            "restored freight history rejects rolled-back jobSequence without rewriting save");
+
+        // Restore the previous next-ID. Existing terminal IDs are still
+        // reserved, and a valid new shipment can be completed safely.
+        state.jobSequence = 2;
+        var second = economy.CreateRestock(qty: 3)!;
+        Check(second != null && second.id == "freight-2" &&
+              state.freight.Count == 2 && state.jobSequence == 3,
+            "restored next freight ID is unique across terminal history");
+        Check(economy.SetFreightStage(second, MirOrderStatus.Loading) &&
+              economy.SetFreightStage(second, MirOrderStatus.Driving) &&
+              economy.SetFreightStage(second, MirOrderStatus.Unloading) &&
+              economy.SetFreightStage(second, MirOrderStatus.Returning) &&
+              economy.SetFreightStage(second, MirOrderStatus.Completed),
+            "unique freight order completes its escrow payout once");
+        Check(economy.TotalKnownMoney() == moneyBefore &&
+              supplier.stock == initialSupplier - 3 &&
+              buyer.stock == initialBuyer + 3,
+            "new delivery conserves money and moves exactly three real goods");
+
+        File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(state, json));
+        using var restored = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        var persisted = restored.Snapshot();
+        Check(persisted.freight.Count == 2 &&
+              persisted.freight[0].id != persisted.freight[1].id &&
+              persisted.jobSequence == 3 &&
+              new MirEconomy(persisted).TotalKnownMoney() == moneyBefore,
+            "valid freight history and monotonic sequence survive server startup");
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", previous);
+        if (File.Exists(path)) File.Delete(path);
+        if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+        if (File.Exists(path + ".lock")) File.Delete(path + ".lock");
+    }
+}
+FreightSequenceReuseTests();
+
+
 static void WorldLeaseTests()
 {
     var saveFile = Path.Combine(Path.GetTempPath(),

@@ -163,6 +163,11 @@ public sealed class WorldAuthority : IDisposable
         {
             if (order == null || string.IsNullOrWhiteSpace(order.id) ||
                 !freightIds.Add(order.id) || order.quantity <= 0 ||
+                // Generator issues freight-N, then increments jobSequence.
+                // Reject a saved counter that has moved behind recorded orders.
+                (order.id.StartsWith("freight-", StringComparison.Ordinal) &&
+                 (!int.TryParse(order.id.Substring("freight-".Length), out int orderIndex) ||
+                  orderIndex <= 0 || orderIndex >= state.jobSequence)) ||
                 order.escrow < 0 || order.freightFee < 0 ||
                 !float.IsFinite(order.progress) ||
                 string.IsNullOrWhiteSpace(order.productId) ||
