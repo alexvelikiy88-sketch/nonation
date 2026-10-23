@@ -1,8 +1,10 @@
 """Offline synthetic tests: these do not download or claim real Unity import."""
 import struct
+import tempfile
+from pathlib import Path
 import unittest
 
-from fetch_textures import git_blob_hash, parse_tga_header, resize_tga_box
+from fetch_textures import git_blob_hash, parse_tga_header, resize_tga_box, prepare_textures, TEXTURES
 
 
 def fixture(w=4, h=2, color=(12, 34, 56, 255)):
@@ -35,6 +37,37 @@ class TextureTests(unittest.TestCase):
         blob[22 + 128 * 4:26 + 128 * 4] = bytes((100, 100, 100, 255))
         reduced = resize_tga_box(bytes(blob), 64)
         self.assertEqual(list(reduced[18:22]), [100, 100, 100, 178])
+
+    def test_normal_maps_are_renormalized(self):
+        blob = bytearray(fixture(128, 64, (255, 127, 127, 197)))
+        # One sample points sideways instead of straight out.
+        blob[18:22] = bytes((127, 127, 255, 197))
+        result = resize_tga_box(bytes(blob), 64, normal_map=True)
+        b, g, r, alpha = result[18:22]
+        self.assertEqual(alpha, 197)
+        vector = [(r - 127.5) / 127.5, (g - 127.5) / 127.5, (b - 127.5) / 127.5]
+        self.assertAlmostEqual(sum(v*v for v in vector), 1.0, delta=.03)
+
+    def test_stage_all_textures_before_commit(self):
+        with tempfile.TemporaryDirectory() as work:
+            output = Path(work) / 'Textures'
+            attempts = []
+            def fails_halfway(name, sha):
+                attempts.append(name)
+                if len(attempts) == 3:
+                    raise ValueError('injected download failure')
+                return fixture(128, 64)
+            with self.assertRaisesRegex(ValueError, 'injected download failure'):
+                prepare_textures(output, 64, downloader=fails_halfway)
+            self.assertFalse(output.exists(), 'partial downloads must not be installed')
+            result = prepare_textures(output, 64, downloader=lambda name, sha: fixture(128, 64))
+            self.assertEqual(set(result['textures']), set(TEXTURES))
+            self.assertTrue((output / 'textures_manifest.json').is_file())
+            for name in TEXTURES:
+                self.assertEqual(parse_tga_header((output / name).read_bytes())[:2], (64, 32))
+            import json
+            manifest = json.loads((output / 'textures_manifest.json').read_text())
+            self.assertEqual(manifest['upstream_commit'], result['upstream_commit'])
 
     def test_bad_headers_fail_closed(self):
         with self.assertRaisesRegex(ValueError, 'header missing'):
