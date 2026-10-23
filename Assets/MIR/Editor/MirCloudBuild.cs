@@ -7,27 +7,28 @@ using UnityEngine;
 
 namespace MIR.Editor
 {
-    // Cloud / GameCI build entry point.
-    // Requires MIR.Editor.MirUnitySetup and the rest of the MIR Unity source.
+    /// <summary>GameCI and cloud entry point. Always generates the district before building.</summary>
     public static class MirCloudBuild
     {
         public static void Build()
         {
             MirUnitySetup.PrepareForCloud();
             const string scene = "Assets/MIR/Scenes/MIR_PlayableDistrict.unity";
-            if (!File.Exists(scene))
-                throw new Exception("MIR scene missing after setup: " + scene);
-            const string output = "build/WebGL";
+            if (!File.Exists(scene)) throw new Exception("MIR scene was not generated: " + scene);
+            var output = Path.Combine("build", "WebGL");
             Directory.CreateDirectory(output);
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
-                scenes = new [] { scene },
+            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { scene },
                 locationPathName = output,
                 target = BuildTarget.WebGL,
                 options = BuildOptions.None
-            });
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)
-                throw new Exception("MIR WebGL build failed: " + report.summary.result);
-            Debug.Log("MIR WebGL ready: " + Path.GetFullPath(output));
+                throw new Exception("MIR WebGL build failed: " + report.summary.result + " (" + report.summary.totalErrors + " errors)");
+            Debug.Log("MIR WebGL output: " + Path.GetFullPath(output));
         }
     }
 }
