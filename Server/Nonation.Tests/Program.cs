@@ -878,16 +878,39 @@ static void BoundedWorldSaveTests()
     try
     {
         Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
-        using var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
-        authority.Save();
-        string durable = File.ReadAllText(path);
-        Check(WorldAuthority.CanPersistPayload(durable) &&
-              new FileInfo(path).Length <= WorldAuthority.MaxSaveBytes,
-            "ordinary saved world stays within the new read/write limit");
-        authority.Advance(.1f);
-        authority.Save();
-        Check(File.Exists(path) && !File.Exists(path + ".tmp"),
-            "saving a bounded snapshot still replaces the canonical file normally");
+        using (var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance))
+        {
+            authority.Save();
+            string durable = File.ReadAllText(path);
+            Check(WorldAuthority.CanPersistPayload(durable) &&
+                  new FileInfo(path).Length <= WorldAuthority.MaxSaveBytes,
+                "ordinary saved world stays within the new read/write limit");
+            authority.Advance(.1f);
+            authority.Save();
+            durable = File.ReadAllText(path);
+            Check(File.Exists(path) && !File.Exists(path + ".tmp"),
+                "saving a bounded snapshot still replaces the canonical file normally");
+
+            // There is intentionally no public write API on WorldAuthority.
+            // Test-only reflection creates the oversized in-memory snapshot,
+            // exercising Save() failure and proving last durable bytes survive.
+            var privateWorld = typeof(WorldAuthority).GetField("world",
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic);
+            var live = (MirWorldState)(privateWorld?.GetValue(authority) ??
+                throw new Exception("Cannot inspect authoritative world for size regression"));
+            live.events.Add(new MirEvent
+            {
+                minute = live.gameMinutes,
+                text = new string('X', (int)WorldAuthority.MaxSaveBytes)
+            });
+            bool refused = false;
+            try { authority.Save(); }
+            catch (InvalidDataException) { refused = true; }
+            Check(refused && File.ReadAllText(path) == durable &&
+                  !File.Exists(path + ".tmp"),
+                "over-budget Save fails before staging and preserves previous good world");
+        }
     }
     finally
     {
