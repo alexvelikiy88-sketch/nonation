@@ -8,8 +8,8 @@
 - **База до старта:** `f909e47ce764911281eee2b97f9b6568a83779d6`
 - **PR:** [#1 — Backend invariants and spectator contract (draft)](https://github.com/alexvelikiy88-sketch/nonation/pull/1)
 - **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests), `5b9182a428e0d748cf0abfb961f15524dd8d82bb` (stock/counter overflow), `6471209060155f6d3a389c27d35c667149bfe81c` (freight lifecycle), `6a396a61f38b74b78c30ac1202f264a75d6b577a` (serial save)
-- **Достоверные тесты по собственной работе:** [PR Validation #43](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007776559) **SUCCESS** на `6a396a61`: .NET 8 доменные и серверные тесты, включая freight и concurrent saves; server build, HTTP/CORS smoke. Unity C#/WebGL не проверялись
-- **Блокеры:** нет локального .NET SDK; фактический .NET CI успешен; Unity Editor, WebGL, браузер не проверены. Открыт CROSS-OWNER REQUEST на отделение remote-времени. Integration Guard [#12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) **FAIL** из-за ложного определения `TASKS.md` как изменения агента при сравнении устаревшего PR base и head; требуется исправление инструмента Manager. .NET CI при этом SUCCESS
+- **Достоверные тесты по собственной работе:** [PR Validation #61](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669218) **SUCCESS** на `1884236b`: world-load integrity tests, NPC, conserved money, .NET build, HTTP smoke. [Integration Guard](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669212) SUCCESS. Текущий новый ID-overflow тест ожидает CI; Unity/WebGL не проверялись
+- **Блокеры:** нет локального .NET SDK; GitHub CI подтверждает .NET tests, build и HTTP smoke; Unity Editor/WebGL/browser не проверены. CROSS-OWNER REQUEST на отделение remote-времени остаётся. Ложная блокировка Guard исправлена Manager и повторный Guard прошёл на SHA `1884236b`.
 
 ## Журнал работы
 
@@ -30,6 +30,9 @@
 | 23.10.26 | Интеграционный Guard на обновлённом PR #1 обнаружил `TASKS.md` из-за сравнительного диапазона base…head, хотя в собственных коммитах AGENT 02 этот файл не изменялся | [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) | `14/14` тестов самого Guard прошли; итог **FAIL** в шаге проверки владельца из-за stale base. В `Tools/pr_integration_guard.py` используется `git diff base head`, нужно сравнивать с merge-base. Менеджерский блокер | Unity/WebGL; Guard PASS после фикса Manager |
 
 | 24.10.26 | Добавлена строгая проверка сохранённого доменного мира в `WorldAuthority.Load`: неотрицательные счета и товары, уникальность счётных идентификаторов, транзакций и заказов, корректный escrow/state по freight, не более одного активного заказа. При нарушении сервер не запускает неконсистентную экономику и не перезаписывает JSON. 14 сценариев `SavedWorldIntegrityTests`, включая успешное возобновление нормальной поставки | Код и тесты в текущем PR #1, SHA этого коммита см. историю ветки | Статический аудит, CI для нового SHA ожидается | Unity/WebGL, внешняя HTTPS-среда, power loss |
+
+| 24.10.26 | Проверка финансово некорректных сохранений `WorldAuthority.Load`, отказ без порчи канонического JSON и восстановление допустимой поставки | `1884236bd1239f328810a74415631297eec19a82` | [CI #61](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669218) SUCCESS: все `SavedWorldIntegrityTests`, NPC movement, money invariant, .NET build и HTTP; [Guard](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669212) SUCCESS | Unity Editor/WebGL/browser |
+| 24.10.26 | Защита счётчиков `transactionSequence` и `jobSequence` от `Int32` wrap: блокировка новых автоматически генерируемых транзакций и поставок без изменений денег/товаров; граничные тесты | Код и тесты в новом коммите PR #1 | Тесты написаны, новый CI ожидается | Unity/WebGL и проверка на кодовом SHA |
 
 ## Последнее проверенное состояние
 
@@ -82,7 +85,7 @@
 
 ## Следующий блок AGENT 02 — 24.10.26
 
-Завершить проверку [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) в обновлённом менеджерском Integration Guard (использует merge-base), сверить реальные логи нового .NET CI: тесты загрузки, движение NPC, сохранение денег, server build, HTTP smoke. Новая валидация сохранений действует только при старте `WorldAuthority` и не меняет формат JSON (`MirWorldState.version=1`). Неконсистентные или вручную модифицированные сохранения теперь отклоняются без исправления на лету; требуется review на совместимость с историческими мирами. После CI — обновить отчёт SHA/результатами и отдельно проверить будущую защиту `transactionSequence` / `jobSequence` от исчерпания и ограничения сетевого ответа до буферизации.
+Валидатор загрузки прошёл [CI #61](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669218), в том числе сохранение денег и движение NPC, и обновлённый Guard прошёл на том же SHA. Для следующего блока проверить новые тесты `PersistedIdentifierSequenceTests` в GitHub Actions и затем приступить к очередному узкому backend-изменению. Новая валидация сохранений действует только при старте `WorldAuthority` и не меняет формат JSON (`MirWorldState.version=1`). Неконсистентные или вручную модифицированные сохранения теперь отклоняются без исправления на лету; требуется review на совместимость с историческими мирами. После CI — обновить отчёт SHA/результатами и отдельно проверить будущую защиту `transactionSequence` / `jobSequence` от исчерпания и ограничения сетевого ответа до буферизации.
 
 ## Следующее конкретное действие
 

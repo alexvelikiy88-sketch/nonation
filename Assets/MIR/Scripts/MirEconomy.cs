@@ -79,7 +79,10 @@ namespace MIR
         }
         public MirFreightOrder CreateRestock(string consumerId="market",string supplierId="warehouse",int qty=12)
         {
-            if(qty<1 || s.ActiveFreight()!=null)return null;
+            // Check ID availability before reserving goods or escrow.
+            // Saturating at Int32.MaxValue is safer than a wrapped freight ID.
+            if(qty<1 || s.jobSequence<=0 || s.jobSequence==int.MaxValue ||
+                s.ActiveFreight()!=null)return null;
             var from=s.Business(supplierId);var to=s.Business(consumerId);
             if(from==null || to==null || from==to || from.productId!=to.productId ||
                 from.stock<qty || from.stock<0 || to.stock<0 || (long)to.stock+qty>to.capacity)return null;
