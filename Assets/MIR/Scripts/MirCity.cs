@@ -207,8 +207,11 @@ namespace MIR
                 if((i+j)%2==0)Tree(new Vector3(i*40+13,.2f,j*40+13),.8f);
                 if((i+j)%3==0)Lamp(new Vector3(i*40+8,0,j*40+8),i==-1&&j==1);
             }
-            foreach(var xy in new[]{new Vector3(11,0,-31),new Vector3(-53,0,-35),new Vector3(71,0,32)})
-                Vehicles.Add(MirVehicle.Spawn(xy,false,i==0));
+            // Keep an explicit index: the first parked vehicle may use the optional
+            // licensed art if supplied locally; public builds use the standard mesh.
+            var parkingSpawns=new[]{new Vector3(11,0,-31),new Vector3(-53,0,-35),new Vector3(71,0,32)};
+            for(int i=0;i<parkingSpawns.Length;i++)
+                Vehicles.Add(MirVehicle.Spawn(parkingSpawns[i],false,i==0));
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
