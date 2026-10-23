@@ -12,7 +12,9 @@ namespace MIR
         float previousWorkPeriod = -1;
         public MirEconomy(MirWorldState state)
         {
-            s = state;
+            s = state ?? throw new ArgumentNullException(nameof(state));
+            // Resume from the current production period. A server restart is NOT a new shift.
+            previousWorkPeriod = (float)Math.Floor(s.gameMinutes / 360f);
             foreach (MirTransaction t in s.transactions) if (!String.IsNullOrEmpty(t.id)) seen.Add(t.id);
         }
         public int Balance(string id)
@@ -33,15 +35,17 @@ namespace MIR
         public bool Transfer(string id,string from,string to,int amount,string reason)
         {
             if(String.IsNullOrEmpty(id) || String.IsNullOrEmpty(to) || String.IsNullOrEmpty(from) || amount<=0)return false;
-            if(seen.Contains(id))return false;
-            if(Balance(from)<amount || Balance(to)<0)return false;
+            if(from==to || seen.Contains(id))return false;
+            int source=Balance(from), recipient=Balance(to);
+            if(source<amount || recipient<0 || (long)recipient+amount>int.MaxValue)return false;
             Credit(from,-amount);Credit(to,amount);
             var t=new MirTransaction{id=id,from=from,to=to,amount=amount,cause=reason,minute=s.gameMinutes};
             s.transactions.Add(t);seen.Add(id);return true;
         }
         public bool BuyFood(MirCitizen buyer, MirBusiness store)
         {
-            if(buyer==null || store==null || store.stock<1 || store.price<1)return false;
+            if(buyer==null || store==null || s.Citizen(buyer.id)!=buyer || s.Business(store.id)!=store ||
+                store.stock<1 || store.price<1 || buyer.inventoryFood==int.MaxValue)return false;
             string id=s.NewId("purchase");
             if(!Transfer(id,buyer.id,store.id,store.price,"purchased: "+store.productId))return false;
             store.stock--; buyer.inventoryFood++;
@@ -49,7 +53,7 @@ namespace MIR
         }
         public bool Eat(MirCitizen person)
         {
-            if(person==null || person.inventoryFood<=0)return false;
+            if(person==null || s.Citizen(person.id)!=person || person.inventoryFood<=0)return false;
             person.inventoryFood--;
             person.satiety=Math.Min(100f,person.satiety+35f);
             person.mood=Math.Min(100f,person.mood+2f);
@@ -57,7 +61,7 @@ namespace MIR
         }
         public bool Work(MirCitizen worker)
         {
-            if(worker==null || s.gameMinutes<worker.nextWorkMinute)return false;
+            if(worker==null || s.Citizen(worker.id)!=worker || s.gameMinutes<worker.nextWorkMinute)return false;
             var employer=s.Business(worker.workplaceId);
             if(employer==null || employer.cash<1200 || worker.energy<25)return false;
             string id=s.NewId("salary");
@@ -73,10 +77,14 @@ namespace MIR
         }
         public MirFreightOrder CreateRestock(string consumerId="market",string supplierId="warehouse",int qty=12)
         {
-            if(s.ActiveFreight()!=null)return null;
+            if(qty<1 || s.ActiveFreight()!=null)return null;
             var from=s.Business(supplierId);var to=s.Business(consumerId);
-            if(from==null || to==null || from.stock<qty || qty<1 || to.stock+qty>to.capacity)return null;
-            int unitPrice=Math.Max(1,from.price); int cost=unitPrice*qty;int fee=qty*15;
+            if(from==null || to==null || from==to || from.productId!=to.productId ||
+                from.stock<qty || from.stock<0 || to.stock<0 || (long)to.stock+qty>to.capacity)return null;
+            long cost64=(long)Math.Max(1,from.price)*qty;
+            long fee64=(long)qty*15;
+            if(cost64+fee64>int.MaxValue || cost64<=0 || fee64<=0)return null;
+            int cost=(int)cost64,fee=(int)fee64;
             if(to.cash<cost+fee)return null;
             // Reserve goods and money now. Escrow is stored explicitly and paid only on physical completion.
             to.cash-=cost+fee;from.stock-=qty;
@@ -86,8 +94,8 @@ namespace MIR
         }
         public bool SetFreightStage(MirFreightOrder o,MirOrderStatus next)
         {
-            if(o==null)return false;
-            if(o.status==next)return false;
+            if(o==null || !s.freight.Contains(o) || o.status==next)return false;
+            if(o.status<=MirOrderStatus.Driving && (!o.stockReserved || o.quantity<=0))return false;
             bool okay= (o.status==MirOrderStatus.Created && next==MirOrderStatus.Loading)
                 ||(o.status==MirOrderStatus.Loading && next==MirOrderStatus.Driving)
                 ||(o.status==MirOrderStatus.Driving && next==MirOrderStatus.Unloading)
@@ -97,11 +105,14 @@ namespace MIR
             if(next==MirOrderStatus.Unloading && !o.paid)
             {
                 MirBusiness buyer=s.Business(o.consumerId),seller=s.Business(o.supplierId);
-                if(buyer==null||seller==null||buyer.stock+o.quantity>buyer.capacity)return false;
+                if(buyer==null||seller==null||!o.stockReserved || o.quantity<=0 ||
+                    o.escrow<0 || o.freightFee<0 || (long)buyer.stock+o.quantity>buyer.capacity ||
+                    (long)seller.cash+o.escrow>int.MaxValue ||
+                    (long)s.cityTreasury+o.freightFee>int.MaxValue)return false;
                 buyer.stock+=o.quantity;
                 seller.cash+=o.escrow;
                 s.cityTreasury+=o.freightFee;
-                o.escrow=0;o.freightFee=0;o.paid=true;
+                o.escrow=0;o.freightFee=0;o.paid=true;o.stockReserved=false;
                 Log("Груз прибыл: "+buyer.name+" получил "+o.quantity+" ед.");
             }
             o.status=next;
@@ -109,9 +120,12 @@ namespace MIR
         }
         public bool CancelFreight(MirFreightOrder o)
         {
-            if(o==null||o.paid||o.status==MirOrderStatus.Cancelled||o.status==MirOrderStatus.Completed)return false;
+            if(o==null || !s.freight.Contains(o) || !o.stockReserved || o.paid ||
+                o.status==MirOrderStatus.Cancelled || o.status==MirOrderStatus.Completed)return false;
             MirBusiness supplier=s.Business(o.supplierId),buyer=s.Business(o.consumerId);
-            if(supplier==null||buyer==null)return false;
+            if(supplier==null||buyer==null||o.quantity<=0||o.escrow<0||o.freightFee<0||
+                (long)supplier.stock+o.quantity>supplier.capacity ||
+                (long)buyer.cash+o.escrow+o.freightFee>int.MaxValue)return false;
             supplier.stock+=o.quantity;buyer.cash+=o.escrow+o.freightFee;
             o.escrow=0;o.freightFee=0;o.stockReserved=false;o.status=MirOrderStatus.Cancelled;
             Log("Грузовой заказ отменён, товар и деньги возвращены.");return true;
@@ -127,7 +141,7 @@ namespace MIR
             // Work is performed only for an assigned, present NPC via MirNpcAgent; never batch free wages here.
             // Limited real seed/water resources. No magical refilling of shops.
             int period=(int)Math.Floor(s.gameMinutes/360f);
-            if(period!=(int)previousWorkPeriod)
+            if(period>(int)previousWorkPeriod)
             {
                 previousWorkPeriod=period;
                 var farm=s.Business("farm");

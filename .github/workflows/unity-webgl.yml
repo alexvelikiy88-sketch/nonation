@@ -50,6 +50,16 @@ jobs:
         run: dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release
       - name: Compile authoritative server
         run: dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo
+      - name: Smoke-test running backend HTTP and snapshot persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          export NONATION_LISTEN_URL=http://127.0.0.1:5180
+          export NONATION_WORLD_FILE="${RUNNER_TEMP}/nonation-smoke-world.json"
+          dotnet Server/Nonation.Server/bin/Release/net8.0/Nonation.Server.dll &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          python3 Tools/smoke_server.py
       - name: Cache verified CC0 humanoid animation packs
         uses: actions/cache@v4
         with:
