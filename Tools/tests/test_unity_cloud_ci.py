@@ -190,8 +190,8 @@ class UnityCloudV2ContractTests(unittest.TestCase):
         from unittest.mock import Mock, patch
         response = self._response(200, b"Assets/Test.cs(1): error CS0117")
         opener = SimpleNamespace(open=Mock(return_value=response))
-        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
-                patch.object(cloud, "build_opener", return_value=opener), \\
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
                 patch.object(cloud, "urlopen") as storage:
             text = cloud.read_cloud_log(3)
             self.assertIn("error CS0117", text)
@@ -208,8 +208,8 @@ class UnityCloudV2ContractTests(unittest.TestCase):
         response = self._response(202, json.dumps({"url": signed}).encode())
         opener = SimpleNamespace(open=Mock(return_value=response))
         storage = self._response(200, b"first real error\nother line\n")
-        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
-                patch.object(cloud, "build_opener", return_value=opener), \\
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
                 patch.object(cloud, "urlopen", return_value=storage) as downloader:
             self.assertIn("first real error", cloud.read_cloud_log(3))
             downloader.assert_called_once_with(signed, timeout=60)
@@ -225,8 +225,8 @@ class UnityCloudV2ContractTests(unittest.TestCase):
             {"Location": signed}, BytesIO(b"")
         )
         opener = SimpleNamespace(open=Mock(side_effect=redirect))
-        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
-                patch.object(cloud, "build_opener", return_value=opener), \\
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
                 patch.object(cloud, "urlopen", return_value=self._response(
                     200, b"Unity Editor imported the scene"
                 )) as downloader:
@@ -241,8 +241,8 @@ class UnityCloudV2ContractTests(unittest.TestCase):
         opener = SimpleNamespace(open=Mock(return_value=self._response(
             202, json.dumps({"url": internal}).encode()
         )))
-        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
-                patch.object(cloud, "build_opener", return_value=opener), \\
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
                 patch.object(cloud, "urlopen") as downloader:
             with self.assertRaisesRegex(RuntimeError, "authenticated API"):
                 cloud.read_cloud_log(3)
