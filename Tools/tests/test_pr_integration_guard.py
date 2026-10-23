@@ -144,6 +144,55 @@ class OwnershipTests(unittest.TestCase):
             guard.parse_ownership("## no agent ownership table")
 
 
+    def test_manager_report_import_requires_exact_owner_revision_marker(self):
+        path = guard.REPORTS["agent/backend-simulation"]
+        sha = "a" * 40
+        good_marker = (f"AGENT-REPORT-IMPORT: {path} FROM "
+                       f"agent/backend-simulation@{sha}")
+        ch = [guard.Change("M", path)]
+        bad, _ = guard.check_changes(
+            ch, "manager/full-integration-20261024", "", self.rules)
+        valid, _ = guard.check_changes(
+            ch, "manager/full-integration-20261024", good_marker, self.rules)
+        other, _ = guard.check_changes(
+            ch, "manager/not-integration", good_marker, self.rules)
+        self.assertTrue(bad)
+        self.assertEqual(valid, [])
+        self.assertTrue(other)
+
+    def test_verified_agent_report_import_preserves_author_body(self):
+        path = guard.REPORTS["agent/backend-simulation"]
+        sha = "a" * 40
+        marker = f"AGENT-REPORT-IMPORT: {path} FROM agent/backend-simulation@{sha}"
+        source = b"Original employee report\n"
+        appendix = (b"\n## INTEGRATION HANDOFF - CHAT 04 / Manager\n"
+                    b"Author: CHAT 04 / Manager\nReviewed results.\n")
+        head = "b" * 40
+        def fake_git(*args):
+            if args[0] == "merge-base":
+                return b""
+            if args[:2] == ("show", f"{sha}:{path}"):
+                return source
+            if args[:2] == ("show", f"{head}:{path}"):
+                return source + appendix
+            raise AssertionError(args)
+        with mock.patch.object(guard, "git", side_effect=fake_git):
+            self.assertEqual(guard.verify_report_imports(
+                [guard.Change("M", path)], "manager/full-integration-20261024",
+                marker, head), [])
+            self.assertEqual(guard.verify_report_imports(
+                [guard.Change("M", path)], "manager/ordinary-fix", marker, head), [])
+        def forged(*args):
+            if args[0] == "merge-base":
+                return b""
+            if args[:2] == ("show", f"{sha}:{path}"):
+                return source
+            return b"Fake employee report\n"
+        with mock.patch.object(guard, "git", side_effect=forged):
+            self.assertTrue(guard.verify_report_imports(
+                [guard.Change("M", path)], "manager/full-integration-20261024",
+                marker, head))
+
     def test_merge_base_ignores_manager_tasks_merged_into_agent(self):
         # Reproduces GitHub's stale pull_request.base.sha on old agent PRs.
         with tempfile.TemporaryDirectory() as directory:
