@@ -8,7 +8,7 @@ static void Check(bool success, string description)
 var state = MirWorldState.NewWorld();
 Check(state.citizens.Count == 40, "player and 39 NPCs");
 var economy = new MirEconomy(state);
-int moneyBefore = economy.TotalKnownMoney();
+long moneyBefore = economy.TotalKnownMoney();
 var hero = state.Citizen("player-001")!;
 var market = state.Business("market")!;
 int stockBefore = market.stock;
@@ -59,7 +59,8 @@ static void InvariantAndRestartTests()
         productId = "bread", quantity = 99999, escrow = 100, freightFee = 200,
         stockReserved = true, status = MirOrderStatus.Driving
     };
-    int moneyBefore = loaded.TotalKnownMoney(), stockBefore = shop.stock;
+    long moneyBefore = loaded.TotalKnownMoney();
+    int stockBefore = shop.stock;
     Check(!loaded.SetFreightStage(forgedOrder, MirOrderStatus.Unloading) && !loaded.CancelFreight(forgedOrder),
         "nonexistent freight cannot mint goods or cash");
     Check(moneyBefore == loaded.TotalKnownMoney() && stockBefore == shop.stock, "forged order has no side effects");
@@ -92,6 +93,34 @@ static void InvariantAndRestartTests()
         "server restart does not duplicate manufacturing output");
 }
 InvariantAndRestartTests();
+
+static void WideLedgerTests()
+{
+    var world = MirWorldState.NewWorld();
+    // All account balances are valid int values, but their sum no longer fits into int.
+    world.externalMoney = int.MaxValue;
+    var economy = new MirEconomy(world);
+    long expected = (long)world.cityTreasury + world.externalMoney;
+    foreach (var citizen in world.citizens) expected += citizen.cash;
+    foreach (var business in world.businesses) expected += business.cash;
+    Check(expected > int.MaxValue, "valid world can have more money than Int32.MaxValue");
+    Check(economy.TotalKnownMoney() == expected,
+        "ledger aggregation keeps full 64-bit total without wrapping");
+
+    var payer = world.Citizen("player-001")!;
+    var market = world.Business("market")!;
+    long before = economy.TotalKnownMoney();
+    Check(economy.Transfer("wide-ledger-transfer", payer.id, market.id, 100, "wide ledger regression"),
+        "wide-ledger world can perform a valid transfer");
+    Check(economy.TotalKnownMoney() == before,
+        "wide-ledger transfer conserves every credit");
+    var resumed = new MirEconomy(world);
+    Check(resumed.TotalKnownMoney() == before &&
+          !resumed.Transfer("wide-ledger-transfer", payer.id, market.id, 100, "replay"),
+        "wide-ledger conservation and transfer idempotency survive reinitialization");
+}
+WideLedgerTests();
+
 
 static void HeadlessPopulationTests()
 {

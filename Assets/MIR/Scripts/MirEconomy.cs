@@ -155,12 +155,13 @@ namespace MIR
             s.events.Add(new MirEvent{minute=s.gameMinutes,text=msg});
             if(s.events.Count>80)s.events.RemoveRange(0,s.events.Count-80);
         }
-        public int TotalKnownMoney()
+        public long TotalKnownMoney()
         {
-            int total=s.cityTreasury+s.externalMoney;
+            // Every account uses 32-bit credits, but the total of all accounts can exceed Int32.MaxValue.
+            long total=(long)s.cityTreasury+s.externalMoney;
             foreach(var p in s.citizens)total+=p.cash;
             foreach(var b in s.businesses)total+=b.cash;
-            foreach(var o in s.freight)total+=o.escrow+o.freightFee;
+            foreach(var o in s.freight)total+=(long)o.escrow+o.freightFee;
             return total;
         }
     }
