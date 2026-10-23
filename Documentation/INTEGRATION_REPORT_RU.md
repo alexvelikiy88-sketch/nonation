@@ -4,6 +4,10 @@
 **Управляющий PR:** [#19](https://github.com/alexvelikiy88-sketch/nonation/pull/19)  
 **Исходный интеграционный коммит:** `52d3bd8a37b5fa507789db6d476e29cd54a6300f` (Git tree `0368e27d6b2e705926449d4ab51b6d2fdde6032a`).
 
+**Финальная интеграция:** [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) **MERGED** с сохранением родителей, итоговый `main` SHA `a75602df4ef56e95709a8472eba62d879795c977`. [Cross-Branch CI на этом SHA](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804529) **SUCCESS**. Не путать успешную Unity Cloud #4 на Unity-only SHA со сборкой итогового `main`.
+
+**Публикационный блокер:** [старая main WebGL job](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462) SUCCESS, но Pages job FAIL: `Get Pages site failed — Not Found`. Source `GitHub Actions` ещё не выбран в Settings → Pages. Включение требует административного действия владельца; не обходить его новыми секретами. Текущий объединённый Cloud [#40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542) — отдельная проверка exact SHA.
+
 ## Неизменяемые исходные снимки
 
 | Источник | Git commit | Объём |
