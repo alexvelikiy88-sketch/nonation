@@ -11,6 +11,13 @@ import build_skinned_lods as lod
 
 
 class BlenderPipelineOfflineTests(unittest.TestCase):
+    def test_real_repository_assets_match_pinned_microsoft_source(self):
+        """Real non-mocked MIT FBX/6 TGA integrity check for every PR CI run."""
+        folder = Path(__file__).resolve().parent
+        result = lod.verify_source(folder, folder / lod.SOURCE_NAME)
+        self.assertEqual(result["source_blob_sha1"], lod.SOURCE_BLOB_SHA1)
+        self.assertEqual(len(result["texture_manifest_sha256"]), 64)
+
     def test_known_git_blob(self):
         self.assertEqual(lod.git_blob_sha1(b"test\n"),
                          "9daeafb9864cf43055ae93beb0afd6c7d144bfa4")
