@@ -80,7 +80,7 @@ jobs:
           echo "SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
           echo "SCOPE=$scope" >> "$GITHUB_ENV"
           artifact="$(gh api "repos/$REPOSITORY_NAME/actions/runs/$source_run/artifacts?per_page=100" \
-            --jq '[.artifacts[] | select(.expired == false and (.name == "nonation-unity-cloud-webgl" or .name == "nonation-unity-webgl" or .name == "nonation-agent01-preview")) | .name] | first // empty')"
+            --jq '[.artifacts[] | select(.expired == false and (.name == "nonation-unity-cloud-webgl" or .name == "nonation-unity-webgl" or .name == "nonation-agent01-preview")) | .name] | .[0] // empty')"
           if [ -z "$artifact" ]; then
             echo "::warning::No verified WebGL artifact uploaded by source run $source_run"
             echo "eligible=false" >> "$GITHUB_OUTPUT"
