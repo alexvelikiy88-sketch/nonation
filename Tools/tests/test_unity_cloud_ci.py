@@ -60,5 +60,47 @@ class CloudBuildTests(unittest.TestCase):
                 cloud.unpack_webgl(archive, w / "out")
             self.assertFalse((w / "outside.txt").exists())
 
+class UnityDownloadLinkTests(unittest.TestCase):
+    def test_project_scoped_v2_artifact(self):
+        url, internal = cloud.artifact_link(
+            f"/v2/orgs/{cloud.ORG}/projects/{cloud.PROJECT}/buildtargets/"
+            f"{cloud.TARGET}/builds/3/download"
+        )
+        self.assertTrue(internal)
+        self.assertTrue(url.startswith(cloud.API))
+
+    def test_legacy_project_scoped_artifact(self):
+        url, internal = cloud.artifact_link(
+            f"/api/v1/orgs/{cloud.ORG}/projects/{cloud.PROJECT}/buildtargets/"
+            f"{cloud.TARGET}/builds/3/download"
+        )
+        self.assertTrue(internal)
+        self.assertIn("/api/v1/", url)
+
+    def test_external_signed_storage_without_unity_credentials(self):
+        link, internal = cloud.artifact_link(
+            "https://storage.googleapis.com/example/archive.zip?Signature=sample"
+        )
+        self.assertFalse(internal)
+        self.assertEqual(cloud.signed_url({"href": link}), link)
+
+    def test_cross_project_and_unsafe_scheme_are_rejected(self):
+        for address in (
+            "/v2/orgs/another-org/projects/other/buildtargets/no/builds/1/download",
+            "http://storage.googleapis.com/example.zip",
+            "https://malicious.invalid@storage.googleapis.com/example.zip",
+        ):
+            with self.subTest(address=address), self.assertRaises(ValueError):
+                cloud.artifact_link(address)
+
+    def test_303_json_url_result_without_network(self):
+        from unittest.mock import patch
+        link = f"/v2/orgs/{cloud.ORG}/projects/{cloud.PROJECT}/buildtargets/{cloud.TARGET}/builds/3/download"
+        signed = "https://storage.googleapis.com/archive.zip?token=shortlived"
+        with patch.object(cloud, "authenticated_download_link", return_value=signed) as mocked:
+            self.assertEqual(cloud.signed_url({"href": link}), signed)
+            mocked.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

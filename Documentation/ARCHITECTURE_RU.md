@@ -47,3 +47,5 @@
 Ограничения: навигация пока основана на простой сетке тротуаров без NavMesh, толпы, динамических препятствий и серверной физики транспорта. Клиент Unity в текущем WebGL vertical slice продолжает собственную офлайн-симуляцию; реальный мультиплеер и визуальная синхронизация серверных NPC ещё не подключены. Сервер не принимает команды игроков извне.
 
 Runtime-модуль `com.unity.modules.unitywebrequest` включён в `Packages/manifest.json`, так как сеть Unity WebGL использует `UnityEngine.Networking.UnityWebRequest`. Эта проверка относится к исходникам; успешность сборки с Editor и поддержка CORS в конкретном размещении ещё не подтверждены.
+
+Unity Build Automation может отдавать прямой URL внешнего HTTPS-хранилища, относительную ссылку v2 либо legacy `/api/v1` ссылку. `Tools/unity_cloud_ci.py` обрабатывает эти варианты отдельно: секрет Unity не передаётся внешнему хранилищу, внутренний Unity API ограничен текущим project/build target. Скачивание пока протестировано только автономными unit-тестами, не с реальным Unity service account. [API v2](https://docs.unity.com/en-us/oas-build-automation-client/2.0.0).

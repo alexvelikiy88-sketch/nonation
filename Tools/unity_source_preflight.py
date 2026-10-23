@@ -139,6 +139,9 @@ def main() -> int:
         data = file.read_text(encoding='utf-8-sig')
         for marker in signatures:
             require(marker in data, f'{name}: missing build safety marker {marker!r}')
+    manifest = json.loads((ROOT / 'Packages/manifest.json').read_text())
+    require('com.unity.modules.unitywebrequest' in manifest.get('dependencies', {}),
+            'WebGL networking requires com.unity.modules.unitywebrequest')
     scene = ROOT / 'Assets/MIR/Scenes/MIR_PlayableDistrict.unity'
     scene_meta = ROOT / 'Assets/MIR/Scenes/MIR_PlayableDistrict.unity.meta'
     game_meta = ROOT / 'Assets/MIR/Scripts/MirGame.cs.meta'

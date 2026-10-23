@@ -88,7 +88,7 @@ def wait_for_autobuild(revision: str) -> int:
     print("Unity Auto-build enabled; following its build instead of triggering a duplicate.")
     deadline = time.monotonic() + 180
     while time.monotonic() < deadline:
-        _, records = api("GET", ROOT + "/builds?per_page=20")
+        _, records = api("GET", ROOT + "/builds?limit=20&offset=0")
         if isinstance(records, dict):
             records = records.get("builds", records.get("items", []))
         if isinstance(records, list):
@@ -125,23 +125,65 @@ def poll_build(number: int, revision: str) -> dict:
         time.sleep(30)
     raise TimeoutError(f"Unity build #{number} is not finished after 65 minutes; check {CLOUD_HISTORY}")
 
+def artifact_link(href: str):
+    """Resolve download URLs with a strict project-scoped Unity auth boundary.
+
+    Unity build links can be absolute storage URLs, relative v2 API URLs or
+    legacy /api/v1 download endpoints. They need different auth handling.
+    """
+    if not isinstance(href, str) or not href:
+        raise ValueError("Unity artifact href is empty")
+    url = urljoin(API + "/", href)
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("Only HTTPS Unity build download links without credentials are accepted")
+    internal = parsed.netloc.lower() == urlparse(API).netloc.lower()
+    if internal:
+        prefixes = (
+            f"/v2/orgs/{ORG}/projects/{PROJECT}/buildtargets/{TARGET}/builds/",
+            f"/api/v1/orgs/{ORG}/projects/{PROJECT}/buildtargets/{TARGET}/builds/",
+        )
+        if not any(parsed.path.startswith(prefix) for prefix in prefixes):
+            raise ValueError("Unity download link escaped the selected project/build target")
+    return url, internal
+
+
+def authenticated_download_link(url: str):
+    """Unity may return HTTP 303 with the signed URL in a JSON body, not Location."""
+    href, internal = artifact_link(url)
+    if not internal:
+        raise ValueError("Only Unity service endpoints can receive service account credentials")
+    request = Request(
+        href,
+        headers={"Authorization": secret_header(), "Accept": "application/json"},
+        method="GET",
+    )
+    try:
+        with build_opener(NoRedirect()).open(request, timeout=35) as response:
+            raise ValueError(
+                f"Expected Unity download redirect HTTP 303; got {response.status}"
+            )
+    except HTTPError as error:
+        if error.code != 303:
+            raise RuntimeError(f"Unity artifact request failed: HTTP {error.code}") from None
+        return json.loads(error.read().decode("utf-8"))
+
+
 def signed_url(primary):
     if not isinstance(primary, dict) or not primary.get("href"):
         raise ValueError("Successful Unity build has no primary artifact download URL")
-    href = primary["href"]
-    url = urljoin(API + "/", href)
-    if urlparse(url).scheme != "https":
-        raise ValueError("Refusing non-HTTPS artifact location")
-    if urlparse(url).hostname != urlparse(API).hostname:
+    url, internal = artifact_link(primary["href"])
+    if not internal:
         return url
-    status, result = api("GET", url)
-    if status != 303:
-        raise ValueError("Expected Unity artifact API to return a 303 signed storage URL")
+    result = authenticated_download_link(url)
     if isinstance(result, dict):
         result = result.get("url")
-    if not isinstance(result, str) or urlparse(result).scheme != "https":
-        raise ValueError("Invalid signed storage URL")
-    return result
+    if not isinstance(result, str):
+        raise ValueError("Unity artifact redirect did not contain a signed URL")
+    redirect, is_internal = artifact_link(result)
+    if is_internal:
+        raise ValueError("Unity redirect did not return external signed storage")
+    return redirect
 
 def unpack_webgl(archive: Path, destination: Path):
     with zipfile.ZipFile(archive) as z:
