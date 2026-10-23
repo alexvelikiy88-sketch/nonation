@@ -160,7 +160,7 @@ jobs:
   cloud-webgl:
     name: Unity Cloud WebGL (optional service account)
     needs: source-validation
-    if: needs.source-validation.outputs.cloud_credentials_present == 'true' && needs.source-validation.outputs.unity_license_present != 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.source-validation.outputs.cloud_credentials_present == 'true' && needs.source-validation.outputs.unity_license_present != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
@@ -199,8 +199,31 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
       - name: Confirm Pages configuration
         uses: actions/configure-pages@v5
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Download the released WebGL build for HTTPS verification
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.webgl.result == 'success' && 'nonation-unity-webgl' || 'nonation-unity-cloud-webgl' }}
+          path: build/WebGL
+      - name: Verify all deployed Unity files over HTTPS
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if python3 Tools/unity_cloud_ci.py --verify-hosted build/WebGL "$DEPLOYMENT_URL"; then
+              echo "HTTPS WebGL static-asset proof for source ${GITHUB_SHA}; Unity browser runtime still unverified." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "::error::GitHub Pages did not serve all Unity files after six bounded checks."
+              exit 1
+            fi
+            sleep 10
+          done
