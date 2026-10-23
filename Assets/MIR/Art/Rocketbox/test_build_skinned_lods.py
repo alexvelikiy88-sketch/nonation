@@ -68,7 +68,7 @@ class BlenderPipelineOfflineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
             source = self.sample_folder(folder)
-            with patch.object(lod, "SOURCE_BLOB_SHA1", lod.git_blob_sha1(source.read_bytes())):
+            with self.accept_synthetic_upstream(folder, source):
                 name = lod.TEXTURE_NAMES[0]
                 (folder / "Textures" / name).write_bytes(b"tampered")
                 with self.assertRaisesRegex(ValueError, "checksum mismatch"):
@@ -96,7 +96,7 @@ class BlenderPipelineOfflineTests(unittest.TestCase):
             source = self.sample_folder(folder)
             with self.assertRaisesRegex(ValueError, "Git blob"):
                 lod.verify_source(folder, source)
-            with patch.object(lod, "SOURCE_BLOB_SHA1", lod.git_blob_sha1(source.read_bytes())):
+            with self.accept_synthetic_upstream(folder, source):
                 (folder / "LICENSE.md").unlink()
                 with self.assertRaisesRegex(ValueError, "MIT license"):
                     lod.verify_source(folder, source)
