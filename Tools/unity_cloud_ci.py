@@ -320,7 +320,7 @@ def redact_log(line: str) -> str:
         value = os.environ.get(key)
         if value:
             line = line.replace(value, "[REDACTED]")
-    line = re.sub(r"https://[^\\s]+", "[URL]", line)
+    line = re.sub(r"https://[^\s]+", "[URL]", line)
     return line[:500]
 
 
@@ -331,11 +331,11 @@ def primary_failure_lines(log: str):
     for index, line in enumerate(lines):
         if "Unity Player Export Failure" in line:
             continue
-        if re.search(r"(?i)(?:\\berror\\s+(?:CS|MSB|IL)\\d+\\b|"
-                     r"\\bBuildFailedException\\b|"
-                     r"\\bException:\\s|"
-                     r"\\b(?:error|fatal error)\\s*:|"
-                     r"\\bfailed to (?:compile|import|resolve|load)\\b)", line):
+        if re.search(r"(?i)(?:\berror\s+(?:CS|MSB|IL)\d+\b|"
+                     r"\bBuildFailedException\b|"
+                     r"\bException:\s|"
+                     r"\b(?:error|fatal error)\s*:|"
+                     r"\bfailed to (?:compile|import|resolve|load)\b)", line):
             candidates.append((index + 1, redact_log(line)))
     return candidates[:15]
 
