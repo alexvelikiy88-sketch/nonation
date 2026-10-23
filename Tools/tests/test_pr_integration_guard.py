@@ -1,6 +1,9 @@
 """Pure, offline regression tests for NONATION integration guard."""
 import sys
 import unittest
+import subprocess
+import tempfile
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -139,6 +142,60 @@ class OwnershipTests(unittest.TestCase):
     def test_bad_policy_fails_closed(self):
         with self.assertRaises(ValueError):
             guard.parse_ownership("## no agent ownership table")
+
+
+    def test_merge_base_ignores_manager_tasks_merged_into_agent(self):
+        # Reproduces GitHub's stale pull_request.base.sha on old agent PRs.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", *args], cwd=root, stderr=subprocess.PIPE
+                ).decode("utf-8").strip()
+
+            git("init", "-q", "-b", "main")
+            git("config", "user.email", "ci@example.test")
+            git("config", "user.name", "Integration Guard")
+            (root / "README.md").write_text("initial\n", encoding="utf-8")
+            git("add", "README.md")
+            git("commit", "-qm", "initial")
+            old_base = git("rev-parse", "HEAD")
+
+            git("checkout", "-qb", "agent/unity-webgl")
+            (root / "agent.txt").write_text("new agent work\n", encoding="utf-8")
+            git("add", "agent.txt")
+            git("commit", "-qm", "agent edits")
+            git("checkout", "-q", "main")
+            (root / "TASKS.md").write_text("manager-only update\n", encoding="utf-8")
+            git("add", "TASKS.md")
+            git("commit", "-qm", "manager updates tasks")
+            trusted_main = git("rev-parse", "HEAD")
+
+            git("checkout", "-q", "agent/unity-webgl")
+            git("merge", "-q", "--no-ff", "-m", "sync manager main", "main")
+            head = git("rev-parse", "HEAD")
+            git("checkout", "-q", "main")
+
+            # The original PR's event base still points at old_base.
+            stale = git("diff", "--name-only", old_base, head).splitlines()
+            self.assertIn("TASKS.md", stale)
+
+            with mock.patch.object(
+                guard, "git",
+                side_effect=lambda *args: subprocess.check_output(
+                    ["git", *args], cwd=root, stderr=subprocess.PIPE
+                )
+            ):
+                comparison_base = guard.comparison_base_for(head)
+                self.assertEqual(comparison_base, trusted_main)
+                diff = guard.git(
+                    "diff", "--name-status", "-z", "--find-renames",
+                    comparison_base, head
+                )
+                files = guard.parse_name_status_zero(diff)
+                self.assertEqual([item.path for item in files], ["agent.txt"])
+
 
 
 if __name__ == "__main__":
