@@ -1,16 +1,29 @@
 name: MIR Unity WebGL
+
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - 'Tools/**'
+      - '.github/workflows/unity-webgl.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: mir-webgl-release
+  cancel-in-progress: false
 
 jobs:
   source-validation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify full Unity project and license-safe subset
+      - name: Validate license-safe Unity project
         shell: bash
         run: |
           set -euo pipefail
@@ -19,24 +32,41 @@ jobs:
           test -f Packages/manifest.json
           test -f ProjectSettings/ProjectVersion.txt
           if find Assets -type f | grep -Ei '/(Girl_HighPoly|Floral_Look|Casual_Confidence|maid_skinned|dressfor|gign_paranoia|Honda_Civic|Freya)' ; then
-            echo 'WARNING: Review redistribution rights for third-party assets.'
+            echo 'ERROR: third-party models require redistribution rights'
             exit 1
           fi
-          python3 -m json.tool Packages/manifest.json >/dev/null
-          echo 'Source-only Unity project checks passed.'
+          python3 -m json.tool Packages/manifest.json > /dev/null
+          echo 'Unity project and public asset checks passed'
 
   webgl:
     needs: source-validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check Unity activation
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if [ -z "$UNITY_LICENSE" ] && [ -z "$UNITY_SERIAL" ]; then
+            echo '::error title=Unity not activated::Add UNITY_LICENSE (Personal) or UNITY_SERIAL (Pro) in Settings > Secrets and variables > Actions. See https://game.ci/docs/github/activation/'
+            exit 1
+          fi
+          if [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; then
+            echo '::error title=Unity credentials missing::Add UNITY_EMAIL and UNITY_PASSWORD as GitHub Actions secrets; never commit them.'
+            exit 1
+          fi
       - name: Fetch verified CC0 Quaternius clips
         run: python3 Tools/fetch_quaternius.py
       - uses: actions/cache@v4
         with:
           path: Library
           key: unity-Linux-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
-          restore-keys: unity-Linux-WebGL-
+          restore-keys: |
+            unity-Linux-WebGL-
       - name: Build Unity 6 WebGL
         uses: game-ci/unity-builder@v4
         env:
@@ -48,9 +78,39 @@ jobs:
           unityVersion: 6000.0.30f1
           targetPlatform: WebGL
           buildMethod: MIR.Editor.MirCloudBuild.Build
-      - name: Upload WebGL artifact
+      - name: Verify playable WebGL files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/WebGL/index.html
+          test -d build/WebGL/Build
+          find build/WebGL/Build -type f | grep -Eq '\.(wasm|data|js)$'
+          echo 'WebGL build files exist'
+      - name: Upload downloadable WebGL ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: MIR-WebGL
-          path: build/WebGL
+          name: nonation-unity-webgl
+          path: build/WebGL/
           if-no-files-found: error
+      - name: Upload WebGL for GitHub Pages
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/WebGL/
+
+  deploy:
+    name: Publish Unity WebGL to GitHub Pages
+    needs: webgl
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Confirm Pages configuration
+        uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
