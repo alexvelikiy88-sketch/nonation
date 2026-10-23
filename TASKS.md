@@ -66,8 +66,8 @@
 
 ## Текущие зависимости и риски
 
-- **Build №3:** требуется первичная ошибка из предыдущих строк полного Unity Cloud лога; финальное сообщение не объясняет причину.
-- **Unity Cloud CI:** подготовлены `UNITY_SA_KEY_ID` и `UNITY_SA_SECRET_KEY`, но их наличие в GitHub secrets не подтверждено. Секреты нельзя отправлять в чат и коммитить.
+- **Build №3 (обновлено 24.10.26):** авторизованная read-only диагностика [GitHub Actions #40013127244](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013127244) успешно получила лог (4 775 строк), но определение первичной ошибки завершилось `ROOT CAUSE UNKNOWN`; нельзя считать терминальное `Unity Player Export Failure` причиной. Новый Unity build не запускался.
+- **Unity Cloud credentials:** job `Read existing Unity Cloud build failure log` на SHA `44c6357acbcb78013e14de6c921482b21db69b30` получил защищённые `UNITY_SA_KEY_ID`/`UNITY_SA_SECRET_KEY` из GitHub Actions (значения скрыты) и успешно прочитал Build #3; разрешение на запуск новых облачных сборок отдельно не проверялось. Ключи не печатать и не коммитить.
 - **Графика:** оригинальные пользовательские архивы в публичном GitHub отсутствуют; нельзя считать, что реалистичные FBX уже доступны.
 - **Параллельная работа:** общие файлы и `TASKS.md` принадлежат Manager; все пересечения фиксируются в личных отчётах.
 - **Развёртывание backend:** сервер в GitHub CI тестируется локально, но не опубликован как production backend.
@@ -91,5 +91,7 @@
 
 | 24.10.26 | GitHub Ruleset #25749583 активен: main protected, PR+Guard required, no force-push/deletion. | [Ruleset](https://github.com/alexvelikiy88-sketch/nonation/settings/rules/25749583) |
 | 24.10.26 | Принят manager PR #13 / SHA `9e76840`: временная интеграция всех трёх веток без конфликтов; 48 Python, 6 графических тестов и .NET/HTTP PASS; Unity WebGL не проверен. | [PR #13](https://github.com/alexvelikiy88-sketch/nonation/pull/13) · [CI](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012146794) |
+
+| 24.10.26 | Unity Cloud read-only диагностика Build #3 впервые SUCCESS: 4 775 строк, первичная ошибка всё ещё UNKNOWN; CHAT 01 исправляет анализ ответов API/выделение реального failure. Новую сборку не запускали. | [Actions #40013127244](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013127244) · [Unity PR #3](https://github.com/alexvelikiy88-sketch/nonation/pull/3) |
 
 **Правило:** Manager после каждого принятого PR добавляет дату, PR, проверенный SHA, результат CI и изменённые контрольные точки. Никогда не ставить «готово» по словам исполнителя без проверок.
