@@ -9,5 +9,8 @@
     <Compile Include="../../Assets/MIR/Scripts/MirState.cs" Link="Core/MirState.cs" />
     <Compile Include="../../Assets/MIR/Scripts/MirEconomy.cs" Link="Core/MirEconomy.cs" />
     <Compile Include="../../Assets/MIR/Scripts/MirSimulationLoop.cs" Link="Core/MirSimulationLoop.cs" />
+    <Compile Include="../../Assets/MIR/Scripts/MirWorldGeometry.cs" Link="Core/MirWorldGeometry.cs" />
+    <Compile Include="../../Assets/MIR/Scripts/MirCitizenDecision.cs" Link="Core/MirCitizenDecision.cs" />
+    <Compile Include="../../Assets/MIR/Scripts/MirHeadlessPopulation.cs" Link="Core/MirHeadlessPopulation.cs" />
   </ItemGroup>
 </Project>

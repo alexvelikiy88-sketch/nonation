@@ -12,6 +12,7 @@ public sealed class WorldAuthority
     private readonly ILogger<WorldAuthority> log;
     private readonly MirWorldState world;
     private readonly MirSimulationLoop simulation;
+    private readonly MirHeadlessPopulation population;
 
     public WorldAuthority(ILogger<WorldAuthority> logger)
     {
@@ -19,7 +20,9 @@ public sealed class WorldAuthority
         savePath = Path.GetFullPath(Environment.GetEnvironmentVariable("NONATION_WORLD_FILE") ??
             Path.Combine(AppContext.BaseDirectory, "data", "world.json"));
         world = Load();
-        simulation = new MirSimulationLoop(world, new MirEconomy(world));
+        var economy = new MirEconomy(world);
+        simulation = new MirSimulationLoop(world, economy);
+        population = new MirHeadlessPopulation(world, economy);
         log.LogInformation("nonation authority loaded {Count} citizens", world.citizens.Count);
     }
 
@@ -43,7 +46,11 @@ public sealed class WorldAuthority
 
     public void Advance(float elapsedSeconds)
     {
-        lock (gate) simulation.Advance(elapsedSeconds);
+        lock (gate)
+        {
+            simulation.Advance(elapsedSeconds);
+            population.Advance(elapsedSeconds);
+        }
     }
 
     public MirWorldState Snapshot()

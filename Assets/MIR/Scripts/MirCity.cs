@@ -158,10 +158,11 @@ namespace MIR
             for(int k=0;k<3;k++)Lamp(new Vector3(-122+k*16,0,24));
         }
         Material stoneMat(){return Mat("industrial-paving",new Color(.60f,.57f,.49f));}
-        void AddBusiness(string id,MirPlaceKind kind,string label,Vector3 pos)
+        void AddBusiness(string id,MirPlaceKind kind,string label)
         {
             var biz=MirGame.Instance.World.Business(id);
-            Place(new MirPlace{id=id,kind=kind,name=label,entry=pos,business=biz});
+            var e=MirWorldGeometry.BusinessEntry(id,biz);
+            Place(new MirPlace{id=id,kind=kind,name=label,entry=new Vector3(e.x,.2f,e.z),business=biz});
         }
         void FuelStation()
         {
@@ -179,14 +180,14 @@ namespace MIR
             BlockBuilding("Corner café",new Vector3(56,0,20),2,new Color(.67f,.59f,.47f),12,12);
             BlockBuilding("Auto workshop",new Vector3(-58,0,-22),2,new Color(.45f,.54f,.61f),15,15);
             BlockBuilding("Town hall",new Vector3(-20,0,-20),3,new Color(.76f,.72f,.63f),14,14);
-            AddBusiness("market",MirPlaceKind.Store,"Магазин",new Vector3(20,.2f,-28));
-            AddBusiness("cafe",MirPlaceKind.Cafe,"Кафе",new Vector3(56,.2f,12));
-            AddBusiness("garage",MirPlaceKind.Garage,"Автосервис",new Vector3(-58,.2f,-31));
-            AddBusiness("town",MirPlaceKind.CityHall,"Муниципалитет",new Vector3(-20,.2f,-28));
-            AddBusiness("farm",MirPlaceKind.Farm,"Поля",new Vector3(-110,.2f,59));
-            AddBusiness("packing",MirPlaceKind.Packing,"Пищевой цех",new Vector3(-105,.2f,32));
-            AddBusiness("warehouse",MirPlaceKind.Warehouse,"Склад",new Vector3(-80,.2f,27));
-            AddBusiness("fuel",MirPlaceKind.Fuel,"АЗС",new Vector3(-80,.2f,-41));
+            AddBusiness("market",MirPlaceKind.Store,"Магазин");
+            AddBusiness("cafe",MirPlaceKind.Cafe,"Кафе");
+            AddBusiness("garage",MirPlaceKind.Garage,"Автосервис");
+            AddBusiness("town",MirPlaceKind.CityHall,"Муниципалитет");
+            AddBusiness("farm",MirPlaceKind.Farm,"Поля");
+            AddBusiness("packing",MirPlaceKind.Packing,"Пищевой цех");
+            AddBusiness("warehouse",MirPlaceKind.Warehouse,"Склад");
+            AddBusiness("fuel",MirPlaceKind.Fuel,"АЗС");
             for(int i=0;i<8;i++)
             {
                 int gx=i%4;int gz=i/4;
@@ -196,8 +197,8 @@ namespace MIR
             for(int i=0;i<MirGame.Instance.World.citizens.Count;i++)
             {
                 MirCitizen c=MirGame.Instance.World.citizens[i];
-                int building=i%8;float x=-66+(building%4)*36;float z=56+(building/4)*38;
-                Place(new MirPlace{id=c.homeId,name="Квартира · "+c.name,kind=MirPlaceKind.Home,entry=new Vector3(x,.3f,z-8.5f)});
+                var home=MirWorldGeometry.HomeEntry(MirGame.Instance.World,c);
+                Place(new MirPlace{id=c.homeId,name="Квартира · "+c.name,kind=MirPlaceKind.Home,entry=new Vector3(home.x,.3f,home.z)});
             }
             for(int i=-2;i<=2;i++)for(int j=-2;j<=2;j++)
             {
@@ -212,14 +213,10 @@ namespace MIR
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
-            // Manhattan footpath route, with block approach via nearest street, NOT a building-center teleport.
-            float roadX=Mathf.Round(origin.x/40f)*40f;
-            float goalRoadX=Mathf.Round(destination.x/40f)*40f;
-            var a=new Vector3(roadX+6f,.3f,origin.z);
-            var b=new Vector3(roadX+6f,.3f,Mathf.Round(origin.z/40f)*40f+6f);
-            var c=new Vector3(goalRoadX+6f,.3f,b.z);
-            var d=new Vector3(goalRoadX+6f,.3f,Mathf.Round(destination.z/40f)*40f+6f);
-            return new List<Vector3>{a,b,c,d,new Vector3(destination.x,.3f,destination.z)};
+            var points=MirWorldGeometry.SidewalkRoute(origin.x,origin.z,destination.x,destination.z);
+            var route=new List<Vector3>(points.Length);
+            foreach(var point in points)route.Add(new Vector3(point.x,.3f,point.z));
+            return route;
         }
         public void UpdateLighting(float hour)
         {

@@ -92,3 +92,42 @@ static void InvariantAndRestartTests()
         "server restart does not duplicate manufacturing output");
 }
 InvariantAndRestartTests();
+
+static void HeadlessPopulationTests()
+{
+    var state = MirWorldState.NewWorld();
+    var economy = new MirEconomy(state);
+    var sim = new MirSimulationLoop(state, economy);
+    var brain = new MirHeadlessPopulation(state, economy);
+    long beforeMoney = economy.TotalKnownMoney();
+    float oldPlayerX = state.Citizen("player-001")!.x;
+    float startX = state.Citizen("citizen-001")!.x;
+    float startZ = state.Citizen("citizen-001")!.z;
+    for (int i = 0; i < 900; ++i)
+    {
+        sim.Advance(0.1f);
+        brain.Advance(0.1f);
+    }
+    var npc = state.Citizen("citizen-001")!;
+    Check(Math.Abs(npc.x - startX) + Math.Abs(npc.z - startZ) > 3f,
+        "headless citizens walk their world-space routes");
+    Check(state.Citizen("player-001")!.x == oldPlayerX,
+        "backend agent loop never takes control of the player");
+    Check(economy.TotalKnownMoney() == beforeMoney, "headless NPC actions preserve all money");
+
+    var hunger = MirWorldState.NewWorld();
+    var buyer = hunger.Citizen("citizen-001")!;
+    buyer.satiety = 10f; buyer.inventoryFood = 0;
+    buyer.x = 20f; buyer.z = -28f;
+    Check(MirCitizenDecision.Destination(hunger, buyer) == "market",
+        "hungry resident seeks a stocked market");
+    var business = hunger.Business("market")!;
+    int originalStock = business.stock;
+    var feeding = new MirHeadlessPopulation(hunger, new MirEconomy(hunger));
+    feeding.Advance(.1f);
+    Check(buyer.inventoryFood == 1 && business.stock == originalStock - 1,
+        "server NPC buys one real inventory item at the market entrance");
+    Check(MirCitizenDecision.Destination(hunger, buyer) == buyer.homeId,
+        "NPC with unconsumed food returns home instead of buying repeatedly");
+}
+HeadlessPopulationTests();

@@ -26,13 +26,7 @@ namespace MIR
         void Plan()
         {
             var g=MirGame.Instance;
-            float hour=g.World.Hour;
-            string target=resident.homeId;
-            if(resident.satiety<40 && resident.cash>400 && g.World.Business("market").stock>0)target="market";
-            else if(resident.energy<25)target=resident.homeId;
-            else if(hour>=8 && hour<17)target=resident.workplaceId;
-            else if(resident.mood<45)target="cafe";
-            else if(hour>=17 && hour<21 && gait>.53f)target="town";
+            string target=MirCitizenDecision.Destination(g.World,resident);
             destination=city.Get(target)??city.Get(resident.homeId);
             route.Clear();
             if(destination!=null && Vector3.Distance(transform.position,destination.entry)>2.6f)
@@ -76,7 +70,8 @@ namespace MIR
                         if(resident.satiety<35 && resident.inventoryFood>0)MirGame.Instance.Economy.Eat(resident);
                         activity=MirActivity.Sitting;break;
                     case MirPlaceKind.Store:
-                        if(waitSeconds>2f && resident.satiety<60 && resident.cash>400)
+                        if(waitSeconds>2f && resident.satiety<60 && resident.inventoryFood==0 &&
+                           destination.business!=null && resident.cash>=destination.business.price)
                             {MirGame.Instance.Economy.BuyFood(resident,destination.business);waitSeconds=0;nextPlanTime=minutes;}
                         activity=MirActivity.Idle;break;
                     case MirPlaceKind.Cafe:

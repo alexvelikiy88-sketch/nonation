@@ -151,7 +151,8 @@ def main() -> int:
         require(len(scene_guid) == 32 and len(game_guid) == 32, 'Malformed scene/bootstrap GUID')
         require(scene_guid in build_settings.read_text(), 'Build Settings scene GUID mismatch')
         require(game_guid in scene.read_text(), 'Bootstrap script GUID mismatch')
-    for shared in ('MirState.cs', 'MirEconomy.cs', 'MirSimulationLoop.cs'):
+    for shared in ('MirState.cs', 'MirEconomy.cs', 'MirSimulationLoop.cs',
+                   'MirWorldGeometry.cs', 'MirCitizenDecision.cs', 'MirHeadlessPopulation.cs'):
         content = (ROOT / 'Assets/MIR/Scripts' / shared).read_text()
         require('using UnityEngine' not in content and 'Mathf.' not in content,
                 f'{shared}: shared domain must not reference UnityEngine')

@@ -40,11 +40,16 @@ def run():
         raise AssertionError("unauthenticated world POST unexpectedly accepted")
 
     original_time = world["gameMinutes"]
+    start_resident = world["citizens"][1]
     end = time.monotonic() + 4
     while time.monotonic() < end:
         time.sleep(.35)
-        if get_json("/api/v1/world")["gameMinutes"] > original_time:
-            print("PASS: headless server running, readonly API and live simulation tick")
+        current = get_json("/api/v1/world")
+        if current["gameMinutes"] > original_time and (
+            abs(current["citizens"][1]["x"] - start_resident["x"]) > .04 or
+            abs(current["citizens"][1]["z"] - start_resident["z"]) > .04
+        ):
+            print("PASS: readonly API, live simulation and moving server NPCs")
             return
     raise AssertionError("server world clock did not advance")
 
