@@ -6,7 +6,7 @@
 
 - `main` защищена [Ruleset 25749583](https://github.com/alexvelikiy88-sketch/nonation/settings/rules/25749583): только PR, обязательный `Ownership and change integrity`, без force-push/deletion.
 - Агентские ветки `agent/unity-webgl`, `agent/backend-simulation`, `agent/graphics-ui` и их личные отчёты — источники оригинальных изменений.
-- [Интеграционный PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) собирает точные source SHA в один 4-parent merge commit; интегратор принимает только после CI и Unity proof.
+- [Интеграционный PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) **MERGED** в `main`, SHA `a75602df4ef56e95709a8472eba62d879795c977`. История всех трёх агентов сохранена; их отчёты содержат только явно помеченные управленческие дополнения.
 - `main` может быть выпущена на Pages только после реальной WebGL-сборки конкретного commit и browser smoke.
 
 ## Unity Cloud Build Automation
@@ -16,6 +16,14 @@
 Секреты `UNITY_SA_KEY_ID` и `UNITY_SA_SECRET_KEY` задаются только через GitHub Actions Secrets (их значения нигде не публиковать). GameCI требует легальной активации `UNITY_LICENSE` или `UNITY_SERIAL` + учётные данные и является альтернативой Cloud, а не способом обхода лицензии.
 
 Для Cloud CI `Tools/unity_cloud_ci.py` проверяет реальный `lastBuiltRevision == GITHUB_SHA` и архив. Исторический Build №3 упал из-за отсутствия сцены: строка 7845 полного лога. Unity Cloud №4 на исправленном отдельном SHA прошёл. Не запускать одновременно независимые Cloud/ GameCI сборки на одном source revision.
+
+## Обязательное включение GitHub Pages
+
+[GitHub Actions #40019259462](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462) подтвердил **успешную Unity Cloud сборку** старого `main`, но `Publish Unity WebGL to GitHub Pages` завершился `Get Pages site failed: Not Found`. Это означает, что GitHub Pages не включён/не задан источник GitHub Actions.
+
+**Владелец:** [открой Settings → Pages](https://github.com/alexvelikiy88-sketch/nonation/settings/pages) → `Build and deployment` → `Source` = **GitHub Actions** → сохранить. Это единственное необходимое сейчас ручное действие. Нет необходимости создавать новый GitHub PAT: `configure-pages@v5 enablement:true` требует токен с повышенными правами, а обычный `GITHUB_TOKEN` не подходит.
+
+После включения Pages можно перезапустить только упавший `deploy` job для интегрированной сборки, если её WebGL artifact и SHA подтверждены. Не нужно заново собирать Unity лишь ради повторного `configure-pages`.
 
 ## Последовательность выпуска
 
