@@ -1,55 +1,43 @@
-# nonation — каноничная архитектура Unity + .NET
+# NONATION — каноническая архитектура Unity / .NET
 
-Цель — существующая браузерная игра Unity WebGL, затем общий город 24/7. Сейчас это первый refactor вертикального среза, **не** готовая многопользовательская игра.
+**Актуализация 24.10.26.** База — [интеграционный PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19). Это вертикальный игровой срез, **не** завершённая MMO.
 
 ## Границы слоёв
 
-- **Domain / симуляция:** `Assets/MIR/Scripts/MirState.cs`, `MirEconomy.cs`, `MirSimulationLoop.cs`. Нет зависимостей на UnityEngine. Одни исходники используются в Unity и в .NET 8. Деньги в целочисленных единицах, поставки через резервирование товара и escrow, фиксированный шаг времени.
-- **Unity-клиент:** `MirGame` (точка композиции), `MirPlayer`, `MirNpcAgent`, `MirCity`, `MirVehicle`, `MirHUD`, `MirRenderMaterials` (визуал, камера, управление, физика-прототип). Пока клиент запускает локальную симуляцию.
-- **Хранение клиента:** `MirPersistence` (локальное сохранение Unity PlayerPrefs/IndexedDB).
-- **Backend:** `Server/Nonation.Server` содержит `WorldAuthority` и `WorldSimulationWorker`. Исполняет ту же доменную симуляцию, сохраняет локальный JSON и отдаёт снапшот только для чтения. По умолчанию слушает 127.0.0.1:5180. **Unity содержит подготовленный `MirRemoteWorldSync` для read-only spectator snapshots; по умолчанию `NetworkConfig.json` пуст, офлайн-режим сохраняется. Реальное соединение Unity/WebGL с удалённым HTTPS backend пока не подтверждено.**
-- **Тесты:** `Server/Nonation.Tests` проверяют доменные инварианты без Unity. Настоящие Unity Editor, IL2CPP, WebGL, браузер и графика требуют отдельной сборки/проверки.
+| Слой | Исходники | Ответственность |
+|---|---|---|
+| Domain/Core | `MirState.cs`, `MirEconomy.cs`, `MirSimulationLoop.cs`, `MirCitizenDecision.cs`, `MirWorldGeometry.cs`, `MirHeadlessPopulation.cs` | Целочисленные деньги, запасы, NPC, товары, фиксированный шаг, грузовые заказы. Без UnityEngine; общий код с .NET |
+| Backend | `Server/Nonation.Server/WorldAuthority.cs`, `WorldSimulationWorker.cs`, `Program.cs` | Один авторитетный headless-мир, bounded JSON, atomic save, эксклюзивное владение файлом мира, read-only HTTP |
+| Unity Client | `MirGame`, `MirPlayer`, `MirNpcAgent`, `MirCity`, `MirVehicle`, `MirHUD`, `MirPersistence` | Управление, представление, локальная игра, камера, UI, визуализация и сохранение |
+| Spectator | `MirSceneSnapshot.cs`, `MirRemoteWorldSync.cs` | Общий DTO v2, `serverId/sequence`, проверка порядка, ограничение нагрузки, CORS/HTTPS |
+| Graphics | `MirHumanFactory`, `MirMotionDriver`, `MirAnimationCatalog`, `Assets/MIR/Art` | Выбор персонажа, Humanoid guard, анимации, материалы, диагностический fallback |
+| Infrastructure | `.github/workflows/*`, `Tools/*` | Source QA, .NET CI, Unity Cloud Build, WebGL artifact, Pages и браузерные тесты |
 
-## Воспроизводимая сборка
+Экономические правила принадлежат Domain/Core, а не Unity HUD. Клиент без авторизации не имеет полномочий менять серверные деньги и товар.
 
-`Assets/MIR/Scenes/MIR_PlayableDistrict.unity` и `ProjectSettings/EditorBuildSettings.asset` лежат в Git. `MirGame.cs.meta` фиксирует GUID bootstrap-скрипта. Сборка не зависит от создания сцены в `IPreprocessBuildWithReport`. Опциональные FBX Quaternius скачиваются официальным pre-build скриптом; их лицензии и SHA-256 проверяются. Любые ассеты с непроверенными правами исключены из публичной сборки.
+## Денежные и товарные инварианты
 
-Публичная ссылка через GitHub Pages может быть проверена только после успешного GameCI **или** Unity Cloud WebGL export, валидации артефактов, GitHub Pages deploy и браузерного smoke-test. Unity Cloud сам по себе Pages не публикует; CI-код передачи Cloud-артефакта в Pages подготовлен, но без законных credentials и реального билда ещё не подтверждён.
+- Балансы счетов — `int`, суммарный `TotalKnownMoney()` — `long`; `Transfer(id, from, to, amount)` отклоняет повторные идентификаторы и переполнение.
+- `MirWorldState.NewId` / freight-ID защищены от wraparound и повтора после перезапуска.
+- Этапы грузового заказа: `Created → Loading → Driving → Unloading → Returning → Completed`. Escrow/резервы изменяются строго при согласованных переходах; двойная доставка и повторная выплата запрещены.
+- Backend JSON сохраняет всю необходимую receipt-историю, иначе после рестарта возникнет повтор перевода. Простой обрезки истории для обхода ограничения 20 000 нет. Следующее архитектурное решение — независимый transactional SQL-ledger с unique receipt ID, checkpoint/replay и проверяемой миграцией.
 
-## Дальнейшие этапы
+## Сервер и сохранения
 
-1. Достичь проверенной Unity WebGL-сборки и успешного запуска в браузере.
-2. Заменить процедурный визуал улиц/машин на лицензионные наборы prefab-модулей и LOD.
-3. Перевести персонажей на валидные Humanoid FBX, Animator и вариативную анимацию.
-4. Перевести HUD на UI Toolkit с адаптацией экрана и настройками.
-5. Backend: авторизация, команды, SQL-хранилище, WebSocket/delta snapshots, защита от дублей и читов, миграции; затем серверная симуляция будет единственным источником состояния.
+`Nonation.Server` использует .NET 8, локальный bind `127.0.0.1:5180` по умолчанию. `WorldAuthority` сериализует мутации под `gate` и сохранения под `saveGate`. Отдельный lease запрещает двум процессам писать один мир; staging JSON пишется атомарно с flush и заменой. Загрузка отклоняет повреждённые деньги, некорректный escrow, отрицательные остатки, несовместимые идентификаторы и неверную версию. Это **однопроцессная** архитектура — не кластер и не распределённая БД.
 
-Серверная заготовка **не имеет** аутентификации, защищённых игровых команд и мультиплеера. Не открывать API наружу до создания безопасного контура.
+## Unity ↔ Backend
 
-### Инварианты экономического ядра
+`NetworkConfig.json` по умолчанию задаёт пустой `snapshotUrl`: игра работает offline. При явной настройке `https://.../api/v1/spectator/scene` Unity принимает только публичные позиции жителей с `version=2`, `serverId` и `sequence`, отклоняя невалидные или повторные снимки. HTTP разрешён лишь локально в Unity Editor. Серверный `NONATION_CORS_ORIGINS` должен совпадать с внешним origin. Переводы денег, товары, игрок и команды не синхронизируются.
 
-Повторные идентификаторы денежных переводов, отрицательные и переполняющие балансы отклоняются. Грузовой заказ должен существовать в мире, принадлежать указанному источнику товара и пройти разрешённую цепочку стадий. Резервирование и отмена возвращают целые товары и суммы. Рестарт сервера не считается новым шестичасовым производственным периодом. Все эти правила проверяются в `Server/Nonation.Tests`.
+## Unity/WebGL и графика
 
-## Непрерывная сборка Unity Cloud → Pages
+Unity `6000.0.58f2`, сцена `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`, `ProjectSettings/EditorBuildSettings.asset` (enabled=1, GUID `d57a17afca7d4fdb9252ba1ea864e3df`) и `InputManager.asset`. Исторический Build №3 упал из-за отсутствия сцены; Build №4 **успешно экспортирован только на исходном Unity SHA** `cb46b496...`. Для общей интегрированной версии нужен отдельный экспорт и браузерный smoke.
 
-`source-validation` выполняет Python preflight, тесты API-интеграции, .NET-тесты и запуск сервера. При отсутствии Unity Editor это **не компиляция Unity**.
+Microsoft Rocketbox MIT FBX/6 TGA находятся в `Assets/MIR/Art/Rocketbox/`. Скрипт подготовки скелетных LOD присутствует, но Blender/Unity Avatar, Animator, skin weights и LODGroup пока не прошли runtime QA; при отсутствии корректного рига применяется явно диагностический proxy. Непроверенные и NC ассеты в публичную игру не добавлять.
 
-Если в GitHub Actions есть `UNITY_SA_KEY_ID` и `UNITY_SA_SECRET_KEY`, а GameCI-лицензии нет, job `cloud-webgl` использует официальный Unity Build Automation REST API **v2**. Скрипт `Tools/unity_cloud_ci.py` проверяет цель WebGL, запускает сборку только когда UBA Auto-build выключен (при Auto-build ждёт уже запущенный билд), сверяет SHA коммита, ждёт статус Success, получает подписанный архив, проверяет наличие `index.html` и файлов wasm/data/js. Только после этого разрешён GitHub Pages Deploy.
+## CI и доказательства
 
-Без двух service-account секретов этот job пропускается; Unity Cloud №3 не считается успешным. Секреты и пользовательские архивы никогда не коммитятся. Unity Auto-build и ручной триггер одновременно не запускаются во избежание дубликатов. Реальный REST-процесс будет проверен только после предоставления разрешённого сервисного доступа.
+`Integration Guard` проверяет владение и provenance, `Pull Request Validation` — Python/.NET/HTTP, `Cross-Branch Integration` — объединённый source smoke. **Unity source-validation не эквивалентен компиляции Unity.** Публичный выпуск возможен только после успешного Unity WebGL export конкретного SHA, HTTPS Pages deploy, Chromium сцены/NPC/управления/сохранения.
 
-## Реально автономный серверный город (этап 2)
-
-`MirCitizenDecision` выбирает приоритет NPC — еда, дом, работа, кафе и досуг. При наличии еды в инвентаре голодный NPC не покупает новый товар бесконечно. `MirWorldGeometry` определяет точки входа и маршруты тротуаров **одинаково** для Unity и сервера.
-
-`MirHeadlessPopulation` на .NET-сервере перемещает NPC по маршрутам, учитывает время и фактическое расстояние, проводит покупки и оплачивает смены через общую `MirEconomy`. Серверный smoke-test проверяет изменение координат NPC; доменные тесты проверяют отсутствие самопроизвольной эмиссии денег.
-
-Ограничения: навигация пока основана на простой сетке тротуаров без NavMesh, толпы, динамических препятствий и серверной физики транспорта. Клиент Unity в текущем WebGL vertical slice продолжает собственную офлайн-симуляцию; реальный мультиплеер и визуальная синхронизация серверных NPC ещё не подключены. Сервер не принимает команды игроков извне.
-
-Runtime-модуль `com.unity.modules.unitywebrequest` включён в `Packages/manifest.json`, так как сеть Unity WebGL использует `UnityEngine.Networking.UnityWebRequest`. Эта проверка относится к исходникам; успешность сборки с Editor и поддержка CORS в конкретном размещении ещё не подтверждены.
-
-Unity Build Automation может отдавать прямой URL внешнего HTTPS-хранилища, относительную ссылку v2 либо legacy `/api/v1` ссылку. `Tools/unity_cloud_ci.py` обрабатывает эти варианты отдельно: секрет Unity не передаётся внешнему хранилищу, внутренний Unity API ограничен текущим project/build target. Скачивание пока протестировано только автономными unit-тестами, не с реальным Unity service account. [API v2](https://docs.unity.com/en-us/oas-build-automation-client/2.0.0).
-
-## Независимая интеграционная проверка (24.10.26)
-
-`NONATION Cross-Branch Integration` из `main` выполняет read-only Git fetch веток `agent/unity-webgl`, `agent/backend-simulation`, `agent/graphics-ui`; формирует временное объединение **только на runner** и запускает Python unit/contract tests, .NET 8 tests/build и серверный HTTP smoke. [Первый реальный прогон](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012146794) — SUCCESS на трёх зафиксированных SHA; [PR #13](https://github.com/alexvelikiy88-sketch/nonation/pull/13) принят (merge `9e76840a4432821ce3cfaaffb41afea44cf8d184`). Это не Unity C# компиляция, не WebGL build и не лицензирование ассетов. Нельзя переносить его PASS на более поздние SHA без повторного прогона.
+[Сводка интеграции](INTEGRATION_REPORT_RU.md) · [Лицензии](LICENSES.md) · [Деплой](../DEPLOYMENT_STATUS_RU.md).
