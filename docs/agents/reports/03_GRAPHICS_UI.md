@@ -96,7 +96,7 @@
 
 ### Новая CI-проверка и владение
 
-Параллельно Manager добавил `NONATION Integration Guard`: [run 40007885901](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007885901) до синхронизации показал два явных требования: `ASSET-LICENSE-EVIDENCE:` в PR (для FBX и PNG) и отсутствие устаревшей версии `TASKS.md` при прямом сравнении PR base с head. **Исправлено:** соответствующее точное доказательство Microsoft MIT добавлено в текст [PR #2](https://github.com/alexvelikiy88-sketch/nonation/pull/2), ветка `main` безопасно влита в `agent/graphics-ui` коммитом [`063a26d2`](https://github.com/alexvelikiy88-sketch/nonation/commit/063a26d2a5c24db502baafa51e0686ec1a5ad164). Сравнение до слияния показало **0 общих изменённых путей**, новый diff `agent/graphics-ui→main` содержит **только 10 разрешённых файлов AGENT 03**, `TASKS.md` и чужие файлы не менялись нами. Результат нового Integration Guard на последнем SHA требуется перепроверить до review.
+Параллельно Manager добавил `NONATION Integration Guard`: [run 40007885901](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007885901) до синхронизации показал два явных требования: `ASSET-LICENSE-EVIDENCE:` в PR (для FBX и PNG) и отсутствие устаревшей версии `TASKS.md` при прямом сравнении PR base с head. **Исправлено:** соответствующее точное доказательство Microsoft MIT добавлено в текст [PR #2](https://github.com/alexvelikiy88-sketch/nonation/pull/2), ветка `main` безопасно влита в `agent/graphics-ui` коммитом [`063a26d2`](https://github.com/alexvelikiy88-sketch/nonation/commit/063a26d2a5c24db502baafa51e0686ec1a5ad164). Сравнение до слияния показало **0 общих изменённых путей**, новый diff `agent/graphics-ui→main` содержит **только 10 разрешённых файлов AGENT 03**, `TASKS.md` и чужие файлы не менялись нами. **Результат перепроверен:** [Integration Guard run 40008579046](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008579046) = SUCCESS на HEAD `543ef754607b419cac5f0c701ed94b38ab10d31b`; [Pull Request Validation 40008579084](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008579084) = SUCCESS (source preflight, .NET tests и backend HTTP smoke; не Unity/WebGL). Последующий rerun guard после изменения описания PR тоже запускался; PR остается Draft до настоящего Unity QA.
 
 **CI исходников:** [run 40007822540](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007822540) = source/.NET checks SUCCESS на коммите `c51e6c3` (не настоящая Unity сборка). Реальный Unity WebGL Player export, standalone Unity C# compilation, Animator import/retarget, UI/город, draw calls/FPS **НЕ проверены**.
 
@@ -115,6 +115,8 @@
 | 23.10.26 | MIT Microsoft Rocketbox исходный FBX/PNG, license provenance, проверяемый fetch текстур и 4 синтетических offline теста | `269d77e`, `77fdec1`, `1a36c4d`, `c51e6c3`, `c29e1ca`, merge `063a26d`; PR #2 Draft | FBX blob идентичен upstream, 4/4 Python unittest PASS; текстуры/Unity/WebGL не проверены |
 
 **CI-контроль 23.10.26:** PR #2 HEAD `91888444` — [run 40005479208](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005479208), source/.NET success; Unity WebGL remains unverified.
+
+**Контроль исходного PR кода (23.10.26):** SHA `543ef754`, source/.NET [run 40008579084](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008579084) SUCCESS; ownership + license evidence [run 40008579046](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008579046) SUCCESS. Ни одна из этих проверок **не является Unity Player экспортом**.
 
 ## CROSS-OWNER REQUEST
 
