@@ -438,6 +438,36 @@ def primary_failure_lines(log: str):
     return candidates[:15]
 
 
+def diagnostic_log_signals(log: str):
+    """Show bounded, sanitized evidence; no raw 4,000-line log in public CI."""
+    lines = log.splitlines()
+    signal = re.compile(
+        r"(?i)\b(?:error|failed|failure|exception|abort|unable|"
+        r"cannot|missing|not found|crashed|nonzero|non-zero)\b|"
+        r"buildscript|commandinvocationfailure|il2cpp|exit code"
+    )
+    matches = [(i + 1, line) for i, line in enumerate(lines)
+               if signal.search(line)
+               and not re.search(r"(?i)\b(?:0 errors|no errors|0 failed)\b", line)]
+    print("UBA_FULL_LOG_SIGNALS total=" + str(len(matches)) +
+          " lines=" + str(len(lines)), flush=True)
+    selected = matches[:12]
+    if len(matches) > 12:
+        selected += matches[-8:]
+    seen = set()
+    for line_number, content in selected:
+        if line_number in seen:
+            continue
+        seen.add(line_number)
+        print("UBA LOG SIGNAL line " + str(line_number) + ": " +
+              redact_log(content), flush=True)
+    if not matches:
+        for line_number in range(max(0, len(lines) - 15), len(lines)):
+            if lines[line_number].strip():
+                print("UBA LOG TAIL line " + str(line_number + 1) + ": " +
+                      redact_log(lines[line_number]), flush=True)
+
+
 def diagnose_build(number: int):
     """Read-only diagnostics of any existing Unity Cloud build (especially #3)."""
     status_code, data = api("GET", f"{ROOT}/builds/{number}")
@@ -446,6 +476,14 @@ def diagnose_build(number: int):
     print("UNITY_CLOUD_DIAGNOSTIC build=" + str(number) +
           " status=" + str(data.get("buildStatus") or data.get("status")) +
           " revision=" + str(data.get("lastBuiltRevision") or data.get("requestedRevision")))
+    details = data.get("failureDetails") or []
+    for failure in details[:8] if isinstance(details, list) else []:
+        if isinstance(failure, dict):
+            message = failure.get("publicMessage") or failure.get("displayName") or ""
+            print("UNITY_CLOUD_FAILURE_DETAIL: " + redact_log(str(message)), flush=True)
+            if failure.get("logline") is not None:
+                print("UNITY_CLOUD_FAILURE_LOGLINE: " +
+                      redact_log(str(failure["logline"])), flush=True)
     # Structured build steps provide a secondary read-only diagnostic when
     # old jobs return nonstandard log redirects. Not a replacement for full log.
     try:
@@ -460,6 +498,13 @@ def diagnose_build(number: int):
         raise RuntimeError("Unity Cloud full log was not obtained; see safe step diagnostics above") from None
     print("Unity build log retrieved, lines=" + str(len(log.splitlines())))
     hits = primary_failure_lines(log)
+    diagnostic_log_signals(log)
+    if not hits:
+        try:
+            diagnostic_build_steps(number)
+        except (ValueError, RuntimeError, HTTPError, URLError, OSError) as error:
+            print("UBA_STEP_DIAGNOSTICS_UNAVAILABLE: " +
+                  redact_log(str(error)), flush=True)
     if hits:
         for line_number, line in hits:
             print(f"LOG ERROR line {line_number}: {line}")
