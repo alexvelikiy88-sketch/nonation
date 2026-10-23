@@ -1,15 +1,15 @@
 # NONATION / отчёт 02 — Backend/Simulation
 
 - **Последнее обновление:** 24.10.26
-- **Статус:** IN PROGRESS — проверка загрузки финансово некорректных сохранений; предыдущие .NET-тесты подтверждены, текущий SHA ожидает CI
+- **Статус:** IN PROGRESS — проверены строгая загрузка сохранений и защита идентификаторов от переполнения; Unity/WebGL остаётся интеграционным блокером
 - **Ветка:** `agent/backend-simulation`
 - **Промпт:** [Инструкция исполнителя](../CHAT_02_BACKEND_SIMULATION.md)
 - **Задача P0:** Проверить серверные и финансовые инварианты, read-only API и синхронизацию NPC.
 - **База до старта:** `f909e47ce764911281eee2b97f9b6568a83779d6`
 - **PR:** [#1 — Backend invariants and spectator contract (draft)](https://github.com/alexvelikiy88-sketch/nonation/pull/1)
-- **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests), `5b9182a428e0d748cf0abfb961f15524dd8d82bb` (stock/counter overflow), `6471209060155f6d3a389c27d35c667149bfe81c` (freight lifecycle), `6a396a61f38b74b78c30ac1202f264a75d6b577a` (serial save)
-- **Достоверные тесты по собственной работе:** [PR Validation #61](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669218) **SUCCESS** на `1884236b`: world-load integrity tests, NPC, conserved money, .NET build, HTTP smoke. [Integration Guard](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669212) SUCCESS. Текущий новый ID-overflow тест ожидает CI; Unity/WebGL не проверялись
-- **Блокеры:** нет локального .NET SDK; GitHub CI подтверждает .NET tests, build и HTTP smoke; Unity Editor/WebGL/browser не проверены. CROSS-OWNER REQUEST на отделение remote-времени остаётся. Ложная блокировка Guard исправлена Manager и повторный Guard прошёл на SHA `1884236b`.
+- **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests), `5b9182a428e0d748cf0abfb961f15524dd8d82bb` (stock/counter overflow), `6471209060155f6d3a389c27d35c667149bfe81c` (freight lifecycle), `6a396a61f38b74b78c30ac1202f264a75d6b577a` (serial save), `1884236bd1239f328810a74415631297eec19a82` (saved-world validation), `0a53eb178a81ff111d577dc095ba44fc53763988` (ID exhaustion)
+- **Достоверные тесты по собственной работе:** [PR Validation #66](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216758) **SUCCESS** на кодовом SHA `0a53eb17`: все доменные тесты, в том числе 6 новых граничных проверок ID, NPC, money invariants; .NET server build и HTTP smoke; [Integration Guard #42](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216734) **SUCCESS**. Unity/WebGL не проверялись
+- **Блокеры:** .NET SDK локально отсутствует, но CI #66 подтверждает сборку/тесты/HTTP; Unity C#, WebGL и браузерный прогон не проверены. Не выполнено разделение remote-часов (AGENT 01 + 03). Многопроцессное сохранение не поддерживается; реальное долговременное сетевое развёртывание не проверено.
 
 ## Журнал работы
 
@@ -29,20 +29,20 @@
 
 | 23.10.26 | Интеграционный Guard на обновлённом PR #1 обнаружил `TASKS.md` из-за сравнительного диапазона base…head, хотя в собственных коммитах AGENT 02 этот файл не изменялся | [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) | `14/14` тестов самого Guard прошли; итог **FAIL** в шаге проверки владельца из-за stale base. В `Tools/pr_integration_guard.py` используется `git diff base head`, нужно сравнивать с merge-base. Менеджерский блокер | Unity/WebGL; Guard PASS после фикса Manager |
 
-| 24.10.26 | Добавлена строгая проверка сохранённого доменного мира в `WorldAuthority.Load`: неотрицательные счета и товары, уникальность счётных идентификаторов, транзакций и заказов, корректный escrow/state по freight, не более одного активного заказа. При нарушении сервер не запускает неконсистентную экономику и не перезаписывает JSON. 14 сценариев `SavedWorldIntegrityTests`, включая успешное возобновление нормальной поставки | Код и тесты в текущем PR #1, SHA этого коммита см. историю ветки | Статический аудит, CI для нового SHA ожидается | Unity/WebGL, внешняя HTTPS-среда, power loss |
+| 24.10.26 | Добавлена строгая проверка сохранённого доменного мира в `WorldAuthority.Load`: неотрицательные счета и товары, уникальность счётных идентификаторов, транзакций и заказов, корректный escrow/state по freight, не более одного активного заказа. При нарушении сервер не запускает неконсистентную экономику и не перезаписывает JSON. 13 негативных кейсов и 3 позитивные проверки `SavedWorldIntegrityTests`, включая успешное возобновление нормальной поставки | Код и тесты в текущем PR #1, SHA этого коммита см. историю ветки | Статический аудит, CI для нового SHA ожидается | Unity/WebGL, внешняя HTTPS-среда, power loss |
 
 | 24.10.26 | Проверка финансово некорректных сохранений `WorldAuthority.Load`, отказ без порчи канонического JSON и восстановление допустимой поставки | `1884236bd1239f328810a74415631297eec19a82` | [CI #61](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669218) SUCCESS: все `SavedWorldIntegrityTests`, NPC movement, money invariant, .NET build и HTTP; [Guard](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669212) SUCCESS | Unity Editor/WebGL/browser |
-| 24.10.26 | Защита счётчиков `transactionSequence` и `jobSequence` от `Int32` wrap: блокировка новых автоматически генерируемых транзакций и поставок без изменений денег/товаров; граничные тесты | Код и тесты в новом коммите PR #1 | Тесты написаны, новый CI ожидается | Unity/WebGL и проверка на кодовом SHA |
+| 24.10.26 | Защита счётчиков `transactionSequence` и `jobSequence` от Int32 overflow: отказ в новых автогенерируемых операциях без расходования средств и запасов | `0a53eb178a81ff111d577dc095ba44fc53763988` | [CI #66](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216758) SUCCESS, 6 PASS по ID exhaustion, NPC/money invariants, .NET build и HTTP; [Guard #42](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216734) SUCCESS | Unity C#, WebGL, браузер |
 
 ## Последнее проверенное состояние
 
-**CI:** [NONATION Pull Request Validation #43](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007776559) — **SUCCESS**, `head_sha=6a396a61f38b74b78c30ac1202f264a75d6b577a`. В журнале верифицированы актуальные тесты freight и atomic save, после этого `dotnet build` и `python3 Tools/smoke_server.py`. По логу `Source preflight and .NET 8` выполнено:
+**CI:** [NONATION Pull Request Validation #66](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216758) — **SUCCESS** на последнем кодовом SHA `0a53eb178a81ff111d577dc095ba44fc53763988`. Проверены также saved-world integrity, freight, concurrent saves и ID sequence exhaustion; [Integration Guard #42](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216734) — SUCCESS. По логу `Source preflight and .NET 8` выполнено:
 - Unity source/scene **статическая** preflight — success (не Unity Editor).
 - `dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release` — success; реально напечатаны `PASS` для 64-bit ledger, грузового escrow, перемещения NPC, неприкосновенности игрока, покупки еды, spectator v2 replay/restart, `WorldAuthority.Save/Load` и инвариантов денег.
 - `dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo` — `Build succeeded` с nullable warnings (`CS8618/CS8603` и др.), без ошибок сборки.
 - Локальный HTTP smoke на запущенном `Nonation.Server.dll` — `PASS: public spectator API, readonly security, CORS and moving server NPCs`. Истинная публичная HTTPS-среда не проверялась.
 
-Работа ведётся в `agent/backend-simulation`; [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) остаётся Draft до проверки Unity и браузера. `TASKS.md` и `main` исполнитель не редактировал. Последний подтверждённый **кодовый** SHA — `6a396a61`; последующие изменения отчёта не меняют серверный код. **Важно:** [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) FAIL не свидетельствует о чужой правке агента: код Guard сравнивает весь diff устаревшего PR base с head вместо diff от merge-base.
+Работа ведётся в `agent/backend-simulation`; [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) остаётся Draft до проверки Unity и браузера. `TASKS.md` и `main` исполнитель не редактировал. Последний подтверждённый **кодовый** SHA — `0a53eb17`; последующие изменения отчёта не меняют серверный код. Менеджер исправил ложный Guard FAIL для устаревшей базы PR: текущий Guard #42 успешно проверил зоны владения.
 
 ### Аудит и исправленные дефекты
 
@@ -53,16 +53,20 @@
 5. `SetFreightStage()` позволял закрыть `Returning` с `paid=false`, если состояние заказа было несогласованным. Добавлена единая проверка freight-state пред всеми изменениями и тесты: ни двойной платеж, ни скрытая отмена, ни неправильный `productId` не проходят. **CI #43 PASS**.
 6. В `WorldAuthority.Save()` две сериализации защищались `gate`, но дисковая запись за блокировкой могла чередоваться и перезаписать новое состояние старым. Введён `saveGate` на время сериализации и финального rename, принудительный flush staging перед rename, очистка `.tmp` при исключении. **CI #43 PASS** по staging-failure, orphan-stage, 24 concurrent Save, восстановлению денег и координат NPC.
 
+7. `WorldAuthority.Load` теперь отказывает при негативных остатках или счетах, дубликатах аккаунтов/транзакций/грузов, несогласованном escrow и более чем одной активной доставке; не повреждает исходный JSON. CI #61/66 PASS. Нормальная поставка после рестарта проходит.
+8. `transactionSequence` и `jobSequence` теперь не переполняются при верхней границе Int32; `NewId` безопасно возвращает пустой ID при исчерпании, `Transfer` отклоняет его, `CreateRestock` отклоняет создание до резерва товара. CI #66 PASS.
+
 ### Изменённые файлы (полный список PR)
 
-1. `Assets/MIR/Scripts/MirEconomy.cs`
-2. `Assets/MIR/Scripts/MirSceneSnapshot.cs`
-3. `Assets/MIR/Scripts/MirRemoteWorldSync.cs`
-4. `Server/Nonation.Server/WorldAuthority.cs`
-5. `Server/Nonation.Tests/Program.cs`
-6. `Server/Nonation.Tests/Nonation.Tests.csproj`
-7. `Tools/smoke_server.py`
-8. `docs/agents/reports/02_BACKEND_SIMULATION.md`
+1. `Assets/MIR/Scripts/MirState.cs`
+2. `Assets/MIR/Scripts/MirEconomy.cs`
+3. `Assets/MIR/Scripts/MirSceneSnapshot.cs`
+4. `Assets/MIR/Scripts/MirRemoteWorldSync.cs`
+5. `Server/Nonation.Server/WorldAuthority.cs`
+6. `Server/Nonation.Tests/Program.cs`
+7. `Server/Nonation.Tests/Nonation.Tests.csproj`
+8. `Tools/smoke_server.py`
+9. `docs/agents/reports/02_BACKEND_SIMULATION.md`
 
 ### Ограничения
 
@@ -81,15 +85,13 @@
 - После готовности интерфейса AGENT 02 в `MirRemoteWorldSync.Accept` заменит `game.World.gameMinutes = snapshot.gameMinutes` на `game.SetRemoteGameMinutes(snapshot.gameMinutes)`.
 - Причина: сейчас при просмотре удалённого мира меняется локальный часовой показатель, от которого рассчитываются offline-экономические тики; хотя save заблокирован, лучше не мутировать локальный world вообще.
 
-**Исправить ложную блокировку Integration Guard (MANAGER):** `Tools/pr_integration_guard.py` и при необходимости `.github/workflows/integration-guard.yml` — в `main` код читает `base, head` из PR-event и вызывает `git diff base head`; для давно открытого PR #1 сюда попадает `TASKS.md`, изменённый менеджером в `main` **после** ветвления агента. Требуется определять фактический merge-base и проверять изменения **только** `merge-base → PR head`, добавить регрессионный тест для stale-base PR. AGENT 02 эти файлы не изменяет. Лог: [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153), строка `TASKS.md: owner is manager, not agent/backend-simulation`.
+**Integration Guard (MANAGER) — закрыто:** старый [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) ложно учитывал `TASKS.md` из старого PR base. Менеджер перешёл на `merge-base`; [Guard #42](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216734) SUCCESS для текущей ветки, посторонних изменений нет.
 
-## Следующий блок AGENT 02 — 24.10.26
+## Следующий технический блок — 24.10.26
 
-Валидатор загрузки прошёл [CI #61](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669218), в том числе сохранение денег и движение NPC, и обновлённый Guard прошёл на том же SHA. Для следующего блока проверить новые тесты `PersistedIdentifierSequenceTests` в GitHub Actions и затем приступить к очередному узкому backend-изменению. Новая валидация сохранений действует только при старте `WorldAuthority` и не меняет формат JSON (`MirWorldState.version=1`). Неконсистентные или вручную модифицированные сохранения теперь отклоняются без исправления на лету; требуется review на совместимость с историческими мирами. После CI — обновить отчёт SHA/результатами и отдельно проверить будущую защиту `transactionSequence` / `jobSequence` от исчерпания и ограничения сетевого ответа до буферизации.
+Граничные тесты загрузки сохранения и исчерпания ID прошли в [.NET CI #66](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216758). Следующая задача AGENT 02: ограничить риск двух процессов, пишущих один `NONATION_WORLD_FILE` (с проверяемой моделью владения файлом и release при завершении), и дополнительно исследовать ограничение входного размера сохранения до десериализации. Не изменять HTTP API в сторону unauthenticated writes.
 
-## Следующее конкретное действие
-
-После исправления сравнения диапазона PR в Guard менеджером повторить `Ownership and change integrity` на PR #1. Перед merge интегратор должен проверить Unity C# + WebGL/browser и согласованное обновление spectator v2; доменная и серверная проверка .NET успешно пройдена на SHA `6a396a61`. После CROSS-OWNER REQUEST заменить мутацию `World.gameMinutes` на отдельные удалённые часы. Следующие технические риски: контроль целостности сохранённого доменного состояния при старте и границы многопроцессного persistence.
+**Перед merge:** интегратор проводит Unity Editor компиляцию, реальный WebGL/browser и совместимость DTO spectator v2; другой владелец предоставляет `RemoteGameMinutes` и обновление HUD (CROSS-OWNER REQUEST выше). Серверный .NET success не доказывает Unity runtime.
 
 ## Правила заполнения
 
