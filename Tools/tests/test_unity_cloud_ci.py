@@ -163,7 +163,7 @@ class CloudLogDiagnosisTests(unittest.TestCase):
     def test_no_invented_error_when_only_export_failure_exists(self):
         self.assertEqual(cloud.primary_failure_lines("Unity Player Export Failure"), [])
         self.assertEqual(cloud.primary_failure_lines(
-            "Unity Player Export Failure\\nerror CS9999 after the summary"
+            "Unity Player Export Failure\nerror CS9999 after the summary"
         ), [])
 
     def test_log_redaction_removes_credentials_and_signed_url(self):
