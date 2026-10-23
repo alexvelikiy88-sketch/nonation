@@ -1,0 +1,117 @@
+name: NONATION Cross-Branch Integration
+
+# Validate combined agent sources without pushing merges or building Unity.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Assets/**'
+      - 'Server/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - 'Tools/**'
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - 'Assets/**'
+      - 'Server/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - 'Tools/**'
+      - '.github/workflows/cross-branch-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nonation-cross-branch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulated-merge:
+    name: Three-agent integration (.NET and source)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout trusted main (no PR source execution yet)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Simulate integration of all three agent branches locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "NONATION integration CI"
+          git config user.email "nonation-integration@users.noreply.github.com"
+          {
+            echo "## Cross-branch integration (read-only remote)"
+            echo
+            echo "Trusted main: $(git rev-parse HEAD)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          git fetch --no-tags origin \
+            '+refs/heads/agent/unity-webgl:refs/remotes/origin/agent/unity-webgl' \
+            '+refs/heads/agent/backend-simulation:refs/remotes/origin/agent/backend-simulation' \
+            '+refs/heads/agent/graphics-ui:refs/remotes/origin/agent/graphics-ui'
+
+          for branch in agent/unity-webgl agent/backend-simulation agent/graphics-ui; do
+            agent_sha="$(git rev-parse "refs/remotes/origin/$branch")"
+            echo "Merging $branch @ $agent_sha into ephemeral test tree"
+            echo "- $branch: $agent_sha" >> "$GITHUB_STEP_SUMMARY"
+            if ! git merge --no-ff --no-edit -m \
+              "ci(dry-run): $branch $agent_sha" "$agent_sha"; then
+              git status --short
+              echo "::error title=Cross-agent merge conflict::$branch failed to merge into integration tree"
+              exit 1
+            fi
+          done
+          echo "- Ephemeral tree: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- No commits were pushed and main/agent refs were not modified." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify Unity project source, scene and inputs
+        run: python3 Tools/unity_source_preflight.py
+
+      - name: Run Python regression and cross-module contract tests
+        run: python3 -m unittest discover -s Tools/tests -p 'test_*.py' -v
+
+      - name: Test the graphics asset preparation tools (synthetic fixtures)
+        run: python3 -m unittest discover -s Assets/MIR/Art/Rocketbox -p 'test_*.py' -v
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run shared domain and authoritative simulation tests
+        run: dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release
+
+      - name: Compile authoritative ASP.NET backend
+        run: dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo
+
+      - name: Run HTTP, CORS, NPC movement and persistence smoke checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          export NONATION_LISTEN_URL=http://127.0.0.1:5180
+          export NONATION_WORLD_FILE="${RUNNER_TEMP}/nonation-merged-smoke.json"
+          export NONATION_CORS_ORIGINS=https://alexvelikiy88-sketch.github.io
+          dotnet Server/Nonation.Server/bin/Release/net8.0/Nonation.Server.dll &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          python3 Tools/smoke_server.py
+
+      - name: Summarize verified scope
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo
+            echo "**PASS:** merged-source Python tests, .NET build, domain tests and running HTTP smoke."
+            echo
+            echo "**NOT TESTED:** Unity Editor C# compilation, IL2CPP, WebGL build, browser rendering or third-party asset licensing."
+            echo "This workflow is an integration rehearsal, not a production release."
+          } >> "$GITHUB_STEP_SUMMARY"
