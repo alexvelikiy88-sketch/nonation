@@ -1,0 +1,16 @@
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+.vs/
+.idea/
+*.csproj
+*.sln
+*.suo
+.DS_Store
+# Models with unverified rights must not be uploaded to this public repo.
+Assets/MIR/Art/Characters/
+Assets/MIR/Art/NonCommercial/
