@@ -21,6 +21,8 @@ concurrency:
 jobs:
   source-validation:
     runs-on: ubuntu-latest
+    outputs:
+      unity_license_present: ${{ steps.check_activation.outputs.available }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate license-safe Unity project
@@ -46,9 +48,25 @@ jobs:
           key: mir-quaternius-cc0-${{ hashFiles('Tools/fetch_quaternius.py') }}
       - name: Verify Quaternius CC0 archives and SHA-256 before any Unity build
         run: python3 Tools/fetch_quaternius.py
+      - name: Check whether GameCI activation is configured
+        id: check_activation
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if { [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; } && [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GameCI Unity license is not configured. Source checks passed; real build is performed via Unity Cloud Build Automation."
+          fi
 
   webgl:
     needs: source-validation
+    if: needs.source-validation.outputs.unity_license_present == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
