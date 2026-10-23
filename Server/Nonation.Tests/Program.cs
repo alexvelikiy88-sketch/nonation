@@ -755,6 +755,43 @@ static void WorldLeaseTests()
 }
 WorldLeaseTests();
 
+static void BoundedWorldLoadTests()
+{
+    var path = Path.Combine(Path.GetTempPath(),
+        "nonation-size-" + Guid.NewGuid().ToString("N") + ".json");
+    string? original = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
+        using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write))
+            stream.SetLength(WorldAuthority.MaxSaveBytes + 1);
+
+        bool refused = false;
+        try { using var unsafeWorld = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+        catch (InvalidDataException) { refused = true; }
+        Check(refused && new FileInfo(path).Length == WorldAuthority.MaxSaveBytes + 1,
+            "oversized world is rejected before JSON parsing without modifying the save");
+
+        File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(
+            MirWorldState.NewWorld(),
+            new System.Text.Json.JsonSerializerOptions { IncludeFields = true }));
+        using var healthy = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        var snapshot = healthy.Snapshot();
+        Check(snapshot.citizens.Count == 40 &&
+              new MirEconomy(snapshot).TotalKnownMoney() > 0,
+            "server may load a valid bounded save after failed large-file startup");
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", original);
+        if (File.Exists(path)) File.Delete(path);
+        if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+        if (File.Exists(path + ".lock")) File.Delete(path + ".lock");
+    }
+}
+BoundedWorldLoadTests();
+
+
 
 
 

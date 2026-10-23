@@ -9,6 +9,8 @@ namespace Nonation.Server;
 public sealed class WorldAuthority : IDisposable
 {
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true, WriteIndented = true };
+    // Avoid reading arbitrarily large saved JSON into memory before validation.
+    internal const long MaxSaveBytes = 32L * 1024 * 1024;
     private readonly object gate = new();
     // Serializes snapshot capture AND disk replacement across concurrent saves.
     private readonly object saveGate = new();
@@ -67,7 +69,11 @@ public sealed class WorldAuthority : IDisposable
         if (!File.Exists(savePath)) return MirWorldState.NewWorld();
         try
         {
-            var candidate = JsonSerializer.Deserialize<MirWorldState>(File.ReadAllText(savePath), Json);
+            using var input = new FileStream(savePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (input.Length > MaxSaveBytes)
+                throw new InvalidDataException("Saved world exceeds the supported 32 MiB limit");
+            // Deserialize directly from a bounded-length stream, not a giant string.
+            var candidate = JsonSerializer.Deserialize<MirWorldState>(input, Json);
             // Nullable '?.Count < 1' is false when the list is null: explicitly
             // reject missing collections before any simulation or ledger can run.
             if (candidate is null || !ValidSavedWorld(candidate))
