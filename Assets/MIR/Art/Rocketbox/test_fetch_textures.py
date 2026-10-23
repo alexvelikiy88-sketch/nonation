@@ -10,7 +10,8 @@ from fetch_textures import git_blob_hash, parse_tga_header, resize_tga_box, prep
 def fixture(w=4, h=2, color=(12, 34, 56, 255)):
     header = bytearray(18)
     header[2] = 2
-    struct.pack_into('<HHBB', header, 12, w, h, 32, 0x20)
+    bits = 8 * len(color)
+    struct.pack_into('<HHBB', header, 12, w, h, bits, 0x20)
     return bytes(header) + bytes(color) * (w * h)
 
 
@@ -28,6 +29,23 @@ class TextureTests(unittest.TestCase):
         self.assertEqual(parse_tga_header(smaller), (64, 32, 18, 0x20))
         self.assertEqual(smaller[18:34], bytes((12, 34, 56, 255)) * 4)
         self.assertEqual(len(smaller), 18 + 64 * 32 * 4)
+
+    def test_24_bit_rocketbox_style_tga(self):
+        # Six original Rocketbox TGA sources are 12,582,956 bytes each:
+        # 2048x2048 BGR pixels + 18-byte header + 26-byte TGA footer.
+        data = fixture(128, 64, (21, 43, 65))
+        width, height, offset, descriptor = parse_tga_header(data)
+        self.assertEqual((width, height, offset, descriptor), (128, 64, 18, 0x20))
+        reduced = resize_tga_box(data, 64)
+        self.assertEqual(len(reduced), 18 + 64 * 32 * 3)
+        self.assertEqual(reduced[16], 24)
+        self.assertEqual(reduced[18:27], bytes((21, 43, 65)) * 3)
+        normal = fixture(128, 64, (255, 127, 127))
+        out = resize_tga_box(normal, 64, normal_map=True)
+        self.assertEqual(out[16], 24)
+        b, g, r = out[18:21]
+        value = [(r-127.5)/127.5, (g-127.5)/127.5, (b-127.5)/127.5]
+        self.assertAlmostEqual(sum(v*v for v in value), 1.0, delta=.03)
 
     def test_box_average(self):
         blob = bytearray(fixture(128, 64))
