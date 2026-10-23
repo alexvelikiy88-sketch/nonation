@@ -7,14 +7,14 @@
 - **Domain / симуляция:** `Assets/MIR/Scripts/MirState.cs`, `MirEconomy.cs`, `MirSimulationLoop.cs`. Нет зависимостей на UnityEngine. Одни исходники используются в Unity и в .NET 8. Деньги в целочисленных единицах, поставки через резервирование товара и escrow, фиксированный шаг времени.
 - **Unity-клиент:** `MirGame` (точка композиции), `MirPlayer`, `MirNpcAgent`, `MirCity`, `MirVehicle`, `MirHUD`, `MirRenderMaterials` (визуал, камера, управление, физика-прототип). Пока клиент запускает локальную симуляцию.
 - **Хранение клиента:** `MirPersistence` (локальное сохранение Unity PlayerPrefs/IndexedDB).
-- **Backend:** `Server/Nonation.Server` содержит `WorldAuthority` и `WorldSimulationWorker`. Исполняет ту же доменную симуляцию, сохраняет локальный JSON и отдаёт снапшот только для чтения. По умолчанию слушает 127.0.0.1:5180. **Unity-клиент к серверу пока не подключён.**
+- **Backend:** `Server/Nonation.Server` содержит `WorldAuthority` и `WorldSimulationWorker`. Исполняет ту же доменную симуляцию, сохраняет локальный JSON и отдаёт снапшот только для чтения. По умолчанию слушает 127.0.0.1:5180. **Unity содержит подготовленный `MirRemoteWorldSync` для read-only spectator snapshots; по умолчанию `NetworkConfig.json` пуст, офлайн-режим сохраняется. Реальное соединение Unity/WebGL с удалённым HTTPS backend пока не подтверждено.**
 - **Тесты:** `Server/Nonation.Tests` проверяют доменные инварианты без Unity. Настоящие Unity Editor, IL2CPP, WebGL, браузер и графика требуют отдельной сборки/проверки.
 
 ## Воспроизводимая сборка
 
 `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` и `ProjectSettings/EditorBuildSettings.asset` лежат в Git. `MirGame.cs.meta` фиксирует GUID bootstrap-скрипта. Сборка не зависит от создания сцены в `IPreprocessBuildWithReport`. Опциональные FBX Quaternius скачиваются официальным pre-build скриптом; их лицензии и SHA-256 проверяются. Любые ассеты с непроверенными правами исключены из публичной сборки.
 
-Готовая ссылка через GitHub Pages появится только после успешного GameCI WebGL-прохода и deploy. Unity Cloud Build самостоятельно на GitHub Pages артефакты не публикует; отдельная интеграция пока отсутствует.
+Публичная ссылка через GitHub Pages может быть проверена только после успешного GameCI **или** Unity Cloud WebGL export, валидации артефактов, GitHub Pages deploy и браузерного smoke-test. Unity Cloud сам по себе Pages не публикует; CI-код передачи Cloud-артефакта в Pages подготовлен, но без законных credentials и реального билда ещё не подтверждён.
 
 ## Дальнейшие этапы
 
@@ -49,3 +49,7 @@
 Runtime-модуль `com.unity.modules.unitywebrequest` включён в `Packages/manifest.json`, так как сеть Unity WebGL использует `UnityEngine.Networking.UnityWebRequest`. Эта проверка относится к исходникам; успешность сборки с Editor и поддержка CORS в конкретном размещении ещё не подтверждены.
 
 Unity Build Automation может отдавать прямой URL внешнего HTTPS-хранилища, относительную ссылку v2 либо legacy `/api/v1` ссылку. `Tools/unity_cloud_ci.py` обрабатывает эти варианты отдельно: секрет Unity не передаётся внешнему хранилищу, внутренний Unity API ограничен текущим project/build target. Скачивание пока протестировано только автономными unit-тестами, не с реальным Unity service account. [API v2](https://docs.unity.com/en-us/oas-build-automation-client/2.0.0).
+
+## Независимая интеграционная проверка (24.10.26)
+
+`NONATION Cross-Branch Integration` из `main` выполняет read-only Git fetch веток `agent/unity-webgl`, `agent/backend-simulation`, `agent/graphics-ui`; формирует временное объединение **только на runner** и запускает Python unit/contract tests, .NET 8 tests/build и серверный HTTP smoke. [Первый реальный прогон](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012146794) — SUCCESS на трёх зафиксированных SHA; [PR #13](https://github.com/alexvelikiy88-sketch/nonation/pull/13) принят (merge `9e76840a4432821ce3cfaaffb41afea44cf8d184`). Это не Unity C# компиляция, не WebGL build и не лицензирование ассетов. Нельзя переносить его PASS на более поздние SHA без повторного прогона.
