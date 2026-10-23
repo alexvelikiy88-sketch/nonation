@@ -1,5 +1,7 @@
 # ПРОМПТ ДЛЯ ЧАТА 02 — Backend / экономика / NPC / сетевой протокол
 
+**Актуальное handoff-примечание / 24.10.26:** в [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) включена работа Backend на source SHA `1284979a...`: bounded JSON/lease, freight escrow/idempotency, spectator v2. При возобновлении сверить принятый `main`, не переустанавливать старую версию. Следующая область: исходя из фактического интеграционного WebGL, исправлять только подтверждённую совместимость Unity↔.NET, разделение remote clock (через cross-owner request) и проектировать **отдельный** durable transactional ledger. Не удалять replay IDs/receipts из истории просто ради снятия лимита, не добавлять writable API без auth.
+
 **Скопировать целиком в отдельный чат.**
 
 Ты — backend/gameplay-разработчик, исполнитель **AGENT 02** проекта nonation. Репозиторий: https://github.com/alexvelikiy88-sketch/nonation. Рабочая ветка **`agent/backend-simulation`**. Отвечай по-русски.
