@@ -123,6 +123,52 @@ static void WideLedgerTests()
 }
 WideLedgerTests();
 
+static void ProductStockOverflowTests()
+{
+    var world = MirWorldState.NewWorld();
+    var economy = new MirEconomy(world);
+    var farm = world.Business("farm")!;
+    var worker = world.Citizen("citizen-001")!;
+    worker.workplaceId = farm.id;
+    worker.skill = int.MaxValue;
+    worker.daysWorked = int.MaxValue;
+    farm.stock = int.MaxValue;
+    farm.capacity = int.MaxValue;
+    long moneyBefore = economy.TotalKnownMoney();
+    Check(economy.Work(worker), "salary transfer remains possible at maximum stock");
+    Check(farm.stock == int.MaxValue, "farm work cannot overflow stocked goods");
+    Check(worker.skill == 999 && worker.daysWorked == int.MaxValue,
+        "work counters saturate without signed wraparound");
+    Check(economy.TotalKnownMoney() == moneyBefore,
+        "work at stock boundaries still conserves money");
+
+    var fullFactory = MirWorldState.NewWorld();
+    var factoryEconomy = new MirEconomy(fullFactory);
+    var supplier = fullFactory.Business("farm")!;
+    var packing = fullFactory.Business("packing")!;
+    int supplyBefore = supplier.stock;
+    packing.stock = int.MaxValue;
+    packing.capacity = int.MaxValue;
+    fullFactory.gameMinutes = 720f;
+    factoryEconomy.Tick(.05f);
+    Check(packing.stock == int.MaxValue && supplier.stock == supplyBefore,
+        "production at full int capacity cannot overflow output or consume input");
+
+    var almostFull = MirWorldState.NewWorld();
+    var normalProduction = new MirEconomy(almostFull);
+    var normalFarm = almostFull.Business("farm")!;
+    var normalPacking = almostFull.Business("packing")!;
+    int normalInput = normalFarm.stock;
+    normalPacking.stock = int.MaxValue - 8;
+    normalPacking.capacity = int.MaxValue;
+    almostFull.gameMinutes = 720f;
+    normalProduction.Tick(.05f);
+    Check(normalPacking.stock == int.MaxValue && normalFarm.stock == normalInput - 10,
+        "exactly fitting factory batch is produced without false rejection");
+}
+ProductStockOverflowTests();
+
+
 
 static void HeadlessPopulationTests()
 {

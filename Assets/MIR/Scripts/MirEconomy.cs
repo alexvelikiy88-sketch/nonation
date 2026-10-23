@@ -67,9 +67,11 @@ namespace MIR
             string id=s.NewId("salary");
             if(!Transfer(id,employer.id,worker.id,1200,"completed shift"))return false;
             worker.nextWorkMinute=s.gameMinutes+360f;
-            worker.daysWorked++;worker.skill=Math.Min(999,worker.skill+1);
+            if(worker.daysWorked<int.MaxValue)worker.daysWorked++;
+            worker.skill=worker.skill>=999?999:Math.Min(999,worker.skill+1);
             worker.energy=Math.Max(0,worker.energy-9);
-            if(employer.kind=="farm" && employer.stock+4<=employer.capacity && employer.seed>0 && employer.water>0)
+            if(employer.kind=="farm" && (long)employer.stock+4<=employer.capacity &&
+               employer.seed>0 && employer.water>0)
             {
                 employer.stock+=4;employer.seed--;employer.water--;
             }
@@ -146,7 +148,7 @@ namespace MIR
                 previousWorkPeriod=period;
                 var farm=s.Business("farm");
                 var packing=s.Business("packing");
-                if(farm!=null&&packing!=null&&farm.stock>=10 && packing.stock+8<=packing.capacity)
+                if(farm!=null&&packing!=null&&farm.stock>=10 && (long)packing.stock+8<=packing.capacity)
                 {farm.stock-=10;packing.stock+=8;Log("Цех переработал 10 единиц сырья в 8 единиц продукции.");}
             }
         }
