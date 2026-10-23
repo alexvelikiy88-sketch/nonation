@@ -2,7 +2,7 @@
 
 **Статус на 24.10.26:** Unity WebGL **реально скомпилирован** в [Cloud Build №4 / Actions #40015140424](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424) для **только Unity-ветки** `cb46b4960dd8bcd255880f569254dfe9876ea14b`. WebGL-артефакт `nonation-agent01-preview` проверен и сохранён в GitHub Actions. Это ещё **не доказательство работы интегрированной игры в браузере**.
 
-**Объединение завершено:** три агентские ветки приняты в `main` через [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19), merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. Общая Unity WebGL-сборка [Actions #40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542) запущена. Публикацию блокирует не включённый GitHub Pages: [Settings → Pages](https://github.com/alexvelikiy88-sketch/nonation/settings/pages) → Source = `GitHub Actions`. До Deploy и реального браузерного smoke-test ссылка на игру не подтверждена.
+**Интеграция завершена:** все три ветки приняты через [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19). [GitHub Pages](https://alexvelikiy88-sketch.github.io/nonation/) теперь **опубликован** (ранний WebGL SHA `47a6424...`), но [настоящий Chromium smoke #40022712096](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40022712096) выявил `Missing runtime shader` и отсутствие готовности игровой сцены на раннем Unity-артефакте. [PR #22](https://github.com/alexvelikiy88-sketch/nonation/pull/22) исправляет shader retention, merge `4366103dd439cfda4b65223608f84688084ba998`; **реальный повторный Unity WebGL + browser proof ещё ожидается**.
 
 ## Что есть в исходниках
 
