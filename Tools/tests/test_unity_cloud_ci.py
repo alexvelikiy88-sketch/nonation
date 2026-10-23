@@ -157,11 +157,11 @@ class LegacyInputContractTests(unittest.TestCase):
         return module
 
     def test_committed_wasd_mouse_axes(self):
-        text = (SCRIPT.parents[2] / "ProjectSettings/InputManager.asset").read_text()
+        text = (SCRIPT.parents[1] / "ProjectSettings/InputManager.asset").read_text()
         self.assertEqual(self.preflight_module().legacy_input_issues(text), [])
 
     def test_missing_axis_fails(self):
-        text = (SCRIPT.parents[2] / "ProjectSettings/InputManager.asset").read_text()
+        text = (SCRIPT.parents[1] / "ProjectSettings/InputManager.asset").read_text()
         broken = text.replace("m_Name: Mouse Y", "m_Name: Missing Y")
         self.assertIn(
             "Missing or mismapped legacy input axis: Mouse Y",
@@ -169,7 +169,7 @@ class LegacyInputContractTests(unittest.TestCase):
         )
 
     def test_keyboard_mapping_regression_fails(self):
-        text = (SCRIPT.parents[2] / "ProjectSettings/InputManager.asset").read_text()
+        text = (SCRIPT.parents[1] / "ProjectSettings/InputManager.asset").read_text()
         broken = text.replace("altPositiveButton: w", "altPositiveButton: x")
         self.assertIn(
             "Missing or mismapped legacy input axis: Vertical",
