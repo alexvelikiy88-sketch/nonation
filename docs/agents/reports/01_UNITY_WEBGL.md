@@ -1,10 +1,10 @@
 # NONATION / отчёт 01 — Unity/WebGL
 
-- **Дата:** 23.10.26
+- **Дата:** 24.10.26
 - **Статус:** IN PROGRESS / P0 EXTERNAL BLOCKER — CI, Cloud-диагностика и браузерный proof-тест подготовлены; лицензированная Unity-сборка и реальный WebGL запуск не подтверждены
 - **Ветка:** `agent/unity-webgl`
 - **База:** `f52d21a2b0e470bb79664f8be0e6fd0251b82596`
-- **Последний кодовый SHA перед актуализацией:** `b5ea79a703e9755e56decdb2a6057887f1a0364b`
+- **Кодовый SHA этапа 4:** `600a436ace273b6915d28501e7240ae1839231ef`
 - **PR:** [#3 — Unity/WebGL](https://github.com/alexvelikiy88-sketch/nonation/pull/3), Draft, НЕ merge самим.
 
 ## Фактически проверено
@@ -143,3 +143,44 @@ python3 Tools/unity_cloud_ci.py --verify-hosted build/WebGL https://<published-p
 - PR [#3](https://github.com/alexvelikiy88-sketch/nonation/pull/3) остаётся **Draft** по причине внешнего P0 блокера (Unity credentials / реальная WebGL сборка). Отсутствие валидного запуска в браузере не скрывается.
 
 CROSS-OWNER REQUEST для прежнего сбоя Guard закрыт исправлением менеджера; новый запрос на чужие файлы не нужен.
+
+## Этап 4 — воспроизводимая конфигурация ввода WebGL (24.10.26)
+
+### Проверка источников перед изменениями
+
+- `main` на начало этапа: `0b39fe3838d4601d085522d2c9590178ca0162e4`.
+- AGENT 01 baseline: `78886de94ee6850a645f6344b1dcca54cb0d0028` в `agent/unity-webgl`, [PR #3](https://github.com/alexvelikiy88-sketch/nonation/pull/3) открыт Draft.
+- Реально прочитаны `AGENTS.md`, `TASKS.md` из `main`, `NONATION_MANAGER.md`, инструкция и данный отчёт, последний GitHub Actions, дифф и PR.
+- [GitHub Actions №108](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008783577) — `source-validation` SUCCESS, остальные Unity/WebGL/Cloud/Pages/browser jobs **SKIPPED**.
+- Unity Cloud Build №3: пользовательский URL и прямые UBA API URL не позволяют прочитать полный журнал без авторизации. Первопричину `Unity Player Export Failure` по-прежнему **не установили**; нельзя домысливать ошибку. Официальная документация для Get Build Log описывает 200/202/307 и также упоминает 303-редирект; локальных Unity Cloud credentials нет.
+
+### Реальная найденная несовместимость конфигурации
+
+`Assets/MIR/Scripts/MirPlayer.cs` обращается к `Input.GetAxisRaw("Horizontal")`/`("Vertical")`, `MirFollowCamera.cs` использует `Input.GetAxis("Mouse X")`/`("Mouse Y")`. При этом в проверенной Git tree **не было `ProjectSettings/InputManager.asset`**. `ProjectSettings/ProjectSettings.asset` задаёт `activeInputHandler: 2`, но настройка самих legacy-осей не была закреплена. При чистом импорте это зависело от автогенерации дефолтов Unity; не доказано, что конкретно из-за этого падал Build №3.
+
+### Изменения в пределах прав AGENT 01
+
+| Коммит | Файл | Проверяемый эффект |
+|---|---|---|
+| `b086a4b` | `ProjectSettings/InputManager.asset` | Явные Unity YAML-оси клавиатуры WASD/стрелки и Mouse X/Y (legacy Input), без редактирования игрового ввода AGENT 03 |
+| `3f5ede3` | `Tools/unity_source_preflight.py` | Structural/behavioral preflight требует InputManager и разрешённый legacy Input backend, проверяет mapping осей; устранена промежуточная ошибка генерации кода |
+| `622b9e1`, `600a436` | `Tools/tests/test_unity_cloud_ci.py` | Регрессионные тесты: корректные оси, отсутствующая ось, нарушенная клавиатурная привязка; исправлен путь тестового fixture к корню репозитория |
+
+### CI — реальные результаты
+
+- [**Unity CI №119**](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009882933) на SHA `600a436ace273b6915d28501e7240ae1839231ef`: `source-validation=success`. GitHub Actions log: `MIR preflight: 29 C# files, 0 errors, 1 notes`; `Ran 48 tests`, `OK`; `webgl/cloud-webgl/deploy/browser-smoke` **skipped**.
+- [**PR Validation №64**](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009882961): `Source preflight and .NET 8` SUCCESS, включая Python, .NET и HTTP smoke.
+- [**Integration Guard №39**](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009882930): `Ownership and change integrity` SUCCESS.
+- В CI №119 отсутствуют `UNITY_SA_KEY_ID`/`UNITY_SA_SECRET_KEY` и GameCI activation, подтверждены notices. Следовательно build/export/hardware/browser по-прежнему не проверены.
+- Временные CI failures предыдущих тестовых SHA (не текущего) вызваны сначала порчей regex-кода при подготовке патча и затем неверным путём тестового fixture; обе ошибки исправлены перед зелёными CI. **Не трактовать промежуточные failures как ошибки Unity C# компиляции**.
+
+### Следующее действие P0
+
+1. После настройки законных GitHub Actions Unity Cloud service-account credentials выполнить read-only `workflow_dispatch`: `inspect_cloud_build=3`, `run_webgl_build=false`; задокументировать первую ошибку из настоящего лога.
+2. При корректной Unity Cloud/Gameplay конфигурации выполнить **одну** лицензированную WebGL сборку с проверкой `lastBuiltRevision == GITHUB_SHA` и `index.html`, wasm/data/js.
+3. После HTTPS публикации выполнить Chromium smoke (сцена, герой, NPC, WASD, IndexedDB save/reload). Пока этих подтверждений нет, **не выдавать рабочую ссылку**.
+4. Review и объединение PR #3 осуществляет менеджер. `main`, `TASKS.md`, backend, графические C# и чужие отчёты не менялись.
+
+### CROSS-OWNER REQUEST — этап 4
+
+Нет новых ошибок, для исправления которых пришлось бы изменять файлы AGENT 02/03/MANAGER.
