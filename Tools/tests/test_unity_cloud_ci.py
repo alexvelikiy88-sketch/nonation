@@ -68,6 +68,43 @@ class CloudBuildTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "nonempty index.html"):
                 cloud.check_webgl(root)
 
+    def test_hosted_verification_checks_all_files_without_browser_claim(self):
+        from unittest.mock import patch
+
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/octet-stream"}
+            def __init__(self, request):
+                self.request = request
+            def geturl(self):
+                return self.request.full_url
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            (root / "Build").mkdir()
+            (root / "index.html").write_bytes(b"<html>Unity</html>")
+            for ext in ("wasm", "data", "js"):
+                (root / "Build" / f"game.{ext}").write_bytes(b"test")
+            seen = []
+            def fake_urlopen(request, timeout=0):
+                seen.append(request.full_url)
+                self.assertEqual(request.get_method(), "HEAD")
+                return Response(request)
+            with patch.object(cloud, "urlopen", side_effect=fake_urlopen):
+                cloud.verify_hosted(root, "https://example.github.io/nonation/")
+            self.assertEqual(len(seen), 4)
+            self.assertIn("https://example.github.io/nonation/index.html", seen)
+            self.assertIn("https://example.github.io/nonation/Build/game.wasm", seen)
+
+    def test_hosted_verification_rejects_http(self):
+        with tempfile.TemporaryDirectory() as work:
+            with self.assertRaisesRegex(ValueError, "HTTPS URL"):
+                cloud.verify_hosted(Path(work), "http://example.github.io/nonation/")
+
     def test_no_empty_artifact(self):
         with tempfile.TemporaryDirectory() as work:
             w = Path(work)
