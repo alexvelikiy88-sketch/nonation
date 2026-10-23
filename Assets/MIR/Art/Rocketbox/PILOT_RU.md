@@ -22,7 +22,7 @@
 
 Статическая структура файла **не доказывает** корректную skin деформацию, Avatar mapping, веса, мимику или WebGL FPS. Upstream `_facial.fbx` существует, но **не импортирован**.
 
-## Требуемые оригинальные текстуры — отсутствуют в GitHub nonation
+## Текстуры Microsoft — загружены, проверены и оптимизированы (24.10.26)
 
 Всего **6 TGA** по 12,582,956 байт каждый (исходники ~72 МиБ):
 - `Textures/m007_body_color.tga`: `1757150789a5fdcf733394ff21a60512530b4f1a`
@@ -32,7 +32,7 @@
 - `Textures/m007_head_normal.tga`: `0a99ce9aa6014e94c3385555f66a14da7599b757`
 - `Textures/m007_head_specular.tga`: `81fe377939cf8eaedd5d14dfb5261650de86bf1e`
 
-Все файлы находятся в `Assets/Avatars/Adults/Male_Adult_12/Textures/` того же pinned upstream commit. Без этих файлов **модель нельзя объявить готовой**, потому что оригинальный FBX ссылается на эти имена текстур. Их допускается получить через проверяемый fetch script с уменьшением разрешения только для WebGL бюджета; необходимо измерить качество skin/materials после импорта.
+Все шесть исходных файлов находятся в `Assets/Avatars/Adults/Male_Adult_12/Textures/` pinned Microsoft upstream commit. GitHub Actions [40013964977](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013964977) действительно загрузил все шесть 24-битных TGA (2048×2048), **сверил Git blob SHA-1** с перечисленными выше хешами, уменьшил до 1024×1024 и закоммитил в `Assets/MIR/Art/Rocketbox/Textures/`: коммит [eb58e07f](https://github.com/alexvelikiy88-sketch/nonation/commit/eb58e07f5a1fd97597b71affa1c7a774f3292ebf). Все шесть файлов по **3 145 746 байт**; `textures_manifest.json` содержит источник, размеры, параметры фильтрации и **SHA-256 каждого выходного TGA**. Оригинальные тяжёлые TGA **не** добавлялись в Git. Наличие подготовленных файлов ещё не означает правильный Unity Material import.
 
 ## Подготовка текстур для Unity (скрипт в репозитории)
 
@@ -44,16 +44,16 @@ python3 -m unittest discover -s Assets/MIR/Art/Rocketbox -p 'test_*.py' -v
 python3 Assets/MIR/Art/Rocketbox/fetch_textures.py --max-edge 1024
 ```
 
-Скрипт скачивает только 6 оригинальных 32-битных TGA из Microsoft Rocketbox; проверяет точные исходные Git blob SHA, сохраняет BGRA/alpha и ориентирование, уменьшает изображения box-average до заданного предела, **повторно нормализует RGB-векторы normal map**. В версии 24.10.26 все шесть исходников проверяются во временном staging-каталоге **до установки**; создаётся `Textures/textures_manifest.json` с SHA-256, размерами и настройками преобразования.
+Скрипт скачивает только 6 оригинальных **24- или 32-битных TGA** из Microsoft Rocketbox; проверяет точные исходные Git blob SHA, сохраняет BGRA/alpha и ориентирование, уменьшает изображения box-average до заданного предела, **повторно нормализует RGB-векторы normal map**. В версии 24.10.26 все шесть исходников проверяются во временном staging-каталоге **до установки**; создаётся `Textures/textures_manifest.json` с SHA-256, размерами и настройками преобразования.
 
-Текстуры **не включены в GitHub**, скачивание реальных TGA и Unity Material import **не проверены**. Настройка Unity импортера и визуальная проверка качества карт принадлежат AGENT 01.
+**Реальная загрузка и верификация выполнены:** [GitHub Actions #40013964977](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013964977) завершился SUCCESS, включая контроль скачанных источников, проверку выходных SHA-256, фиксацию в GitHub и artifact upload. Первоначальный [run #40013648557](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013648557) выявил несовместимость старого 32-битного TGA parser с оригинальным 24-битным TGA — исправлено коммитами `214254c7` и `e6a8ff6e`. Временный однократный workflow удалён после записи текстур, чтобы не входил в PR. **Не проверено:** Unity Material import, назначение normal/specular maps, skin weights, Avatar и WebGL. Эти действия принадлежат AGENT 01.
 
-**Локальные тесты 24.10.26:** 6 Python unittest PASS на синтетических TGA (известный Git SHA-1, BGRA/alpha, ориентация, box-average, normal vector renormalization, отказ при некорректном TGA и при сетевой ошибке на третьем файле без установки неполного набора). Git blob SHA обновлённых Python-файлов **совпадает с протестированными локальными байтами**. Это не Unity QA и не проверка всех реальных Microsoft TGA.
+**Локальные и GitHub Actions тесты 24.10.26:** 7 Python unittest PASS на синтетических TGA (известный Git SHA-1, BGRA/alpha, ориентация, box-average, normal vector renormalization, отказ при некорректном TGA и при сетевой ошибке на третьем файле без установки неполного набора). Git blob SHA обновлённых Python-файлов **совпадает с протестированными локальными байтами**. Это не Unity QA и не проверка всех реальных Microsoft TGA.
 
 ## Статус и этапы проверки
 
 1. [x] Права: Microsoft MIT, лицензия сохранена; оригинальный rigged FBX получен, совпадают Git blob SHA.
-2. [ ] Получены и проверены все 6 текстур; ограничены размеры; проверен Material import.
+2. [x] Получены все 6 MIT-текстур, сверены SHA исходников, подготовлено 1024×1024, сохранены SHA-256 и коммит `eb58e07f`. **[ ] Material import и качество в Unity — не проверены.**
 3. [ ] AGENT 01 импортирует FBX Humanoid (`Assets/MIR/Editor/**`), подтверждает единственную поставляемую сетку; отдельно создаёт и проверяет LOD1–LOD3, клипы и Animator. Импорт НЕ МОЖЕТ считаться успешным по одному наличию FBX.
 4. [ ] Idle, Walk, Run, Carrying, переходы и skin deformation/foot slide просмотрены в Unity Editor.
 5. [ ] Получены/сгенерированы и проверены отдельные LOD-меши (сейчас только один), устранены ошибки материалов, измерен FPS / draw calls в браузерном WebGL.
