@@ -24,6 +24,15 @@ import tempfile
 
 SOURCE_BLOB_SHA1 = "15d4f8501d5703600cb3d8a94765a3de1029aaf6"
 SOURCE_NAME = "Male_Adult_12.fbx"
+LICENSE_BLOB_SHA1 = "9bcfb3ece5301a55d3a41bbd00a029ab27d61d13"
+UPSTREAM_TEXTURE_BLOBS = {
+    "m007_body_color.tga": "1757150789a5fdcf733394ff21a60512530b4f1a",
+    "m007_body_normal.tga": "5bc8f98e588d55964e2b6a2d0029778f4a9db9e6",
+    "m007_body_specular.tga": "611bbd149179a52c6fbded07375904d462e49c19",
+    "m007_head_color.tga": "e5b23c4f55e499893c2a92ec7e52d0252bee2ae3",
+    "m007_head_normal.tga": "0a99ce9aa6014e94c3385555f66a14da7599b757",
+    "m007_head_specular.tga": "81fe377939cf8eaedd5d14dfb5261650de86bf1e",
+}
 TEXTURE_NAMES = tuple(
     f"m007_{region}_{channel}.tga"
     for region in ("body", "head")
@@ -51,13 +60,15 @@ def verify_source(folder: Path, file: Path) -> dict:
     if git_blob_sha1(data) != SOURCE_BLOB_SHA1:
         raise ValueError("Original FBX does not match immutable Microsoft Git blob")
     license_file = folder / "LICENSE.md"
-    if not license_file.is_file() or "MIT License" not in license_file.read_text(encoding="utf-8"):
-        raise ValueError("Required original Microsoft MIT license missing")
+    if (not license_file.is_file() or
+            git_blob_sha1(license_file.read_bytes()) != LICENSE_BLOB_SHA1):
+        raise ValueError("Required original Microsoft MIT license missing or modified")
     manifest_file = folder / "Textures" / "textures_manifest.json"
     if not manifest_file.is_file():
         raise ValueError("Verified source textures manifest missing")
     manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
-    if set(manifest.get("textures", {})) != set(TEXTURE_NAMES):
+    if (set(manifest.get("textures", {})) != set(TEXTURE_NAMES) or
+            set(TEXTURE_NAMES) != set(UPSTREAM_TEXTURE_BLOBS)):
         raise ValueError("All six textures are required")
     if manifest.get("upstream_commit") != "0943055db6ec570bcef9f2c8b41c9e5467c808f9":
         raise ValueError("Unexpected Rocketbox texture upstream revision")
@@ -66,6 +77,8 @@ def verify_source(folder: Path, file: Path) -> dict:
         if not tex.is_file():
             raise ValueError(f"Missing texture {name}")
         meta = manifest["textures"][name]
+        if meta.get("source_blob_sha1") != UPSTREAM_TEXTURE_BLOBS[name]:
+            raise ValueError(f"Wrong pinned upstream texture provenance: {name}")
         raw = tex.read_bytes()
         if len(raw) != meta["bytes"] or hashlib.sha256(raw).hexdigest() != meta["sha256"]:
             raise ValueError(f"Texture bytes/checksum mismatch: {name}")
