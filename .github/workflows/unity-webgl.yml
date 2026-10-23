@@ -77,7 +77,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         with:
-          unityVersion: 6000.0.30f1
+          unityVersion: 6000.0.58f2
           targetPlatform: WebGL
           buildMethod: MIR.Editor.MirCloudBuild.Build
       - name: Verify playable WebGL files
