@@ -96,3 +96,38 @@ python3 Tools/unity_cloud_ci.py --verify-hosted build/WebGL https://<published-p
 ### CROSS-OWNER REQUEST — этап 2
 
 Новых подтверждённых CS/WebGL ошибок в чужих файлах нет. Графику AGENT 03, backend AGENT 02, чужие отчёты и `main` не трогали.
+
+
+## Этап 3 — API v2, защита от лишних сборок и строгая проверка исходников (23.10.26)
+
+**PR:** [#3](https://github.com/alexvelikiy88-sketch/nonation/pull/3), Draft. **Последний кодовый SHA:** `8ecb17359a737f8d917c373a1db4a395ac389e42`. Неподтверждённый браузерный запуск не объявлять готовым.
+
+### Подтверждённые проблемы и исправления
+
+- Официальная [Unity Build Automation API v2](https://docs.unity.com/en-us/oas-build-automation-client/2.0.0) для `GET /builds/{number}/log` документирует `200` (текст), `202` (`redirect=manual`, подписанный URL) и `307` (redirect). Наш старый reader ожидал только `303`; обновлён `Tools/unity_cloud_ci.py` — `be72873`. Тесты проверяют `200/202/307` с моками и **не пересылают Authorization в URL хранилища**.
+- `GET /builds` в API v2 использует `per_page`/`page`, а не `limit`/`offset`. Переход на `?per_page=20&page=1` и тест детектирования auto-build SHA — `be72873`, `3fa9615`.
+- `workflow_dispatch inspect_cloud_build=3` ранее мог одновременно включить `cloud-webgl`, если настроить Cloud secrets; также каждый PR мог запустить тяжёлый GameCI при появлении license secrets. Теперь автоматический Unity build разрешён **только при push в main**, либо при `workflow_dispatch` с отдельным явным `run_webgl_build=true`; ручная проверка лога по умолчанию не инициирует build — `e745690`.
+- Статус Cloud `requestedRevision` — это *запрошенный* SHA, а не гарантированный *фактически построенный*. Публикация теперь требует точного `lastBuiltRevision == GITHUB_SHA`, отсутствие поля — FAIL CLOSED; сообщения после `Unity Player Export Failure` не классифицируются как первопричина — `5448e41`, `cfe7b7e`, `8ecb173`.
+- `target.settings == null` больше не вызывает `AttributeError` при проверке `autoBuild` — `be72873`. Все изменения затрагивают только принадлежащие AGENT 01 файлы.
+
+### Проверки и фактический результат
+
+| Запуск | Результат |
+|---|---|
+| [Unity CI №105](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007977358), SHA `8ecb173` | workflow SUCCESS, только `source-validation`; `webgl`, `cloud-webgl`, `deploy`, `browser-smoke` **SKIPPED** |
+| [Unity CI №104](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007966707) | workflow SUCCESS, только исходники; нет Unity artifact |
+| [PR/.NET CI №47](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007977346), SHA `8ecb173` | SUCCESS — Python regressions, Unity static preflight, .NET и backend HTTP smoke |
+| [Integration Guard №15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007977456) | FAILURE на старом base: `Ran 0 tests` при `test_pr_integration_guard.py`. Ветка AGENT 01 не редактирует `.github/workflows/integration-guard.yml`. Позже Manager обновил `main` до `e2cfca4e394cc3969be597ba1ef02a46d088cbfb` и исправил Guard; нужна проверка нового запуска |
+
+При проверке `git ls-remote https://github.com/alexvelikiy88-sketch/nonation.git HEAD` в локальном контейнере получено `Could not resolve host: github.com`. Реальные успешные тесты подтверждаются ссылками на GitHub Actions выше, **не локальным запуском Unity**.
+
+### Состояние P0
+
+- Полный лог Build Automation №3 по-прежнему недоступен без Unity service-account credentials. **Первичная Unity ошибка UNKNOWN**, известен только завершающий `Unity Player Export Failure`.
+- Никаких `.wasm/.data/.js` от лицензированной Unity сборки не получено. Доступный статический CI **не является** доказательством WebGL экспорта.
+- Требуются законные `UNITY_SA_KEY_ID`/`UNITY_SA_SECRET_KEY` в GitHub Actions Secrets **или** лицензированная GameCI активация. Credentials нельзя передавать через коммиты, PR, отчёт.
+- После credentials: отдельно запустить `workflow_dispatch inspect_cloud_build=3` с `run_webgl_build=false` (без новой сборки), затем **одну** подтверждённую сборку с проверкой BuildReport, исходного SHA, всех артефактов, HTTPS и Chromium runtime.
+
+### CROSS-OWNER REQUEST — контроль интеграции
+
+- **`.github/workflows/integration-guard.yml` (MANAGER):** [прежний run №15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007977456) вернул `Ran 0 tests`, exit 5, поскольку workflow выполнил тест из старого base без `Tools/tests/test_pr_integration_guard.py`. Обновление main до `e2cfca4` выполнял Manager; AGENT 01 файл не исправляет. Запрос: подтвердить, что новый Integration Guard для PR #3 работает после изменения base.
