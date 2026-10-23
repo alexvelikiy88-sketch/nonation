@@ -145,6 +145,38 @@ class CloudBuildTests(unittest.TestCase):
                 cloud.unpack_webgl(archive, w / "out")
             self.assertFalse((w / "outside.txt").exists())
 
+class LegacyInputContractTests(unittest.TestCase):
+    """Check real Unity 6 legacy InputManager axes even on a clean checkout."""
+
+    @staticmethod
+    def preflight_module():
+        source = SCRIPT.parent / "unity_source_preflight.py"
+        spec = importlib.util.spec_from_file_location("unity_source_preflight_test", source)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_committed_wasd_mouse_axes(self):
+        text = (SCRIPT.parents[2] / "ProjectSettings/InputManager.asset").read_text()
+        self.assertEqual(self.preflight_module().legacy_input_issues(text), [])
+
+    def test_missing_axis_fails(self):
+        text = (SCRIPT.parents[2] / "ProjectSettings/InputManager.asset").read_text()
+        broken = text.replace("m_Name: Mouse Y", "m_Name: Missing Y")
+        self.assertIn(
+            "Missing or mismapped legacy input axis: Mouse Y",
+            self.preflight_module().legacy_input_issues(broken),
+        )
+
+    def test_keyboard_mapping_regression_fails(self):
+        text = (SCRIPT.parents[2] / "ProjectSettings/InputManager.asset").read_text()
+        broken = text.replace("altPositiveButton: w", "altPositiveButton: x")
+        self.assertIn(
+            "Missing or mismapped legacy input axis: Vertical",
+            self.preflight_module().legacy_input_issues(broken),
+        )
+
+
 class CloudLogDiagnosisTests(unittest.TestCase):
     def test_earliest_compile_error_excludes_terminal_export_failure(self):
         log = "\n".join((
