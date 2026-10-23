@@ -140,6 +140,16 @@ def missing_public_symbols(before: str, after: str) -> set[str]:
     return public_symbols(before) - public_symbols(after)
 
 
+def report_import_sha(path: str, owner: str | None, body: str) -> str | None:
+    """Require exact report path, owner and source revision on one PR line."""
+    if not owner or owner not in REPORTS:
+        return None
+    pattern = (r"(?m)^AGENT-REPORT-IMPORT: " + re.escape(path) +
+               r" FROM " + re.escape(owner) + r"@([0-9a-f]{40})$")
+    match = re.search(pattern, body)
+    return match.group(1) if match else None
+
+
 def check_changes(
     changes: list[Change],
     branch: str,
@@ -163,7 +173,12 @@ def check_changes(
                 )
             if branch.startswith("manager/"):
                 if path in REPORTS.values():
-                    errors.append(f"{path}: manager must not overwrite agent reports.")
+                    # Only a dedicated one-time integration branch may import the
+                    # agent's report. Exact blob ancestry is checked below.
+                    if not (branch.startswith("manager/full-integration-")
+                            and report_import_sha(path, owner, body)):
+                        errors.append(f"{path}: manager may only import an unchanged "
+                                      "agent report with a verified provenance marker.")
                 elif owner in REPORTS and (
                     f"INTEGRATION-EXCEPTION: {path}" not in body
                 ):
@@ -217,6 +232,50 @@ def comparison_base_for(head: str) -> str:
     if not re.fullmatch(r"[0-9a-f]{40}", ancestor):
         raise RuntimeError("git merge-base produced no valid SHA")
     return ancestor
+
+
+def verify_report_imports(
+    changes: list[Change], branch: str, body: str, head: str
+) -> list[str]:
+    """Validate imported agent reports against the actual source commit blobs.
+
+    The manager may append an explicitly attributed handoff section, but
+    cannot forge edits to the original agent-written report.
+    """
+    if not branch.startswith("manager/full-integration-"):
+        return []
+    errors = []
+    for item in changes:
+        path = item.path
+        if path not in REPORTS.values():
+            continue
+        owner = next((name for name, rp in REPORTS.items() if rp == path), None)
+        source_sha = report_import_sha(path, owner, body)
+        if not source_sha:
+            errors.append(f"{path}: AGENT-REPORT-IMPORT source sha missing.")
+            continue
+        if item.status[0] == "D":
+            errors.append(f"{path}: agent report cannot be deleted.")
+            continue
+        try:
+            git("merge-base", "--is-ancestor", source_sha, head)
+            original = git("show", f"{source_sha}:{path}")
+            merged = git("show", f"{head}:{path}")
+        except subprocess.CalledProcessError:
+            errors.append(f"{path}: agent report source is not an ancestor "
+                          "or the original blob is inaccessible.")
+            continue
+        if merged == original:
+            continue
+        if not merged.startswith(original):
+            errors.append(f"{path}: agent-authored report was rewritten.")
+            continue
+        appendix = merged[len(original):]
+        if not (appendix.startswith(b"\n## INTEGRATION HANDOFF - CHAT 04 / Manager")
+                and b"Author: CHAT 04 / Manager" in appendix):
+            errors.append(f"{path}: post-import edits must be an explicitly "
+                          "manager-authored, append-only handoff.")
+    return errors
 
 
 def api_warnings(changes: list[Change], base: str, head: str) -> list[str]:
@@ -286,8 +345,9 @@ def main() -> int:
     patch = git("diff", "--no-ext-diff", "--unified=0",
                 comparison_base, head).decode("utf-8", "replace")
     errors, warnings = check_changes(changes, branch, body, policy, patch)
+    errors.extend(verify_report_imports(changes, branch, body, head))
     warnings.extend(api_warnings(changes, comparison_base, head))
-    return report(errors, list(dict.fromkeys(warnings)), len(changes))
+    return report(list(dict.fromkeys(errors)), list(dict.fromkeys(warnings)), len(changes))
 
 
 if __name__ == "__main__":
