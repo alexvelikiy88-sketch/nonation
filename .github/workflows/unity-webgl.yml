@@ -37,6 +37,8 @@ jobs:
           fi
           python3 -m json.tool Packages/manifest.json > /dev/null
           echo 'Unity project and public asset checks passed'
+      - name: C# source, build scene and manifest preflight
+        run: python3 Tools/unity_source_preflight.py
 
   webgl:
     needs: source-validation
