@@ -1,6 +1,17 @@
 # NONATION — проверенное состояние WebGL и публикации
 
-**Дата:** 24.10.26. **Публичный запуск игры пока не подтверждён.**
+**Дата:** 24.10.26. **Unity WebGL export реально работает; публикация Pages пока не настроена.** Публичный интерактивный запуск не подтверждён.
+
+## Факт завершённой интеграции и Pages blocker
+
+- [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) принят в `main`, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`; исходные агенты #1/#2/#3 стали `merged` без перезаписывания отчётов.
+- [Cross-Branch #40020804529](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804529) — **SUCCESS** на совмещённом `main`.
+- На **старой** main-ревизии `47a6424...` реальная Unity Cloud WebGL job завершилась **SUCCESS**, но последующий [Publish Pages #40019259462](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462) завершился **FAILURE** на первом шаге `actions/configure-pages@v5` с `Get Pages site failed. Not Found`. Это проблема включения GitHub Pages, **не** ошибка Unity компиляции.
+- [Интегрированная release-сборка #40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542) на SHA `a75602df...` запущена отдельно; результат Unity Cloud/Pages/браузера должен быть проверен по финальным jobs.
+- **Одно действие владельца:** [Settings → Pages](https://github.com/alexvelikiy88-sketch/nonation/settings/pages), Source = `GitHub Actions`, сохранить. Утилита `actions/configure-pages` не может включить Pages со стандартным `GITHUB_TOKEN` без повышенного токена. Не сохранять дополнительный PAT ради разового включения, если доступен штатный UI.
+- После включения Pages повторить **только** failed deployment job на собранном интегрированном SHA, при необходимости (не перезапускать платный Unity build без причины). После этого HTTPS и реальный Chromium smoke.
+
+
 
 ## Сборки Unity Cloud
 

@@ -1,6 +1,6 @@
 # NONATION — Unity 6 / браузерный городской симулятор
 
-**Обновление 24.10.26.** Это живой Unity/C# проект. Первая настоящая Unity WebGL-сборка уже успешно прошла — [Build №4](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424), исходный SHA `cb46b496...`, архив `nonation-agent01-preview`. Она относится к Unity-ветке без поздних изменений Backend и Graphics. Объединённый исходный срез проходит отдельную проверку [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19); публичная игра считается готовой только после его Unity/WebGL build, Pages deploy и браузерного прогона.
+**Обновление 24.10.26.** Это живой Unity/C# проект. Первая настоящая Unity WebGL-сборка уже успешно прошла — [Build №4](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424), исходный SHA `cb46b496...`, архив `nonation-agent01-preview`. Она относится к Unity-ветке без поздних изменений Backend и Graphics. Объединённый исходный срез принят в `main` через [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) (merge `a75602df4e...`). Его Unity Cloud сборка запущена отдельно: [CI #40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542). Старый Cloud export уже проходил, но публикация Pages упала из-за `Get Pages site failed: Not Found`; требуется включить [Settings → Pages](https://github.com/alexvelikiy88-sketch/nonation/settings/pages) → Source = `GitHub Actions`. Браузерный запуск пока не подтверждён.
 
 ## Комплектация GitHub
 
