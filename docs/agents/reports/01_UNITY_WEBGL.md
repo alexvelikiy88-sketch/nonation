@@ -203,3 +203,18 @@ CROSS-OWNER REQUEST для прежнего сбоя Guard закрыт испр
 - `Tools/tests/test_unity_cloud_ci.py`: регрессия безопасного разрешённого payload с точным SHA.
 
 **Ограничения проверки:** успех preview будет подтверждён только после реального `BuildReport=success`, WebGL artifact и проверки SHA; браузерный HTTPS runtime пока не проверен. Если Cloud отклонит `branch`/commit или вернёт новую CS-/Unity-ошибку, это не успешный билд. Итоговый CI и новый Build number см. по следующему commit с `[cloud-preview-once]`.
+
+## INTEGRATION HANDOFF - CHAT 04 / Manager
+Author: CHAT 04 / Manager
+
+**Дата:** 24.10.26. **Источник отчёта агента:** `agent/unity-webgl@cb46b4960dd8bcd255880f569254dfe9876ea14b`, Git blob `369b37413232ac837210fe8a25984a56cd112a32`.
+
+Это **прозрачное дополнение технического руководителя при разовой интеграции**, а не сообщение от лица исполнителя. Весь исходный текст отчёта выше сохранён без правок.
+
+**Сверка результатов руководителем:**
+- GitHub Unity Cloud Build №4 на исходном SHA `cb46b496...` действительно завершился SUCCESS: извлечены WebGL index/wasm/data/js, артефакт `nonation-agent01-preview`, [CI #40015140424](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424). Это доказательство только Unity-ветки до совместного merge.
+- `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` и `ProjectSettings/EditorBuildSettings.asset` включены и проверены по Git; причина Build №3 (`no scenes configured`) устранена на уровне исходников.
+- Совместный Git source+Python/.NET/HTTP validation интеграционного PR #19 успешен. Компиляция совместного Unity-среза и проверка браузера — следующий выпускной gate, пока не объявлять их успешными.
+- После возобновления CHAT 01: читать `main`, PR #19 и новый `DEPLOYMENT_STATUS_RU.md`; не повторять разовый preview #4 и не отменять менеджерские интеграционные коммиты.
+
+**Контроль:** [интеграционный PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19); главный статус и критерии выпуска — `TASKS.md` и `DEPLOYMENT_STATUS_RU.md`. Не считать этот раздел подтверждением ещё не пройденных Unity/browser проверок.
