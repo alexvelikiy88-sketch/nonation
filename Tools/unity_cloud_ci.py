@@ -293,7 +293,9 @@ def read_cloud_log(number: int) -> str:
     if number < 1:
         raise ValueError("Build number must be positive")
     maximum = 20 * 1024 * 1024
-    endpoint = f"{ROOT}/builds/{number}/log?redirect=manual"
+    # Prefer native 307 Location redirect. The manual 202 payload format may
+    # vary between UBA deployments and older archived builds.
+    endpoint = f"{ROOT}/builds/{number}/log?redirect=auto"
     request = Request(endpoint, method="GET", headers={
         "Authorization": secret_header(), "Accept": "text/plain, application/json"
     })
@@ -342,16 +344,69 @@ def read_cloud_log(number: int) -> str:
 
 
 def log_redirect_url(payload) -> str:
-    """Unwrap a v2 signed log link without printing it into CI logs."""
-    if isinstance(payload, str):
-        signed = payload
-    elif isinstance(payload, dict):
-        signed = payload.get("url") or payload.get("href") or payload.get("signedUrl")
-    else:
-        signed = None
-    if not isinstance(signed, str) or not signed:
-        raise ValueError("Unity Cloud log response has no signed URL")
-    return signed
+    """Unwrap a signed log link; never echo its contents or query token."""
+    if isinstance(payload, str) and payload:
+        return payload
+    if isinstance(payload, dict):
+        for name in ("url", "href", "signedUrl", "signed_url", "downloadUrl",
+                     "download_url", "redirectUrl", "location"):
+            candidate = payload.get(name)
+            if isinstance(candidate, str) and candidate:
+                return candidate
+        for name in ("data", "result", "link", "download", "links"):
+            candidate = payload.get(name)
+            if isinstance(candidate, (str, dict)):
+                try:
+                    return log_redirect_url(candidate)
+                except ValueError:
+                    continue
+        keys = [key for key in payload
+                if isinstance(key, str) and re.fullmatch(r"[A-Za-z_]{1,32}", key)]
+        raise ValueError(
+            "Unity Cloud log response has no signed URL; safe fields: " +
+            ", ".join(sorted(keys)[:12])
+        )
+    raise ValueError("Unity Cloud log response is not a URL or URL envelope")
+
+
+def diagnostic_build_steps(number: int):
+    """Read documented UBA step messages without downloading the full build log."""
+    _, response = api("GET", f"{ROOT}/builds/{number}/steps")
+    records = response if isinstance(response, list) else (
+        response.get("steps", []) if isinstance(response, dict) else []
+    )
+    print("UNITY_CLOUD_STEP_DIAGNOSTIC build=" + str(number) +
+          " steps=" + str(len(records)), flush=True)
+    hits = []
+    for index, step in enumerate(records):
+        if not isinstance(step, dict):
+            continue
+        name = str(step.get("name") or "unknown")[:80]
+        messages = step.get("messages") or []
+        for message in messages:
+            if not isinstance(message, dict):
+                continue
+            content = message.get("content")
+            if not isinstance(content, str):
+                continue
+            for line in content.splitlines():
+                if re.search(
+                    r"(?i)(?:\berror\s+(?:CS|MSB|IL)\d+\b|"
+                    r"\bBuildFailedException\b|\bException:\s|"
+                    r"\b(?:error|fatal error)\s*:|"
+                    r"\bfailed to (?:compile|import|resolve|load)\b)", line
+                ):
+                    hits.append((index, name, redact_log(line)))
+                    break
+        if len(hits) >= 12:
+            break
+    for index, name, excerpt in hits:
+        print("UBA STEP ERROR index=" + str(index) + " name=" +
+              redact_log(name) + " message=" + excerpt, flush=True)
+    if not hits:
+        print("No primary error signature found in structured UBA build steps.",
+              flush=True)
+    return hits
 
 
 def redact_log(line: str) -> str:
@@ -391,7 +446,18 @@ def diagnose_build(number: int):
     print("UNITY_CLOUD_DIAGNOSTIC build=" + str(number) +
           " status=" + str(data.get("buildStatus") or data.get("status")) +
           " revision=" + str(data.get("lastBuiltRevision") or data.get("requestedRevision")))
-    log = read_cloud_log(number)
+    # Structured build steps provide a secondary read-only diagnostic when
+    # old jobs return nonstandard log redirects. Not a replacement for full log.
+    try:
+        log = read_cloud_log(number)
+    except (ValueError, RuntimeError, HTTPError, URLError, OSError) as error:
+        print("FULL_CLOUD_LOG_UNAVAILABLE: " + redact_log(str(error)), flush=True)
+        try:
+            diagnostic_build_steps(number)
+        except (ValueError, RuntimeError, HTTPError, URLError, OSError) as step_error:
+            print("UBA_STEP_DIAGNOSTICS_UNAVAILABLE: " +
+                  redact_log(str(step_error)), flush=True)
+        raise RuntimeError("Unity Cloud full log was not obtained; see safe step diagnostics above") from None
     print("Unity build log retrieved, lines=" + str(len(log.splitlines())))
     hits = primary_failure_lines(log)
     if hits:
