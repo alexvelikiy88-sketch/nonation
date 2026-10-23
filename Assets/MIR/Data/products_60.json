@@ -1,0 +1,1485 @@
+{
+  "schema": "mir-products-draft/0.1",
+  "status": "draft_not_integrated",
+  "currency_minor_per_credit": 100,
+  "products": [
+    {
+      "id": "white_bread",
+      "name": "Белый хлеб",
+      "category": "staples",
+      "pack_quantity": 500,
+      "base_unit": "g",
+      "pack_price_minor": 800,
+      "portion_quantity": 60,
+      "ready_to_consume": true,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 72,
+      "effects_per_portion": {
+        "satiety": 9,
+        "hydration": 0,
+        "stamina": 2,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "whole_bread",
+      "name": "Цельнозерновой хлеб",
+      "category": "staples",
+      "pack_quantity": 500,
+      "base_unit": "g",
+      "pack_price_minor": 1000,
+      "portion_quantity": 60,
+      "ready_to_consume": true,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 72,
+      "effects_per_portion": {
+        "satiety": 10,
+        "hydration": 0,
+        "stamina": 2,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "bread_roll",
+      "name": "Булочка",
+      "category": "staples",
+      "pack_quantity": 1,
+      "base_unit": "piece",
+      "pack_price_minor": 350,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 36,
+      "effects_per_portion": {
+        "satiety": 11,
+        "hydration": 0,
+        "stamina": 3,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "rice",
+      "name": "Рис",
+      "category": "staples",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1200,
+      "portion_quantity": 100,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "buckwheat",
+      "name": "Гречка",
+      "category": "staples",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1400,
+      "portion_quantity": 100,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "oats",
+      "name": "Овсяные хлопья",
+      "category": "staples",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1000,
+      "portion_quantity": 70,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "pasta",
+      "name": "Макароны",
+      "category": "staples",
+      "pack_quantity": 500,
+      "base_unit": "g",
+      "pack_price_minor": 900,
+      "portion_quantity": 100,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "potatoes",
+      "name": "Картофель",
+      "category": "staples",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 800,
+      "portion_quantity": 200,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 360,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "tomato",
+      "name": "Помидоры",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1200,
+      "portion_quantity": 150,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 7,
+        "hydration": 6,
+        "stamina": 1,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "cucumber",
+      "name": "Огурцы",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 900,
+      "portion_quantity": 150,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 5,
+        "hydration": 8,
+        "stamina": 1,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "carrot",
+      "name": "Морковь",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 700,
+      "portion_quantity": 100,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 6,
+        "hydration": 3,
+        "stamina": 1,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "onion",
+      "name": "Лук",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 600,
+      "portion_quantity": 60,
+      "ready_to_consume": false,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "cabbage",
+      "name": "Капуста",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 700,
+      "portion_quantity": 150,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 6,
+        "hydration": 3,
+        "stamina": 1,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "pepper",
+      "name": "Сладкий перец",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1500,
+      "portion_quantity": 120,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 6,
+        "hydration": 4,
+        "stamina": 1,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "broccoli",
+      "name": "Брокколи",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1600,
+      "portion_quantity": 150,
+      "ready_to_consume": false,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "zucchini",
+      "name": "Кабачки",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1000,
+      "portion_quantity": 180,
+      "ready_to_consume": false,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "beet",
+      "name": "Свёкла",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 800,
+      "portion_quantity": 100,
+      "ready_to_consume": false,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "pumpkin",
+      "name": "Тыква",
+      "category": "vegetables",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 900,
+      "portion_quantity": 180,
+      "ready_to_consume": false,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 144,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "apple",
+      "name": "Яблоки",
+      "category": "fruit",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1200,
+      "portion_quantity": 180,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 9,
+        "hydration": 7,
+        "stamina": 2,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "banana",
+      "name": "Бананы",
+      "category": "fruit",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1400,
+      "portion_quantity": 150,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 12,
+        "hydration": 4,
+        "stamina": 2,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "orange",
+      "name": "Апельсины",
+      "category": "fruit",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1400,
+      "portion_quantity": 180,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 8,
+        "hydration": 9,
+        "stamina": 2,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "pear",
+      "name": "Груши",
+      "category": "fruit",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1500,
+      "portion_quantity": 180,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 9,
+        "hydration": 7,
+        "stamina": 2,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "grapes",
+      "name": "Виноград",
+      "category": "fruit",
+      "pack_quantity": 500,
+      "base_unit": "g",
+      "pack_price_minor": 1700,
+      "portion_quantity": 100,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 8,
+        "hydration": 6,
+        "stamina": 2,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "berries",
+      "name": "Ягоды",
+      "category": "fruit",
+      "pack_quantity": 250,
+      "base_unit": "g",
+      "pack_price_minor": 1200,
+      "portion_quantity": 125,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 7,
+        "hydration": 6,
+        "stamina": 2,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "lemon",
+      "name": "Лимоны",
+      "category": "fruit",
+      "pack_quantity": 500,
+      "base_unit": "g",
+      "pack_price_minor": 900,
+      "portion_quantity": 25,
+      "ready_to_consume": false,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "peach",
+      "name": "Персики",
+      "category": "fruit",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1800,
+      "portion_quantity": 180,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 96,
+      "effects_per_portion": {
+        "satiety": 9,
+        "hydration": 7,
+        "stamina": 2,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "chicken",
+      "name": "Курица",
+      "category": "protein",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 5000,
+      "portion_quantity": 160,
+      "ready_to_consume": false,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 48,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "beef",
+      "name": "Говядина",
+      "category": "protein",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 7500,
+      "portion_quantity": 160,
+      "ready_to_consume": false,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 48,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "pork",
+      "name": "Свинина",
+      "category": "protein",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 6000,
+      "portion_quantity": 160,
+      "ready_to_consume": false,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 48,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "turkey",
+      "name": "Индейка",
+      "category": "protein",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 6500,
+      "portion_quantity": 160,
+      "ready_to_consume": false,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 48,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "fish",
+      "name": "Свежая рыба",
+      "category": "protein",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 5500,
+      "portion_quantity": 160,
+      "ready_to_consume": false,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 24,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "canned_fish",
+      "name": "Рыбные консервы",
+      "category": "protein",
+      "pack_quantity": 200,
+      "base_unit": "g",
+      "pack_price_minor": 1800,
+      "portion_quantity": 100,
+      "ready_to_consume": true,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 720,
+      "effects_per_portion": {
+        "satiety": 18,
+        "hydration": 0,
+        "stamina": 3,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "eggs",
+      "name": "Яйца",
+      "category": "protein",
+      "pack_quantity": 10,
+      "base_unit": "piece",
+      "pack_price_minor": 1400,
+      "portion_quantity": 2,
+      "ready_to_consume": false,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 240,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "beans",
+      "name": "Сухая фасоль",
+      "category": "protein",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 1400,
+      "portion_quantity": 100,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "milk",
+      "name": "Молоко",
+      "category": "dairy",
+      "pack_quantity": 1000,
+      "base_unit": "ml",
+      "pack_price_minor": 1000,
+      "portion_quantity": 200,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 72,
+      "effects_per_portion": {
+        "satiety": 8,
+        "hydration": 10,
+        "stamina": 2,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "kefir",
+      "name": "Кефир",
+      "category": "dairy",
+      "pack_quantity": 1000,
+      "base_unit": "ml",
+      "pack_price_minor": 1000,
+      "portion_quantity": 200,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 72,
+      "effects_per_portion": {
+        "satiety": 9,
+        "hydration": 11,
+        "stamina": 2,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "yogurt",
+      "name": "Йогурт",
+      "category": "dairy",
+      "pack_quantity": 150,
+      "base_unit": "g",
+      "pack_price_minor": 500,
+      "portion_quantity": 150,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 72,
+      "effects_per_portion": {
+        "satiety": 11,
+        "hydration": 5,
+        "stamina": 3,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "cheese",
+      "name": "Сыр",
+      "category": "dairy",
+      "pack_quantity": 200,
+      "base_unit": "g",
+      "pack_price_minor": 1500,
+      "portion_quantity": 40,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 240,
+      "effects_per_portion": {
+        "satiety": 10,
+        "hydration": 0,
+        "stamina": 3,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "cottage_cheese",
+      "name": "Творог",
+      "category": "dairy",
+      "pack_quantity": 200,
+      "base_unit": "g",
+      "pack_price_minor": 900,
+      "portion_quantity": 100,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 72,
+      "effects_per_portion": {
+        "satiety": 15,
+        "hydration": 2,
+        "stamina": 4,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "butter",
+      "name": "Сливочное масло",
+      "category": "dairy",
+      "pack_quantity": 200,
+      "base_unit": "g",
+      "pack_price_minor": 1200,
+      "portion_quantity": 10,
+      "ready_to_consume": false,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 240,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "oil",
+      "name": "Растительное масло",
+      "category": "pantry",
+      "pack_quantity": 500,
+      "base_unit": "ml",
+      "pack_price_minor": 1000,
+      "portion_quantity": 10,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "salt",
+      "name": "Соль",
+      "category": "pantry",
+      "pack_quantity": 500,
+      "base_unit": "g",
+      "pack_price_minor": 300,
+      "portion_quantity": 2,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "sugar",
+      "name": "Сахар",
+      "category": "pantry",
+      "pack_quantity": 1000,
+      "base_unit": "g",
+      "pack_price_minor": 700,
+      "portion_quantity": 8,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "tea_leaves",
+      "name": "Чайная заварка",
+      "category": "pantry",
+      "pack_quantity": 100,
+      "base_unit": "g",
+      "pack_price_minor": 1100,
+      "portion_quantity": 2,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "coffee_beans",
+      "name": "Кофе в зёрнах",
+      "category": "pantry",
+      "pack_quantity": 250,
+      "base_unit": "g",
+      "pack_price_minor": 2200,
+      "portion_quantity": 12,
+      "ready_to_consume": false,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 0,
+        "stamina": 0,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "nuts",
+      "name": "Орехи",
+      "category": "pantry",
+      "pack_quantity": 200,
+      "base_unit": "g",
+      "pack_price_minor": 1300,
+      "portion_quantity": 30,
+      "ready_to_consume": true,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 1440,
+      "effects_per_portion": {
+        "satiety": 9,
+        "hydration": 0,
+        "stamina": 3,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "vegetable_soup",
+      "name": "Овощной суп",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 1800,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 25,
+        "hydration": 12,
+        "stamina": 6,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "chicken_soup",
+      "name": "Куриный суп",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 2400,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 29,
+        "hydration": 12,
+        "stamina": 7,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "salad",
+      "name": "Овощной салат",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 1600,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 20,
+        "hydration": 8,
+        "stamina": 4,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "chicken_rice",
+      "name": "Курица с рисом",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 3600,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 36,
+        "hydration": 4,
+        "stamina": 9,
+        "mood": 3
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "pasta_meal",
+      "name": "Паста с овощами",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 2800,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 32,
+        "hydration": 3,
+        "stamina": 8,
+        "mood": 3
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "sandwich",
+      "name": "Сэндвич с сыром",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 1400,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 23,
+        "hydration": 1,
+        "stamina": 5,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "omelette",
+      "name": "Омлет",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 1800,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 26,
+        "hydration": 2,
+        "stamina": 7,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "porridge",
+      "name": "Овсяная каша",
+      "category": "prepared",
+      "pack_quantity": 1,
+      "base_unit": "portion",
+      "pack_price_minor": 1200,
+      "portion_quantity": 1,
+      "ready_to_consume": true,
+      "storage": "fridge",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 26,
+        "hydration": 5,
+        "stamina": 6,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "water",
+      "name": "Питьевая вода",
+      "category": "drinks",
+      "pack_quantity": 1500,
+      "base_unit": "ml",
+      "pack_price_minor": 500,
+      "portion_quantity": 300,
+      "ready_to_consume": true,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 240,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 32,
+        "stamina": 1,
+        "mood": 0
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "sparkling_water",
+      "name": "Газированная вода",
+      "category": "drinks",
+      "pack_quantity": 1000,
+      "base_unit": "ml",
+      "pack_price_minor": 600,
+      "portion_quantity": 250,
+      "ready_to_consume": true,
+      "storage": "pantry",
+      "designed_shelf_life_game_hours": 240,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 27,
+        "stamina": 1,
+        "mood": 1
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "juice",
+      "name": "Фруктовый сок",
+      "category": "drinks",
+      "pack_quantity": 1000,
+      "base_unit": "ml",
+      "pack_price_minor": 1100,
+      "portion_quantity": 250,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 5,
+        "hydration": 22,
+        "stamina": 2,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды."
+    },
+    {
+      "id": "tea_cup",
+      "name": "Чай",
+      "category": "drinks",
+      "pack_quantity": 250,
+      "base_unit": "ml",
+      "pack_price_minor": 400,
+      "portion_quantity": 250,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 22,
+        "stamina": 2,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды.",
+      "alertness_effect": {
+        "temporary_points": 3,
+        "duration_game_minutes": 90,
+        "stack_cap_points": 12,
+        "restored_sleep": 0
+      }
+    },
+    {
+      "id": "espresso",
+      "name": "Эспрессо",
+      "category": "drinks",
+      "pack_quantity": 60,
+      "base_unit": "ml",
+      "pack_price_minor": 600,
+      "portion_quantity": 60,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 0,
+        "hydration": 4,
+        "stamina": 4,
+        "mood": 2
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды.",
+      "alertness_effect": {
+        "temporary_points": 8,
+        "duration_game_minutes": 90,
+        "stack_cap_points": 12,
+        "restored_sleep": 0
+      }
+    },
+    {
+      "id": "milk_coffee",
+      "name": "Кофе с молоком",
+      "category": "drinks",
+      "pack_quantity": 250,
+      "base_unit": "ml",
+      "pack_price_minor": 900,
+      "portion_quantity": 250,
+      "ready_to_consume": true,
+      "storage": "cool",
+      "designed_shelf_life_game_hours": 12,
+      "effects_per_portion": {
+        "satiety": 4,
+        "hydration": 14,
+        "stamina": 4,
+        "mood": 3
+      },
+      "note": "Игровые параметры для настройки, не сведения о питании и хранении реальной еды.",
+      "alertness_effect": {
+        "temporary_points": 8,
+        "duration_game_minutes": 90,
+        "stack_cap_points": 12,
+        "restored_sleep": 0
+      }
+    }
+  ],
+  "recipes": [
+    {
+      "id": "recipe_vegetable_soup",
+      "output_product": "vegetable_soup",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "potatoes",
+          "quantity": 100
+        },
+        {
+          "product": "carrot",
+          "quantity": 40
+        },
+        {
+          "product": "cabbage",
+          "quantity": 80
+        },
+        {
+          "product": "onion",
+          "quantity": 25
+        },
+        {
+          "product": "oil",
+          "quantity": 5
+        },
+        {
+          "product": "salt",
+          "quantity": 2
+        }
+      ],
+      "water_litres": 0.3,
+      "energy_kwh": 0.12,
+      "work_game_minutes": 15,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_chicken_soup",
+      "output_product": "chicken_soup",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "chicken",
+          "quantity": 80
+        },
+        {
+          "product": "potatoes",
+          "quantity": 80
+        },
+        {
+          "product": "carrot",
+          "quantity": 30
+        },
+        {
+          "product": "onion",
+          "quantity": 20
+        },
+        {
+          "product": "salt",
+          "quantity": 2
+        }
+      ],
+      "water_litres": 0.3,
+      "energy_kwh": 0.12,
+      "work_game_minutes": 15,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_salad",
+      "output_product": "salad",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "tomato",
+          "quantity": 120
+        },
+        {
+          "product": "cucumber",
+          "quantity": 100
+        },
+        {
+          "product": "pepper",
+          "quantity": 40
+        },
+        {
+          "product": "oil",
+          "quantity": 8
+        },
+        {
+          "product": "salt",
+          "quantity": 1
+        }
+      ],
+      "water_litres": 0.1,
+      "energy_kwh": 0,
+      "work_game_minutes": 8,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": false
+    },
+    {
+      "id": "recipe_chicken_rice",
+      "output_product": "chicken_rice",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "chicken",
+          "quantity": 150
+        },
+        {
+          "product": "rice",
+          "quantity": 85
+        },
+        {
+          "product": "carrot",
+          "quantity": 40
+        },
+        {
+          "product": "oil",
+          "quantity": 10
+        },
+        {
+          "product": "salt",
+          "quantity": 2
+        }
+      ],
+      "water_litres": 0.2,
+      "energy_kwh": 0.25,
+      "work_game_minutes": 25,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_pasta_meal",
+      "output_product": "pasta_meal",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "pasta",
+          "quantity": 100
+        },
+        {
+          "product": "tomato",
+          "quantity": 80
+        },
+        {
+          "product": "cheese",
+          "quantity": 20
+        },
+        {
+          "product": "oil",
+          "quantity": 8
+        },
+        {
+          "product": "salt",
+          "quantity": 2
+        }
+      ],
+      "water_litres": 0.35,
+      "energy_kwh": 0.2,
+      "work_game_minutes": 18,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_sandwich",
+      "output_product": "sandwich",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "white_bread",
+          "quantity": 100
+        },
+        {
+          "product": "cheese",
+          "quantity": 30
+        },
+        {
+          "product": "tomato",
+          "quantity": 40
+        },
+        {
+          "product": "butter",
+          "quantity": 8
+        }
+      ],
+      "water_litres": 0,
+      "energy_kwh": 0,
+      "work_game_minutes": 6,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": false
+    },
+    {
+      "id": "recipe_omelette",
+      "output_product": "omelette",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "eggs",
+          "quantity": 2
+        },
+        {
+          "product": "milk",
+          "quantity": 40
+        },
+        {
+          "product": "oil",
+          "quantity": 5
+        },
+        {
+          "product": "salt",
+          "quantity": 1
+        }
+      ],
+      "water_litres": 0,
+      "energy_kwh": 0.1,
+      "work_game_minutes": 10,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_porridge",
+      "output_product": "porridge",
+      "output_quantity": 1,
+      "output_unit": "portion",
+      "inputs": [
+        {
+          "product": "oats",
+          "quantity": 70
+        },
+        {
+          "product": "milk",
+          "quantity": 200
+        },
+        {
+          "product": "sugar",
+          "quantity": 5
+        }
+      ],
+      "water_litres": 0.05,
+      "energy_kwh": 0.12,
+      "work_game_minutes": 10,
+      "skill": "cooking",
+      "workplace": "kitchen",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_tea_cup",
+      "output_product": "tea_cup",
+      "output_quantity": 250,
+      "output_unit": "ml",
+      "inputs": [
+        {
+          "product": "tea_leaves",
+          "quantity": 2
+        }
+      ],
+      "water_litres": 0.25,
+      "energy_kwh": 0.03,
+      "work_game_minutes": 3,
+      "skill": "beverages",
+      "workplace": "cafe",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_espresso",
+      "output_product": "espresso",
+      "output_quantity": 60,
+      "output_unit": "ml",
+      "inputs": [
+        {
+          "product": "coffee_beans",
+          "quantity": 12
+        }
+      ],
+      "water_litres": 0.06,
+      "energy_kwh": 0.04,
+      "work_game_minutes": 3,
+      "skill": "beverages",
+      "workplace": "cafe",
+      "requires_power": true
+    },
+    {
+      "id": "recipe_milk_coffee",
+      "output_product": "milk_coffee",
+      "output_quantity": 250,
+      "output_unit": "ml",
+      "inputs": [
+        {
+          "product": "coffee_beans",
+          "quantity": 12
+        },
+        {
+          "product": "milk",
+          "quantity": 150
+        }
+      ],
+      "water_litres": 0.1,
+      "energy_kwh": 0.06,
+      "work_game_minutes": 4,
+      "skill": "beverages",
+      "workplace": "cafe",
+      "requires_power": true
+    }
+  ]
+}
