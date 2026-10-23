@@ -78,6 +78,9 @@ jobs:
       - name: Run Python regression and cross-module contract tests
         run: python3 -m unittest discover -s Tools/tests -p 'test_*.py' -v
 
+      - name: Test the graphics asset preparation tools (synthetic fixtures)
+        run: python3 -m unittest discover -s Assets/MIR/Art/Rocketbox -p 'test_*.py' -v
+
       - name: Install .NET 8
         uses: actions/setup-dotnet@v4
         with:
