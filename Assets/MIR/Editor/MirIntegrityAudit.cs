@@ -36,7 +36,8 @@ namespace MIR.Editor
             Check(anim!=null&&anim.avatar!=null&&anim.avatar.isValid&&anim.avatar.isHuman,"playable Humanoid Avatar valid");
             var world=MirWorldState.NewWorld();
             var econ=new MirEconomy(world);
-            int before=econ.TotalKnownMoney();
+            // Domain money totals widened to long: keep Editor audit in sync.
+            long before=econ.TotalKnownMoney();
             var player=world.Citizen("player-001");var store=world.Business("market");
             Check(player!=null && store!=null,"world citizens + business created");
             int old=store.stock;
