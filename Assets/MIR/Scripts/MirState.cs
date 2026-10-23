@@ -55,7 +55,14 @@ namespace MIR
         public MirCitizen Citizen(string id) { return citizens.Find(p => p.id == id); }
         public MirBusiness Business(string id) { return businesses.Find(p => p.id == id); }
         public MirFreightOrder ActiveFreight() { return freight.Find(o => o.status != MirOrderStatus.Completed && o.status != MirOrderStatus.Cancelled); }
-        public string NewId(string prefix) { return prefix + "-" + transactionSequence++; }
+        public string NewId(string prefix)
+        {
+            // Never wrap the persisted 32-bit sequence: duplicate transaction
+            // IDs could otherwise bypass replay protection or poison saves.
+            if (transactionSequence <= 0 || transactionSequence == int.MaxValue)
+                return String.Empty;
+            return prefix + "-" + transactionSequence++;
+        }
         public float Hour { get { return (gameMinutes / 60f) % 24f; } }
         public int Day { get { return 1 + (int)Math.Floor(gameMinutes / 1440f); } }
         public static MirWorldState NewWorld(int npcCount = 39)

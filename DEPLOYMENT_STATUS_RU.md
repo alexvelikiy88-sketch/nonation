@@ -1,60 +1,39 @@
-# nonation — состояние WebGL и проверки
+# NONATION — проверенное состояние WebGL и публикации
 
-**24.10.26. Публичная работающая Unity WebGL-сборка не подтверждена.**
+**Дата:** 24.10.26. **Публичный запуск игры пока не подтверждён.**
 
-### Подтверждено
+## Сборки Unity Cloud
 
-- Unity Cloud Build №1: `CS0103` в `MirCity.cs`; исправлено.
-- Unity Cloud Build №2: `CS0117` в `MirUnitySetup.cs`; исправлено.
-- Unity Cloud Build №3: **FAILED** на историческом SHA `784a3b56b9d486f458b87cdaf0990920a7d02913`. Полный GZIP лог на 7 929 строк удалось получить: **строка 7845** — `ERROR: There were no scenes configured to build!`. Это непосредственная причина старой ошибки. `Unity Player Export Failure` на строке 7897 — последствие.
-- [GitHub Actions №50](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/39994762908): **source-validation SUCCESS** — Python preflight, настоящая .NET 8-компиляция, тесты экономики, HTTP smoke-test запущенного сервера и сверка SHA-256 анимационных FBX. WebGL/Pages в этом запуске **SKIPPED** по причине отсутствия GameCI activation.
-- Unity-сцена теперь находится непосредственно в Git: `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`. Ссылки на `MirGame` и `EditorBuildSettings` зафиксированы GUID.
-- Unity Editor + IL2CPP + WebGL не проверены в текущей среде после архитектурных исправлений. Не считать статические тесты проверкой Unity.
+| Build | Статус | Доказательства |
+|---|---|---|
+| №1 | FAIL | Ошибка C# `CS0103` в `MirCity.cs`, исправлена в последующих исходниках |
+| №2 | FAIL | Ошибка `CS0117` в `MirUnitySetup.cs`, исправлена |
+| №3 | FAIL | Исторический SHA `784a3b56...` не содержал зарегистрированной сцены; полный лог 7 929 строк, строка 7845: `There were no scenes configured to build!`, а `Unity player export failed!` лишь последствие |
+| **№4** | **SUCCESS** | Реальный Unity WebGL export **Unity-ветки** `cb46b4960dd8bcd255880f569254dfe9876ea14b`, архив `nonation-agent01-preview` проверен и опубликован в [Actions #40015140424](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424). Игра по Pages из него не проверена |
 
-### Один автоматизированный конвейер
+## Объединение трёх направлений
 
-`main → GitHub source-validation → Unity WebGL → проверка артефактов → GitHub Pages`
+Интегратор подготовил [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19), базовый 4-parent Git commit `52d3bd8a37b5fa507789db6d476e29cd54a6300f`. Точные три агентские SHA и manifest изменений — [INTEGRATION_REPORT_RU.md](Documentation/INTEGRATION_REPORT_RU.md). Оригинальные агенты и их отчёты не перезаписывались; manager-authored записи помечены отдельно.
 
-Работают два **альтернативных** способа собрать WebGL (не активировать оба одновременно):
+**GitHub Actions на исходном объединённом SHA:**
 
-1. **GitHub GameCI:** `UNITY_LICENSE` (или `UNITY_SERIAL`) + `UNITY_EMAIL` и `UNITY_PASSWORD` в GitHub Actions secrets. В этом варианте сам GitHub runner компилирует Unity и публикует WebGL.
-2. **Unity Cloud API v2:** сервисный аккаунт Unity с ролью Build Automation и GitHub secrets `UNITY_SA_KEY_ID`, `UNITY_SA_SECRET_KEY`. При отсутствии активного GameCI CI запускает или отслеживает облачный билд `default-webgl`, проверяет SHA исходного коммита и финальный Success, безопасно скачивает WebGL ZIP и передаёт его в GitHub Pages. Код: `Tools/unity_cloud_ci.py`. **Этот путь подготовлен, но ещё не испытан с реальным Unity service account.**
+- [Integration Guard #40019467544](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019467544): SUCCESS.
+- [PR Validation #40019467542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019467542): SUCCESS, Python tests + .NET 8 domain/server + HTTP/CORS/spectator smoke.
+- [Cross-Branch #40019467534](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019467534): SUCCESS, совместные исходники.
+- `MIR Unity WebGL` на PR: **source-validation SUCCESS**, а ``webgl/cloud-webgl/deploy/browser-smoke` пропущены. Это **не подтверждает Unity компиляцию интегрированного кода**.
 
-Если в Unity Cloud уже включён Auto-build, скрипт **не запускает вторую сборку** — пытается найти и дождаться сборки того же SHA.
+## Последовательность реального запуска
 
-**Важно:** Unity Cloud и GitHub Actions используют разные механизмы лицензирования. Секреты не нужны в репозитории и не должны попадать в чат.
+1. Финальный PR проходит Integration Guard, Python/.NET и review, без опасных ассетов.
+2. Официальная Unity Cloud Build Automation либо лицензированный GameCI экспортирует **тот же source SHA**, который собирается. Проверка `lastBuiltRevision` обязательна, нельзя выдавать `requestedRevision` за фактическую сборку.
+3. Проверить непустые `index.html` и `Build/*.wasm`, `*.data`, `*.js`; при Pages без custom Content-Encoding выгружать несжатые файлы.
+4. `actions/upload-pages-artifact` → `actions/deploy-pages`; проверить HTTPS и Content-Type всех файлов.
+5. `browser-smoke` (Chromium) проверяет `NONATION_RUNTIME_READY`, сцену, Canvas, NPC, `NONATION_PLAYER_MOVED`, `NONATION_SAVE_WRITTEN` и `NONATION_SAVE_RESTORED` после reload, а также критические ошибки Console.
 
-### Проверка Unity Cloud target
+**Предполагаемый URL:** `https://alexvelikiy88-sketch.github.io/nonation/` — **не заявлять как работающую игру**, пока пункт 5 не прошёл на опубликованной версии.
 
-- Unity Project: `97c90bad-fafd-4410-8e4f-0ea68deb4232`
-- Organization: `18968527430273`
-- Target ID: `default-webgl`, GitHub `main`
-- Редактор в исходниках: `6000.0.58f2`
-- Pre-build script: `Tools/unity_cloud_prebuild.sh`
-- Pre-export method: `NonationCloudBuildHook.PreExport`
-- Главная сцена: `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`
-- [История сборок Unity Cloud](https://cloud.unity.com/organizations/18968527430273/projects/97c90bad-fafd-4410-8e4f-0ea68deb4232/cloud-build/history)
+## Доступ и ограничения
 
-Чтобы GitHub Pages принял артефакт, в репозитории должно быть разрешено деплоить через **GitHub Actions**. Предполагаемый URL `https://alexvelikiy88-sketch.github.io/nonation/` нельзя называть работающим до успешного деплоя и браузерного smoke-test.
+Unity Cloud target: organisation `18968527430273`, project `97c90bad-fafd-4410-8e4f-0ea68deb4232`, target `default-webgl`, Editor `6000.0.58f2`, scene `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`. Service-account secrets `UNITY_SA_KEY_ID` / `UNITY_SA_SECRET_KEY` задаются через защищённые GitHub Actions Secrets, не печатаются и не коммитятся. GameCI activation — альтернативный легальный механизм.
 
-### Не завершено
-
-- Проверить, что устранённая в Git ошибка отсутствия сцены действительно снята новой Unity Cloud WebGL-сборкой, и диагностировать возможные следующие ошибки компилятора/импорта.
-- Реальная компиляция Unity Editor, WebGL/IL2CPP и проверка производительности в браузере.
-- Профессиональные Humanoid-персонажи, визуал улиц/машин, адаптивный интерфейс.
-- Общее сервер-авторитетное онлайн-состояние: .NET-сервер пока только read-only prototype, Unity-клиент в локальном режиме.
-
-## Подключение Unity к серверу (добавлено после CI №52)
-
-Подготовлены `MirSceneSnapshot`, публичный `/api/v1/spectator/scene`, CORS allowlist и транспорт `MirRemoteWorldSync`. Режим офлайн остаётся значением по умолчанию. Авторитетная серверная симуляция пока передаёт **только NPC-позиции**; игрок и экономика не синхронизированы, сетевые команды не поддерживаются. После коммита нужно выполнить .NET- и HTTP-тесты; Unity Editor/WebGL ещё нельзя считать проверенным.
-
-## Управленческая проверка 24.10.26
-
-- GitHub `main` защищена активным Ruleset `NONATION — Main Protection` (ID `25749583`), обязательная проверка `Ownership and change integrity`; force-push/deletions заблокированы.
-- [CI Cross-Branch #40012146794](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012146794) — SUCCESS: виртуальный Git merge трёх рабочих веток без конфликтов, 48 Python тестов, 6 тестов подготовки Rocketbox, .NET build/domain tests и локальный HTTP/CORS/spectator smoke. Затронутые SHA указаны в журнале CI; код не публиковался.
-- Последний отдельно просмотренный [Unity CI #40010115046](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010115046): `source-validation SUCCESS`, `webgl`, `cloud-webgl`, `deploy`, `browser-smoke` **SKIPPED**. Это не доказательство Unity runtime.
-- P0 остаётся: требуется разрешённый доступ к Unity Cloud Build #3 log, затем одна успешная лицензированная Unity WebGL сборка на конкретном SHA, HTTPS-хостинг и запуск в браузере с проверкой Canvas/Console/NPC/input/save.
-
-### Диагностика существующей Unity Cloud сборки — 24.10.26
-
-[GitHub Actions #40013127244](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013127244) подтвердил корректную авторизацию Unity service-account secrets и read-only доступ к Build №3 (`status=failure`, исходный revision `784a3b56b9d486f458b87cdaf0990920a7d02913`). Извлечено **4 775 строк** журнала без вывода подписанных URL или секретов; автоматический поиск завершился `ROOT CAUSE UNKNOWN`. Этот run **не запускал** нового Unity build: `webgl`, `cloud-webgl`, `deploy` и `browser-smoke` были SKIPPED. **Историческая запись:** последующий полноценный GZIP-разбор [CI #40014215651](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014215651) уже установил отсутствие сцен (строка 7845). Из Git tree сборки №3 отсутствуют .unity/.meta и EditorBuildSettings.asset. В текущем main и ветке Unity есть включённая сцена. Контрольный preview [CI #40015140424](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424) при последней проверке выполнялся, **не** подтверждал ни успешную сборку, ни публичный запуск.
+Пока не доказаны интегрированная Unity Editor C#/IL2CPP компиляция, работоспособность игры в браузере, Avatar/Animator реального Rocketbox, FPS/draw calls, производство общего MMO-сервера 24/7. Нельзя запускать несколько конкурирующих Cloud сборок без выяснения причин сбоев.

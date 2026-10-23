@@ -11,6 +11,7 @@ namespace MIR
         CharacterController controller;
         Transform avatarRoot;
         float verticalVelocity;
+        bool firstMovementReported;
         public void Init(MirCitizen citizen)
         {
             Resident=citizen;controller=GetComponent<CharacterController>();
@@ -53,6 +54,15 @@ namespace MIR
             verticalVelocity+=-18f*Time.deltaTime;
             if(controller.isGrounded)verticalVelocity=-.55f;
             controller.Move((motion*velocity*input+Vector3.up*verticalVelocity)*Time.deltaTime);
+            // One-shot movement proof for the real browser smoke-test. The marker
+            // is based on actual position change, not merely a key event.
+            if (!firstMovementReported &&
+                new Vector2(transform.position.x - Resident.x, transform.position.z - Resident.z).sqrMagnitude > .25f)
+            {
+                firstMovementReported = true;
+                Debug.Log("NONATION_PLAYER_MOVED x=" + transform.position.x.ToString("F2") +
+                          " z=" + transform.position.z.ToString("F2"));
+            }
             Motion.Tick(velocity*input,input>.01f?(running?MirActivity.Running:MirActivity.Walking):MirActivity.Idle,input>.01f);
         }
         public void WritePosition()

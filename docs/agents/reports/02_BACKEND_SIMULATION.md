@@ -1,34 +1,145 @@
 # NONATION / отчёт 02 — Backend/Simulation
 
-- **Последнее обновление:** 23.10.26
-- **Статус:** NOT STARTED — отдельный исполнительный чат ещё не запущен
+- **Последнее обновление:** 24.10.26
+- **Статус:** IN PROGRESS — предотвращено повторное использование freight-ID и откат счётчиков транзакций при восстановлении; .NET/HTTP, Guard и межагентский CI подтверждены. Unity/WebGL остаётся интеграционным блокером
 - **Ветка:** `agent/backend-simulation`
 - **Промпт:** [Инструкция исполнителя](../CHAT_02_BACKEND_SIMULATION.md)
 - **Задача P0:** Проверить серверные и финансовые инварианты, read-only API и синхронизацию NPC.
 - **База до старта:** `f909e47ce764911281eee2b97f9b6568a83779d6`
-- **PR:** нет
-- **Собственные коммиты:** нет
-- **Достоверные тесты по собственной работе:** нет
-- **Блокеры:** определяются после первого аудита исполнителя
+- **PR:** [#1 — Backend invariants and spectator contract (draft)](https://github.com/alexvelikiy88-sketch/nonation/pull/1)
+- **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests), `5b9182a428e0d748cf0abfb961f15524dd8d82bb` (stock/counter overflow), `6471209060155f6d3a389c27d35c667149bfe81c` (freight lifecycle), `6a396a61f38b74b78c30ac1202f264a75d6b577a` (serial save), `1884236bd1239f328810a74415631297eec19a82` (saved-world validation), `0a53eb178a81ff111d577dc095ba44fc53763988` (ID exhaustion), `c780d83caaaca053bfc06a681e5d68a6d453ede0` (exclusive world lease), `89050fc6d098577e28fcf55de729274067749f83` (bounded save load), `11d26c47adb9d7dd4961078bd8a63419ad52c54f` (bounded transaction ledger), `0edda6ea2b24271187538ecfe4e5d8733d4ff85c` (bounded save writes), `ab1b14f734b1786680b0626e435d98b89de1cad1` (save rollback regression), `2fd5d12223a7852c64b8b69f400217114c74c1e6` (freight ID uniqueness), `18247c4b7502f97d5717e13abd3ae4378805c1d6` (purchase/salary sequence validation)
+- **Достоверные тесты по собственной работе:** [PR Validation #100](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016453) **SUCCESS** на кодовом SHA `18247c4b`: всё ранее проверенное плюс восстановление purchase/salary последовательностей, freight-ID uniqueness, денежные и товарные инварианты, NPC movement, .NET build и HTTP smoke. [Integration Guard #85](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016455) и [Cross-Branch #26](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016463) **SUCCESS**. Unity/WebGL не проверялись
+- **Блокеры:** .NET SDK локально отсутствует, но CI #100 подтверждает тесты/сборку/HTTP. Лимит 20 000 транзакций останавливает новые денежные операции до согласованной схемы ledger archival и миграций; решение Manager запрошено ниже. Unity C#, WebGL и браузер не проверены; CROSS-OWNER REQUEST на remote-часы остаётся; кластерная ФС и power-loss не тестировались.
 
 ## Журнал работы
 
 | Дата (дд.мм.гг) | Что реально изменено | SHA / PR | Проверки | Что НЕ проверено |
 |---|---|---|---|---|
 | 23.10.26 | Создана карточка отчётности, не работа исполнительного чата | — | — | Вся задача P0 |
+| 23.10.26 | Исправлено переполнение `TotalKnownMoney()` при сумме валидных счетов > Int32.MaxValue; добавлен `WideLedgerTests` с проверкой сохранения суммы и idempotency после пересоздания `MirEconomy` | `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` | Статический аудит типов; тесты НЕ запускались | .NET compilation, execution, HTTP smoke, Unity C#, WebGL/browser |
+| 23.10.26 | Spectator DTO v2: серверная последовательность `sequence`, строгий порядок, UUID сессии, после рестарта новая сессия, запрет повторов/старого сервера, ограничение 256 NPC/256 KiB; добавлены тесты cursor и HTTP smoke assertions | `0d1f65968b21200e53be7ab8be6aad71e78303b3` / [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) | Проверено по исходникам, что клиент меняет только позиции NPC и время просмотра; HTTP smoke не выполнялся | .NET execution, Unity serialization, WebGL, CORS smoke |
+| 23.10.26 | Загрузка `WorldAuthority.Load`: явный отказ при null-списках и null-элементах; подключены real-authority tests: NPC координаты, деньги, Save/Load, ротация serverId, некорректный JSON | `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` / [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) | Проведён статический анализ вызовов и проектов `.csproj`; тесты записаны, но не запускались | .NET build/test, HTTP process restart, Unity C#, WebGL/browser |
+
+| 23.10.26 | Получено подтверждение фактического CI на PR head после кодовых правок: экономика и симуляция, версия/последовательность снимков, сохранение, startup в ASP.NET и read-only HTTP | [PR Validation #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005514411), head `981494a0` | **SUCCESS:** `dotnet run` консольных тестов; `dotnet build` ASP.NET backend; Python HTTP smoke; логи содержат PASS money invariants, NPC movement, restart, read-only, CORS. Сборка с nullable warnings | Unity C#, Editor, WebGL/IL2CPP, browser |
+
+| 23.10.26 | Исправлено переполнение запасов фермы/перерабатывающего цеха (сравнение в `long`) и счётчиков `daysWorked`/`skill` при max-int; граничные `ProductStockOverflowTests` | `5b9182a428e0d748cf0abfb961f15524dd8d82bb` / [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) | **CI #27 SUCCESS**: PASS по всем шести граничным проверкам, финансам NPC, .NET build и HTTP smoke | Unity C#, Editor, WebGL/browser |
+
+| 23.10.26 | Исправлен некорректный переход `Returning → Completed` при неоплаченном заказе; введены строгие пред/постусловия состояния freight и запрет возврата неверного товара; тестированы перевод, отмена, replay и сериализация `Loading` | [`6471209060`](https://github.com/alexvelikiy88-sketch/nonation/commit/6471209060155f6d3a389c27d35c667149bfe81c) | [PR Validation](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007526159) **SUCCESS** (freight invariant tests + .NET build/HTTP) | Unity C#, WebGL |
+| 23.10.26 | Защищена операция `WorldAuthority.Save()`: `saveGate` охватывает сериализацию и запись/rename, flush-to-disk временного файла, очистка временного файла при сбое; тесты fail-before-replace, orphan .tmp, 24 параллельных сохранений и NPC/денежного состояния | [`6a396a61f3`](https://github.com/alexvelikiy88-sketch/nonation/commit/6a396a61f38b74b78c30ac1202f264a75d6b577a) | [PR Validation #43](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007776559) **SUCCESS**: все новые `PASS`, .NET build и HTTP smoke | Реальный сбой питания, multi-process locks, Unity, WebGL |
+
+| 23.10.26 | Интеграционный Guard на обновлённом PR #1 обнаружил `TASKS.md` из-за сравнительного диапазона base…head, хотя в собственных коммитах AGENT 02 этот файл не изменялся | [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) | `14/14` тестов самого Guard прошли; итог **FAIL** в шаге проверки владельца из-за stale base. В `Tools/pr_integration_guard.py` используется `git diff base head`, нужно сравнивать с merge-base. Менеджерский блокер | Unity/WebGL; Guard PASS после фикса Manager |
+
+| 24.10.26 | Добавлена строгая проверка сохранённого доменного мира в `WorldAuthority.Load`: неотрицательные счета и товары, уникальность счётных идентификаторов, транзакций и заказов, корректный escrow/state по freight, не более одного активного заказа. При нарушении сервер не запускает неконсистентную экономику и не перезаписывает JSON. 13 негативных кейсов и 3 позитивные проверки `SavedWorldIntegrityTests`, включая успешное возобновление нормальной поставки | Код и тесты в текущем PR #1, SHA этого коммита см. историю ветки | Статический аудит, CI для нового SHA ожидается | Unity/WebGL, внешняя HTTPS-среда, power loss |
+
+| 24.10.26 | Проверка финансово некорректных сохранений `WorldAuthority.Load`, отказ без порчи канонического JSON и восстановление допустимой поставки | `1884236bd1239f328810a74415631297eec19a82` | [CI #61](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669218) SUCCESS: все `SavedWorldIntegrityTests`, NPC movement, money invariant, .NET build и HTTP; [Guard](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009669212) SUCCESS | Unity Editor/WebGL/browser |
+| 24.10.26 | Защита счётчиков `transactionSequence` и `jobSequence` от Int32 overflow: отказ в новых автогенерируемых операциях без расходования средств и запасов | `0a53eb178a81ff111d577dc095ba44fc53763988` | [CI #66](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216758) SUCCESS, 6 PASS по ID exhaustion, NPC/money invariants, .NET build и HTTP; [Guard #42](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216734) SUCCESS | Unity C#, WebGL, браузер |
+
+| 24.10.26 | Межпроцессное владение сохранением через сохраняемый файл `.lock` и `FileShare.None`, открывается до загрузки мира, освобождается в `WorldAuthority.Dispose()` и при исключениях; сохранённая бухгалтерия не меняется при отказе второго процесса | [`c780d83caaaca053bfc06a681e5d68a6d453ede0`](https://github.com/alexvelikiy88-sketch/nonation/commit/c780d83caaaca053bfc06a681e5d68a6d453ede0) | [CI #74](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40011796586) **SUCCESS**: второй OS-процесс не открыл мир, handoff после Dispose, загрузка после ошибки, сохранение денег/времени/координат NPC; [Guard #51](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40011796660) SUCCESS | Сбой питания, symlink/path aliases, сетевая ФС, Unity/WebGL |
+| 24.10.26 | Предварительный предел сохранения 32 MiB, JSON десериализуется из `FileStream` без промежуточной строки; файл сверх лимита отклоняется без изменения, исправленное валидное сохранение загружается | [`89050fc6d098577e28fcf55de729274067749f83`](https://github.com/alexvelikiy88-sketch/nonation/commit/89050fc6d098577e28fcf55de729274067749f83) | [CI #75](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012117392) **SUCCESS**: оба size-limit теста, child-process lease, деньги/NPC, сборка .NET и HTTP/CORS smoke; [Guard #53](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012117432) SUCCESS | Исторические JSON-сохранения более 32 MiB потребуют архивирования/миграции; Unity/WebGL |
+
+| 24.10.26 | `MirEconomy`: сохранённые ID остаются в `transactions`, лимит 20 000 записей и 128/256 символов для ID/причины; до любых изменений денег, зарплат и товара после лимита — отказ; регрессия для 20 000 реальных переводов, повторов и сериализации | [`11d26c47adb9d7dd4961078bd8a63419ad52c54f`](https://github.com/alexvelikiy88-sketch/nonation/commit/11d26c47adb9d7dd4961078bd8a63419ad52c54f) | [PR CI #82](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013568031), [Guard #62](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013568106), [Cross-Branch #8](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013568026) — **SUCCESS**, логи показывают сохранение всех receipt IDs и money/NPC invariants | Unity/WebGL; после 20 000 переводов новые деньги не двигаются до миграции ledger |
+| 24.10.26 | `WorldAuthority.Save` запрещает заменять `world.json` payload, чей UTF-8 размер больше 32 MiB; перед staging и rename, поэтому старое сохранение остаётся восстанавливаемым | [`0edda6ea2b24271187538ecfe4e5d8733d4ff85c`](https://github.com/alexvelikiy88-sketch/nonation/commit/0edda6ea2b24271187538ecfe4e5d8733d4ff85c) | [PR CI #84](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013862521), [Guard #65](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013862706) — SUCCESS | Не гарантирует bounded heap при `JsonSerializer.Serialize`; Unity/WebGL |
+| 24.10.26 | Тесты `BoundedWorldSaveTests`: byte boundary UTF-8, реальный успешный Save и отказ при искусственно превышенном payload с сохранением предыдущего JSON; исправлена lifetime-проблема test fixture с `.lock` | [`ab1b14f734b1786680b0626e435d98b89de1cad1`](https://github.com/alexvelikiy88-sketch/nonation/commit/ab1b14f734b1786680b0626e435d98b89de1cad1) | [PR CI #89](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014034654), [Guard #70](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014034504), [Cross-Branch #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014034595) — **SUCCESS**, логи содержат `PASS: over-budget Save fails before staging and preserves previous good world` | Unity C#, Editor, WebGL/browser, реальный power loss |
+
+| 24.10.26 | `MirEconomy.CreateRestock` проверяет уникальность следующего `freight-N` среди всех прежних заказов (включая Cancelled/Completed) до резервирования товара и денег; `WorldAuthority.Load` отвергает сохранённый `jobSequence`, отстающий от выданных заказов | [`2fd5d12223a7852c64b8b69f400217114c74c1e6`](https://github.com/alexvelikiy88-sketch/nonation/commit/2fd5d12223a7852c64b8b69f400217114c74c1e6) | [CI #99](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015634371) **SUCCESS**: повтор ID отклонён без расходования средств/товара; после восстановления счётчика груз оплачен однократно, переданы 3 товара; [Guard #84](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015634422), [Cross-Branch #25](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015634430) SUCCESS | Unity C#/WebGL/browser |
+| 24.10.26 | `WorldAuthority.Load` проверяет, что выданные `purchase-N` и `salary-N` имеют номер строго меньше `transactionSequence`; при откате отказывается запускаться, оставляя сохранение нетронутым, исправленный счётчик позволяет продолжить покупки | [`18247c4b7502f97d5717e13abd3ae4378805c1d6`](https://github.com/alexvelikiy88-sketch/nonation/commit/18247c4b7502f97d5717e13abd3ae4378805c1d6) | [CI #100](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016453) **SUCCESS**: purchase/salary rollback rejected, restored purchase-2 unique, conserved money and moving NPC; [Guard #85](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016455), [Cross-Branch #26](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016463) SUCCESS | Unity C#/WebGL/browser; старые вручную модифицированные `purchase-*`/`salary-*` могут потребовать восстановления счётчика |
 
 ## Последнее проверенное состояние
 
-Нет выполненной работы именно этого исполнителя. GitHub Actions №54 успешно завершил **только source-validation**, а WebGL jobs были пропущены. Не трактовать baseline как сделанное чатом.
+**CI:** [NONATION Pull Request Validation #100](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016453) — **SUCCESS** на последнем кодовом SHA `18247c4b7502f97d5717e13abd3ae4378805c1d6`. Проверены все предыдущие тесты и новые freight/receipt sequence rollback; [Guard #85](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016455) и [Cross-Branch Integration #26](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016463) — **SUCCESS**. По логу `Source preflight and .NET 8` выполнено:
+- Unity source/scene **статическая** preflight — success (не Unity Editor).
+- `dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release` — success; реально напечатаны `PASS` для 64-bit ledger, грузового escrow, перемещения NPC, неприкосновенности игрока, покупки еды, spectator v2 replay/restart, `WorldAuthority.Save/Load` и инвариантов денег.
+- `dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo` — `Build succeeded` с nullable warnings (`CS8618/CS8603` и др.), без ошибок сборки.
+- Локальный HTTP smoke на запущенном `Nonation.Server.dll` — `PASS: public spectator API, readonly security, CORS and moving server NPCs`. Истинная публичная HTTPS-среда не проверялась.
+
+Работа ведётся в `agent/backend-simulation`; [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) остаётся Draft до проверки Unity и браузера. `TASKS.md` и `main` исполнитель не редактировал. Последний подтверждённый **кодовый** SHA — `18247c4b`; последующие документальные изменения не меняют серверный код. Guard #85 проверил владение; Cross-Branch #26 подтвердил интеграцию исходников и .NET, не Unity WebGL.
+
+### Аудит и исправленные дефекты
+
+1. `TotalKnownMoney()` агрегировал общий баланс в `int`; переполнение при корректной сумме счетов устранено переходом на `long`. CI: PASS для суммы выше `Int32.MaxValue`, переводов и защиты от replay.
+2. `MirRemoteWorldSync` раньше допускал откат времени и не отличал повторный ответ. Теперь `MirSceneSnapshot` v2 с `sequence`, `MirSceneSnapshotCursor`, лимитом 256 NPC и отбрасыванием invalid/replay. Старый v1 endpoint несовместим: backend и Unity должны обновляться согласованно.
+3. `WorldAuthority.Load` допускал явные `null` в списках при использовании `?.Count < 1`; проверки исправлены. CI: PASS по загрузке после рестарта, координатам NPC, денежному инварианту и отклонению испорченных сохранений.
+4. `MirEconomy.Work` и производство в `Tick` складывали товары в `int`, что позволяло переполнять stock даже при `capacity=int.MaxValue`; `skill` и `daysWorked` тоже могли перейти в отрицательные значения. `ProductStockOverflowTests` **прошёл в CI #27**: все 6 проверок, включая граничную вместимость, зарплату и сохранение денег.
+5. `SetFreightStage()` позволял закрыть `Returning` с `paid=false`, если состояние заказа было несогласованным. Добавлена единая проверка freight-state пред всеми изменениями и тесты: ни двойной платеж, ни скрытая отмена, ни неправильный `productId` не проходят. **CI #43 PASS**.
+6. В `WorldAuthority.Save()` две сериализации защищались `gate`, но дисковая запись за блокировкой могла чередоваться и перезаписать новое состояние старым. Введён `saveGate` на время сериализации и финального rename, принудительный flush staging перед rename, очистка `.tmp` при исключении. **CI #43 PASS** по staging-failure, orphan-stage, 24 concurrent Save, восстановлению денег и координат NPC.
+
+7. `WorldAuthority.Load` теперь отказывает при негативных остатках или счетах, дубликатах аккаунтов/транзакций/грузов, несогласованном escrow и более чем одной активной доставке; не повреждает исходный JSON. CI #61/66 PASS. Нормальная поставка после рестарта проходит.
+8. `transactionSequence` и `jobSequence` теперь не переполняются при верхней границе Int32; `NewId` безопасно возвращает пустой ID при исчерпании, `Transfer` отклоняет его, `CreateRestock` отклоняет создание до резерва товара. CI #66 PASS.
+
+9. Добавлен OS-lease `world.json.lock` на весь срок службы `WorldAuthority` с fail-closed при попытке второго процесса. Тест запускает отдельный `dotnet` процесс и проверяет отказ, релиз, отсутствие побочных изменений денег/NPC и восстановление после исключения конструктора. CI #74/#75 PASS.
+10. Перед десериализацией `WorldAuthority.Load` проверяет `FileStream.Length <= 32 MiB`, затем читает JSON потоком. CI #75 PASS: файл сверх лимита отклоняется без изменения, валидный после замены принимается.
+
+11. `MirEconomy.Transfer()` ограничивает journal до 20 000 реальных receipt записей и проверяет длину новых ID/причины; `BuyFood`/`Work` отказываются до выдачи нового transaction ID при заполнении. Исторические receipts не очищаются, защита идемпотентности сохраняется после перезапуска. **CI #89 PASS**.
+12. `WorldAuthority.Save()` проверяет byte count UTF-8 до создания staging-файла. Save больше 32 MiB отклоняется и оставляет previous canonical JSON на месте; `BoundedWorldSaveTests` проверяет actual Save failure в CI #89.
+
+13. Исправлено повторное использование грузового ID после отката `jobSequence`; уникальность проверяется до резерва товара/escrow, некорректный JSON отвергается при загрузке. **CI #99/#100 PASS**.
+14. Сохранение с `purchase-N` или `salary-N`, но с откатившимся `transactionSequence`, отвергается без перезаписи. **CI #100 PASS**: после исправления счётчика покупка получает новый ID, деньги сохраняются.
+
+### Изменённые файлы (полный список PR)
+
+1. `Assets/MIR/Scripts/MirState.cs`
+2. `Assets/MIR/Scripts/MirEconomy.cs`
+3. `Assets/MIR/Scripts/MirSceneSnapshot.cs`
+4. `Assets/MIR/Scripts/MirRemoteWorldSync.cs`
+5. `Server/Nonation.Server/WorldAuthority.cs`
+6. `Server/Nonation.Tests/Program.cs`
+7. `Server/Nonation.Tests/Nonation.Tests.csproj`
+8. `Tools/smoke_server.py`
+9. `docs/agents/reports/02_BACKEND_SIMULATION.md`
+
+### Ограничения
+
+- Unity C# компилятор, WebGL/IL2CPP, сцена в браузере и реальный внешний HTTPS ingress не проверялись.
+- `saveGate` гарантирует упорядочивание потоков одного процесса. Дополнительный `world.json.lock` с `FileShare.None` запрещает запуск второго **совместимого серверного процесса** на том же локальном пути; `.lock` специально не удаляется при Dispose, чтобы не появлялась race нового inode на Linux. Lease не заменяет распределённый consensus/lock на сетевых ФС, защиту от удаления lock пользователем или проверку symlink aliases. `Flush(true)` и rename снижают риск повреждения, но тесты не имитировали сбой питания/потерю метаданных файловой системы.
+- Максимальный размер и читаемого, и записываемого `world.json` — 32 MiB. При превышении на Save выполняется fail-closed без замены canonical JSON. Сериализация во временную строку выполняется **перед** проверкой размера, поэтому пик использования памяти этим изменением не ограничен.
+- Денежный журнал ограничен 20 000 записями. После достижения лимита новые переводы, зарплаты и покупки перестают проходить **до миграции**; это безопаснее потери истории, но не решение для постоянного общего сервера. Для дальнейшего роста требуется согласовать durable append-only ledger с сохранением глобальной идемпотентности и процедуры бэкапа/восстановления. Нельзя обрезать `transactions` только ради размера.
+- Серверный authoritative API остаётся **read-only для внешних клиентов**, полноценной авторизации и multiplayer writes нет.
+- Размер JSON Unity проверяет **после загрузки**, перед десериализацией. Это не ограничение размера принимаемого сетевого буфера; для public ingress нужен отдельный лимит тела ответа.
+- `MirRemoteWorldSync` не меняет счета, товары, инвентарь, транзакции или локальный save (режим remote блокирует `Save`), **но пока присваивает `game.World.gameMinutes` для часов UI**. Это мутирует локальное игровое время в памяти, хотя не сохраняется. Полное разделение требует изменения других владельцев (см. запрос ниже).
+- В `main` идёт параллельная работа других агентов. Интегратор должен проверить PR diff/конфликты и протестировать клиент v2 перед merge.
 
 ## CROSS-OWNER REQUEST
 
-Нет. Если нужна правка чужого файла: `[путь] — [зачем] — [точный требуемый интерфейс] — [ссылка на ошибку]`.
+**Разделить часы серверного spectator и локальную экономику**:
+- `Assets/MIR/Scripts/MirGame.cs` — владелец AGENT 01: добавить read-only `public float RemoteGameMinutes { get; private set; }` и `public void SetRemoteGameMinutes(float minutes)` с проверкой `RemoteSpectator` и конечного неотрицательного значения; метод **не должен** менять `World.gameMinutes` / `Economy` / сохранение.
+- `Assets/MIR/Scripts/MirHUD.cs` — владелец AGENT 03: отображать время по `game.RemoteGameMinutes` при `game.RemoteSpectator`, иначе обычное `game.World.gameMinutes`; вычислять отображаемые день/час/минуту из выбранного значения.
+- После готовности интерфейса AGENT 02 в `MirRemoteWorldSync.Accept` заменит `game.World.gameMinutes = snapshot.gameMinutes` на `game.SetRemoteGameMinutes(snapshot.gameMinutes)`.
+- Причина: сейчас при просмотре удалённого мира меняется локальный часовой показатель, от которого рассчитываются offline-экономические тики; хотя save заблокирован, лучше не мутировать локальный world вообще.
 
-## Следующее конкретное действие
+**CROSS-OWNER REQUEST — утверждение архитектуры долговременного денежного журнала (MANAGER):**
 
-Выполнить первые действия из личного промпта, закоммитить фактические исправления и этот отчёт **в свою ветку**, открыть PR к `main`.
+Нынешние `MirWorldState.transactions` и `MirEconomy.seen` хранят replay-IDs вместе с `world.json`. Предел 20 000 транзакций нельзя безопасно снять простым удалением старых записей: повторные `Transfer(id)` начнут приниматься после рестарта. Перед любыми миграциями требуется решение интегратора по контракту:
+1. Предлагаемый вариант только для authoritative .NET-сервера — транзакционный ledger в SQLite WAL или PostgreSQL: `world_id`, монотонный `ledger_sequence` (64-bit), `transaction_id` с уникальным индексом, `from/to`, положительные minor credits, `minute`, `cause`. Одна атомарная транзакция должна фиксировать и результат перевода, и receipt/idempotency.
+2. Чекпойнт состояния мира должен указывать `lastAppliedSequence` и целостность balances/escrow; восстановление обязано не допускать ни двойной выплаты, ни потери уже проведённой, включая crash между snapshot и ledger. Бэкап и миграция `MirWorldState.version=1` должны проходить dry-run и сравнение `TotalKnownMoney()`, товарных запасов и active freight.
+3. Для Unity offline сохранить самостоятельную локальную экономику, не требующую SQL/сети. Публичный API оставить read-only до авторизации и command validation; не добавлять пока writable endpoint.
+4. Нужны тесты повторного `transaction_id` после архивирования, restart/replay, частичного падения, конфликтов ID двух миров и обратимого восстановления из бэкапа.
+
+**Вопрос Manager:** утвердить хранилище, версию и формат миграции, единицу атомарности ledger/state, политику backup/rollback и допустимость вынесения receipt history из JSON. Общие `Documentation/ARCHITECTURE_RU.md`/`TASKS.md` принадлежит Manager. До утверждения **не** включать ротацию и не удалять receipts.
+
+**Integration Guard (MANAGER) — закрыто:** старый [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) ложно учитывал `TASKS.md` из старого PR base. Менеджер перешёл на `merge-base`; [Guard #42](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010216734) SUCCESS для текущей ветки, посторонних изменений нет.
+
+## Следующий технический блок — 24.10.26
+
+Последний проверенный код `18247c4b` имеет [CI #100](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016453), [Guard #85](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016455) и [Cross-Branch #26](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016016463) — всё **SUCCESS**. Приоритет: согласовать с Manager долговременный ledger (CROSS-OWNER REQUEST выше), затем отдельным ограниченным коммитом сделать серверное предупреждение при приближении к пределу `MaxRecordedTransactions`, без публикации финансовых данных и без изменения схемы.
+
+**Незакрытые интеграционные блокеры:** AGENT 01 должен предоставить `MirGame.RemoteGameMinutes / SetRemoteGameMinutes()`, AGENT 03 — использовать удалённые часы в HUD; затем AGENT 02 заменит присваивание `World.gameMinutes` в `MirRemoteWorldSync`. Вливать PR #1 только после реальной Unity Editor C#/WebGL/browser проверки, согласованной spectator v2 и ревью Manager. Текущие .NET успехи не подтверждают WebGL.
 
 ## Правила заполнения
 
 Писать только выполненные факты. Приложить ссылки на коммиты, PR, CI, реальные Cloud Build номера и выходные артефакты. Не стирать старые строки журнала. При конфликте с `main` — запросить управляющего интегратора. Не изменять `TASKS.md`.
+
+## INTEGRATION HANDOFF - CHAT 04 / Manager
+Author: CHAT 04 / Manager
+
+**Дата:** 24.10.26. **Источник отчёта агента:** `agent/backend-simulation@1284979a388aa22ec13cc3ab81d16577a26d4762`, Git blob `35480f715907d05c2a3f0109c471a33f03176d8c`.
+
+Это **прозрачное дополнение технического руководителя при разовой интеграции**, а не сообщение от лица исполнителя. Весь исходный текст отчёта выше сохранён без правок.
+
+**Сверка результатов руководителем:**
+- Исходные Backend-изменения импортированы без перезаписи: v2 spectator DTO, идентификаторы транзакций, bounded save/lease, freight escrow и регрессионные .NET-тесты.
+- Совместный Python/.NET/HTTP CI на интеграционном PR #19 SUCCESS; Unity C#/IL2CPP и реальный production API пока не подтверждены.
+- До полноценного серверного MMO сохраняется offline Unity по умолчанию и read-only spectator API; не открывать writable финансовые команды.
+- Долговременный SQL ledger/миграции остаются отдельной архитектурной задачей менеджера. Не удалять receipts из JSON по достижении 20 000 и не обещать бесконечную историю.
+- После возобновления CHAT 02: сверить принятый `main` и интеграционный документ, проверить cross-owner clock API по текущим фактам.
+
+**Контроль:** [интеграционный PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19); главный статус и критерии выпуска — `TASKS.md` и `DEPLOYMENT_STATUS_RU.md`. Не считать этот раздел подтверждением ещё не пройденных Unity/browser проверок.

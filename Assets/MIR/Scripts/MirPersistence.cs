@@ -20,7 +20,11 @@ namespace MIR
                 {
                     var world=JsonUtility.FromJson<MirWorldState>(data);
                     if(world!=null && world.version==1 && world.citizens!=null && world.citizens.Count>0
-                       && world.businesses!=null && world.businesses.Count>0)return world;
+                       && world.businesses!=null && world.businesses.Count>0)
+                    {
+                        Debug.Log("NONATION_SAVE_RESTORED citizens=" + world.citizens.Count);
+                        return world;
+                    }
                 }
             }
             catch(Exception ex){Debug.LogWarning("MIR: existing save could not be loaded; backup remains untouched. "+ex.Message);}
@@ -34,6 +38,7 @@ namespace MIR
                 PlayerPrefs.SetString(Key,data);PlayerPrefs.Save();
                 if(Application.platform!=RuntimePlatform.WebGLPlayer)
                 {Directory.CreateDirectory(Application.persistentDataPath);File.WriteAllText(NativeFile,data);}
+                Debug.Log("NONATION_SAVE_WRITTEN citizens=" + world.citizens.Count);
                 return true;
             }
             catch(Exception ex){Debug.LogError("MIR save failed: "+ex);return false;}

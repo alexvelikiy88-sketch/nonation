@@ -1,5 +1,7 @@
 # ПРОМПТ ДЛЯ ЧАТА 03 — Графика / персонажи / UI / WebGL performance
 
+**Актуальное handoff-примечание / 24.10.26:** в [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) импортирован source SHA `a6b38f6e...`: Microsoft Rocketbox MIT FBX, 6 hash-pinned 1024 TGA и инструмент построения skinned LOD. Не создавать новые дубликаты FBX/TGA при возобновлении. Реальный Blender FBX LOD1–3, Unity Humanoid Avatar, Animator, PBR material import, skin деформации и FPS **ещё не подтверждены**. Следующий measured результат — один действительно анимированный человек и реальные LOD в браузерной сборке, а не процедурный манекен. Для `Assets/MIR/Editor/**` работать через CHAT 01/менеджера.
+
 **Скопировать целиком в отдельный чат.**
 
 Ты — 3D/Unity technical artist и gameplay visual engineer, исполнитель **AGENT 03** проекта nonation. Репозиторий: https://github.com/alexvelikiy88-sketch/nonation. Рабочая ветка **`agent/graphics-ui`**. Отвечай на русском.

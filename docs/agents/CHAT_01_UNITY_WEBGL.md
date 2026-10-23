@@ -1,5 +1,7 @@
 # ПРОМПТ ДЛЯ ЧАТА 01 — Unity / WebGL / Cloud Build
 
+**Проверенное новое основание после передачи CHAT 04 (24.10.26):** Build №3 — ошибка отсутствия сцены, [Cloud #4](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424) реально SUCCESS на старом Unity-only SHA `cb46b496...`. Код трёх направлений сводится в [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19). При возобновлении **не** начинать снова с диагностики №3. Сначала сверить новый `main` и результат интегрированного Unity/WebGL + браузерного теста. Дальнейший P0 — исключительно подтверждённые ошибки текущего source SHA, затем лицензированный Unity export и проверка игрока/NPC/WASD/save/reload. Не пушить старую версию поверх новых manager commits.
+
 **Скопировать целиком в отдельный чат.**
 
 Ты — разработчик **Unity Build & Runtime**, исполнитель **AGENT 01** проекта nonation. Репозиторий: https://github.com/alexvelikiy88-sketch/nonation. Твоя рабочая ветка: **`agent/unity-webgl`**. Язык отчёта — русский.

@@ -1,42 +1,28 @@
-# nonation — MIR Dockside · Unity 6
+# NONATION — Unity 6 WebGL · симуляция города
 
-**Исходный Unity-проект браузерного симулятора города** (alpha / vertical slice). Это не запущенная онлайн-игра и не сборка WebGL.
+**Статус на 24.10.26:** Unity WebGL **реально скомпилирован** в [Cloud Build №4 / Actions #40015140424](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424) для **только Unity-ветки** `cb46b4960dd8bcd255880f569254dfe9876ea14b`. WebGL-артефакт `nonation-agent01-preview` проверен и сохранён в GitHub Actions. Это ещё **не доказательство работы интегрированной игры в браузере**.
 
-## Что уже находится в GitHub
+Идёт проверяемая интеграция трёх направлений в [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19). Ветку `main` нельзя считать готовой к игре до отдельной Unity WebGL-компиляции объединённого кода, GitHub Pages deployment и браузерного smoke-test.
 
-- 24+ Unity C#-модуля: район, NPC, экономика, транспорт, грузовая логистика, камера и интерфейс; общий доменный код также собирается в .NET.
-- `Packages/manifest.json`, `ProjectSettings` под **Unity 6000.0.58f2**.
-- Каталоги `products_60.json`, `professions_36.json` и документация: в Unity alpha эти каталоги ещё **не полностью реализованы как игровые системы**.
-- `Tools/fetch_quaternius.py`: скачивает **CC0** Quaternius Universal Animation Library 1 и 2 (Standard) с OpenGameArt и сверяет SHA-256 трёх оригинальных FBX.
-- `.github/workflows/unity-webgl.yml`: CI-проверки, GameCI при наличии активации Unity и опциональная интеграция с Unity Cloud API v2 для получения WebGL и публикации на Pages.
+## Что есть в исходниках
 
-**Изначальные модели Maid, Girl, Floral, Casual, GIGN, Pinkdress, Freya и Honda в публичный репозиторий НЕ загружены:** их права на распространение не проверены; Honda имеет лицензию CC BY-NC-SA и не может быть частью коммерческой WebGL-публикации. При отсутствии модели код использует упрощённую процедурную замену, чтобы избежать некорректных T-поз.
+- Unity `6000.0.58f2`, сцена `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`, управление WASD / Shift / E / F / R / Tab, 39 NPC + игрок, транспорт, базовые магазины, работа, грузоперевозки, камера, HUD и локальное сохранение.
+- Общая экономика `Assets/MIR/Scripts/MirState.cs` + `MirEconomy.cs` и симуляция без UnityEngine используются также в .NET 8.
+- `Server/Nonation.Server`: один авторитетный headless-мир, защищённое атомарное JSON-сохранение с lease, публичный **read-only** `/api/v1/spectator/scene`. По умолчанию слушает `127.0.0.1:5180`, мультиплеерных команд нет.
+- `MirRemoteWorldSync`: опциональные spectator v2 снимки с `serverId/sequence`, HTTPS/CORS и защитой от повторов. `NetworkConfig.json` по умолчанию пуст — игра offline.
+- Microsoft Rocketbox `Male_Adult_12.fbx` и шесть TGA с закреплёнными хешами и MIT notice находятся в `Assets/MIR/Art/Rocketbox/`. Есть скрипт LOD, **но готовый Humanoid prefab/Animator/LODGroup не подтверждён и игра использует диагностический процедурный fallback**.
+- Анимации Quaternius CC0 загружаются через `Tools/fetch_quaternius.py` с SHA-проверкой. Не использовать в публичном релизе Honda NC, Maid/GIGN/Pinkdress и другие ассеты без подтверждённых прав.
 
-## Текущий блокер и инструкция запуска
+## Проверка и выпуск
 
-**Unity WebGL пока не подтверждён:** сборки Unity Cloud №1 и №2 упали на C#-ошибках, а №3 завершилась `Unity Player Export Failure` (финальная строка 7897; первопричина выше в полном логе пока не установлена). GitHub Actions [№50](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/39994762908) успешно собрал и протестировал общее .NET-ядро и запустил сервер в HTTP smoke-test, но не запускал Unity Editor. Подробнее: [DEPLOYMENT_STATUS_RU.md](DEPLOYMENT_STATUS_RU.md).
+1. [Integration Guard](.github/workflows/integration-guard.yml) запрещает случайное затирание чужих путей; `main` защищён GitHub Ruleset.
+2. [PR Validation](.github/workflows/pr-validation.yml) выполняет Python source/contract tests, .NET 8 tests/build и HTTP smoke.
+3. [Cross-Branch Integration](.github/workflows/cross-branch-integration.yml) временно соединяет все три агентские ветки, проверяет совместимость без push в `main`.
+4. [MIR Unity WebGL](.github/workflows/unity-webgl.yml) собирает через официальный Unity Cloud или легальную GameCI activation, проверяет точный SHA и WebGL-артефакт; только затем GitHub Pages и Chromium runtime.
+5. **Веб-адрес `https://alexvelikiy88-sketch.github.io/nonation/` считать рабочим лишь при подтверждённом Deploy + Browser smoke.**
 
-## Сборка онлайн без установки Unity на ПК
+[Текущие задачи](TASKS.md) · [Архитектура](Documentation/ARCHITECTURE_RU.md) · [Состояние деплоя](DEPLOYMENT_STATUS_RU.md) · [Аудит интеграции](Documentation/INTEGRATION_REPORT_RU.md) · [Лицензии](Documentation/LICENSES.md) · [Управление агентами](AGENTS.md).
 
-1. Unity Cloud Build Automation: `main`, Unity `6000.0.58f2`, WebGL. В Advanced settings: pre-build script `Tools/unity_cloud_prebuild.sh` и pre-export `NonationCloudBuildHook.PreExport` (контроллер анимации). Сцена хранится в Git, её больше не требуется создавать перед экспортом.
-2. Для последующих автоматических сборок можно один раз включить **Auto-build** в настройках Build Automation (при необходимости потребуется разрешение GitHub Webhooks на токене).
-3. Либо используйте [GitHub Actions — MIR Unity WebGL](../../actions/workflows/unity-webgl.yml). Для GameCI потребуется активация Unity через **Actions Secrets** (не размещайте секреты в коде): [GameCI Activation](https://game.ci/docs/github/activation/).
-4. Альтернатива GameCI: Unity service account с ключами в GitHub Actions secrets `UNITY_SA_KEY_ID` и `UNITY_SA_SECRET_KEY`. После их настройки CI сможет дождаться успешной Unity Cloud-сборки, проверить её WebGL-артефакты и передать их GitHub Pages. Эта интеграция ещё не проверена с реальными учётными данными. **Публичной игровой ссылки пока нет.**
+## Границы прототипа
 
-## Важно о проверках
-
-- C# и игровые правила ранее прошли только статическую проверку структуры: Unity Editor в рабочей среде недоступен.
-- Веб-сборка, реальная анимация Humanoid, производительность GPU и долговечность сохранений Unity **ещё не проверены**.
-- Временный локальный мир Unity не является переносом всего MIR V10/V11: нет сервера 24/7, синхронизации нескольких игроков или подтверждённой поддержки 5 000 NPC.
-- `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` генерируется редакторским скриптом `MIR.Editor.MirUnitySetup` / `MirCloudBuild`.
-
-Полная документация: [README_RU.md](README_RU.md), [GITHUB_SETUP_RU.md](GITHUB_SETUP_RU.md) и [LICENSES.md](Documentation/LICENSES.md).
-
-
-## Unity ↔ .NET (режим наблюдения)
-
-Unity поддерживает опциональный read-only просмотр серверных NPC. По умолчанию `Assets/MIR/Resources/MIR/NetworkConfig.json` содержит пустой `snapshotUrl`, поэтому игра продолжает работать локально. Для тестового подключения разверните .NET backend за HTTPS reverse proxy и укажите URL `https://.../api/v1/spectator/scene`, а на сервере настройте `NONATION_CORS_ORIGINS` под сайт WebGL. Клиент применяет только публичные координаты жителей, не отправляет деньги/команды и в сетевом режиме отключает локальные транзакции. Подробности — [ARCHITECTURE_RU.md](Documentation/ARCHITECTURE_RU.md).
-
-## Параллельная разработка nonation
-
-Проект разделён на три исполнительных чата и одного интегратора. Центральный статус — [TASKS.md](TASKS.md); общие правила — [AGENTS.md](AGENTS.md); инструкция руководителя — [NONATION_MANAGER.md](NONATION_MANAGER.md). Готовые промпты: [Unity/WebGL](docs/agents/CHAT_01_UNITY_WEBGL.md), [Backend/Simulation](docs/agents/CHAT_02_BACKEND_SIMULATION.md), [Graphics/UI](docs/agents/CHAT_03_GRAPHICS_UI.md). Исполнители работают через собственные ветки и PR и обновляют свои отчёты, не редактируя напрямую `main`.
+Это **первый вертикальный срез**, а не завершённая многопользовательская игра. Отсутствуют постоянный общий сервер 24/7, полноценные семьи/социальные связи, вся экономика 60 товаров/36 профессий, сотни/тысячи высокореалистичных NPC, боеспособные WebGL LOD и измеренные FPS. Цифры из исходной концепции не являются доказательством их реализации.
