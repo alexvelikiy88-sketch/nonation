@@ -243,6 +243,37 @@ def check_webgl(root: Path):
             raise ValueError(f"Missing uncompressed Unity {extension} asset; check WebGL compression settings")
     print("PASS: nonempty index.html + uncompressed .wasm/.data/.js (not browser-verified)", flush=True)
 
+def verify_hosted(root: Path, page_url: str):
+    """Verify real HTTPS responses for every published file after Pages deploy.
+
+    This proves hosting/asset retrieval, NOT Unity WebGL scene execution.
+    """
+    check_webgl(root)
+    origin = urlparse(page_url)
+    if (origin.scheme != "https" or not origin.hostname or
+            origin.username or origin.password or origin.query or origin.fragment):
+        raise ValueError("Deployed WebGL URL must be an HTTPS URL without credentials or query")
+    base = page_url.rstrip("/") + "/"
+    from urllib.parse import quote
+    paths = sorted(p for p in root.rglob("*") if p.is_file())
+    if not paths:
+        raise ValueError("Nothing to verify on HTTPS hosting")
+    for path in paths:
+        relative = path.relative_to(root).as_posix()
+        remote = urljoin(base, quote(relative, safe="/"))
+        with urlopen(Request(remote, method="HEAD"), timeout=25) as response:
+            resolved = urlparse(response.geturl())
+            if resolved.scheme != "https" or resolved.hostname != origin.hostname:
+                raise ValueError("Deployed asset redirected outside the expected HTTPS host: " + relative)
+            if response.status != 200:
+                raise ValueError("Deployed asset is not HTTP 200: " + relative)
+            mime = response.headers.get("Content-Type", "").lower()
+            if relative.lower().endswith((".wasm", ".data", ".js")) and "text/html" in mime:
+                raise ValueError("Hosting serves HTML instead of Unity asset: " + relative)
+        print("HTTPS 200:", relative, flush=True)
+    print("PASS: hosted WebGL files are reachable over HTTPS (runtime NOT verified)", flush=True)
+
+
 def run():
     revision = os.environ.get("GITHUB_SHA", "")
     if len(revision) != 40 or not all(c in "0123456789abcdef" for c in revision):
@@ -284,10 +315,14 @@ if __name__ == "__main__":
     try:
         if len(sys.argv) == 3 and sys.argv[1] == "--verify-dir":
             check_webgl(Path(sys.argv[2]))
+        elif len(sys.argv) == 4 and sys.argv[1] == "--verify-hosted":
+            verify_hosted(Path(sys.argv[2]), sys.argv[3])
         elif len(sys.argv) == 1:
             run()
         else:
-            raise ValueError("Usage: unity_cloud_ci.py [--verify-dir build/WebGL]")
+            raise ValueError(
+                "Usage: unity_cloud_ci.py [--verify-dir build/WebGL | --verify-hosted build/WebGL https://pages.example/]"
+            )
     except (ValueError, RuntimeError, TimeoutError, URLError, OSError, zipfile.BadZipFile) as error:
         print("ERROR:", str(error), file=sys.stderr)
         sys.exit(1)
