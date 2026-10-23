@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import shutil
 import sys
@@ -274,6 +275,92 @@ def verify_hosted(root: Path, page_url: str):
     print("PASS: hosted WebGL files are reachable over HTTPS (runtime NOT verified)", flush=True)
 
 
+def read_cloud_log(number: int) -> str:
+    """Read existing Unity Cloud log without triggering a new build or leaking auth."""
+    if number < 1:
+        raise ValueError("Build number must be positive")
+    endpoint = f"{ROOT}/builds/{number}/log"
+    request = Request(endpoint, method="GET", headers={
+        "Authorization": secret_header(), "Accept": "text/plain"
+    })
+    maximum = 20 * 1024 * 1024
+    try:
+        with build_opener(NoRedirect()).open(request, timeout=35) as response:
+            if response.status != 200:
+                raise RuntimeError("Unity Cloud log returned HTTP " + str(response.status))
+            data = response.read(maximum + 1)
+    except HTTPError as error:
+        if error.code != 303:
+            raise RuntimeError("Unity Cloud build log is inaccessible: HTTP " + str(error.code)) from None
+        # The API may return the signed storage URL as Location or JSON {url}.
+        href = error.headers.get("Location")
+        if not href:
+            try:
+                redirect = json.loads(error.read().decode("utf-8"))
+                if isinstance(redirect, dict):
+                    href = redirect.get("url")
+            except (ValueError, UnicodeError):
+                pass
+        if not href:
+            raise RuntimeError("Unity Cloud log redirect has no signed download URL")
+        url, internal = artifact_link(href)
+        if internal:
+            raise RuntimeError("Unity Cloud log redirect remained inside the authenticated API")
+        with urlopen(url, timeout=60) as response:
+            data = response.read(maximum + 1)
+    if len(data) > maximum:
+        raise ValueError("Unity Cloud log exceeds 20 MiB diagnostic limit")
+    return data.decode("utf-8", errors="replace")
+
+
+def redact_log(line: str) -> str:
+    """Never echo service-account secrets or signed storage URLs to CI logs."""
+    for key in ("UNITY_SA_KEY_ID", "UNITY_SA_SECRET_KEY",
+                "UNITY_LICENSE", "UNITY_SERIAL", "UNITY_EMAIL", "UNITY_PASSWORD"):
+        value = os.environ.get(key)
+        if value:
+            line = line.replace(value, "[REDACTED]")
+    line = re.sub(r"https://[^\\s]+", "[URL]", line)
+    return line[:500]
+
+
+def primary_failure_lines(log: str):
+    """Return first diagnostic error before any generic Player Export Failure line."""
+    lines = log.splitlines()
+    candidates = []
+    for index, line in enumerate(lines):
+        if "Unity Player Export Failure" in line:
+            continue
+        if re.search(r"(?i)(?:\\berror\\s+(?:CS|MSB|IL)\\d+\\b|"
+                     r"\\bBuildFailedException\\b|"
+                     r"\\bException:\\s|"
+                     r"\\b(?:error|fatal error)\\s*:|"
+                     r"\\bfailed to (?:compile|import|resolve|load)\\b)", line):
+            candidates.append((index + 1, redact_log(line)))
+    return candidates[:15]
+
+
+def diagnose_build(number: int):
+    """Read-only diagnostics of any existing Unity Cloud build (especially #3)."""
+    status_code, data = api("GET", f"{ROOT}/builds/{number}")
+    if status_code != 200 or not isinstance(data, dict):
+        raise RuntimeError("Unity Cloud did not return existing build status")
+    print("UNITY_CLOUD_DIAGNOSTIC build=" + str(number) +
+          " status=" + str(data.get("buildStatus") or data.get("status")) +
+          " revision=" + str(data.get("lastBuiltRevision") or data.get("requestedRevision")))
+    log = read_cloud_log(number)
+    print("Unity build log retrieved, lines=" + str(len(log.splitlines())))
+    hits = primary_failure_lines(log)
+    if hits:
+        for line_number, line in hits:
+            print(f"LOG ERROR line {line_number}: {line}")
+    else:
+        print("ROOT CAUSE UNKNOWN: no reliable pre-export error signature in the downloaded log.")
+    if "Unity Player Export Failure" in log:
+        print("Terminal Unity Player Export Failure also present; it is not a root cause.")
+    return hits
+
+
 def run():
     revision = os.environ.get("GITHUB_SHA", "")
     if len(revision) != 40 or not all(c in "0123456789abcdef" for c in revision):
@@ -317,11 +404,15 @@ if __name__ == "__main__":
             check_webgl(Path(sys.argv[2]))
         elif len(sys.argv) == 4 and sys.argv[1] == "--verify-hosted":
             verify_hosted(Path(sys.argv[2]), sys.argv[3])
+        elif len(sys.argv) == 3 and sys.argv[1] == "--diagnose-build":
+            if not sys.argv[2].isdigit() or int(sys.argv[2]) < 1:
+                raise ValueError("Cloud build number must be a positive integer")
+            diagnose_build(int(sys.argv[2]))
         elif len(sys.argv) == 1:
             run()
         else:
             raise ValueError(
-                "Usage: unity_cloud_ci.py [--verify-dir build/WebGL | --verify-hosted build/WebGL https://pages.example/]"
+                "Usage: unity_cloud_ci.py [--verify-dir DIR | --verify-hosted DIR HTTPS_URL | --diagnose-build NUMBER]"
             )
     except (ValueError, RuntimeError, TimeoutError, URLError, OSError, zipfile.BadZipFile) as error:
         print("ERROR:", str(error), file=sys.stderr)
