@@ -19,7 +19,6 @@ namespace MIR
         float signalClock;
         bool hazard;
         float doorAngle;
-        float initialMass=1f;
         public static MirVehicle Spawn(Vector3 at,bool truck,bool tryLicensedHonda=false)
         {
             var root=new GameObject(truck?"Cargo truck · supply economy":"Driveable street car");
