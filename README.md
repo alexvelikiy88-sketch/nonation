@@ -12,6 +12,10 @@
 
 **Изначальные модели Maid, Girl, Floral, Casual, GIGN, Pinkdress, Freya и Honda в публичный репозиторий НЕ загружены:** их права на распространение не проверены; Honda имеет лицензию CC BY-NC-SA и не может быть частью коммерческой WebGL-публикации. При отсутствии модели код использует упрощённую процедурную замену, чтобы избежать некорректных T-поз.
 
+## Текущий блокер и инструкция запуска
+
+**Unity WebGL ещё не собран:** GitHub Actions source-validation проходит, а Unity Builder останавливается из-за отсутствия Unity-лицензии в Actions Secrets. Список проверок и два способа получить онлайн-билд (Unity Cloud без установки или GitHub Actions) — **[DEPLOYMENT_STATUS_RU.md](DEPLOYMENT_STATUS_RU.md)**.
+
 ## Сборка онлайн без установки Unity на ПК
 
 1. Подключите репозиторий `alexvelikiy88-sketch/nonation` в Unity Cloud Build Automation, выберите `main`, Unity `6000.0.30f1` и WebGL. В конфигурации сборки обеспечьте вызов `MIR.Editor.MirCloudBuild.Build`.
