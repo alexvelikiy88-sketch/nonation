@@ -1,6 +1,6 @@
 # nonation — состояние WebGL и проверки
 
-**23.10.26. Публичная работающая Unity WebGL-сборка не подтверждена.**
+**24.10.26. Публичная работающая Unity WebGL-сборка не подтверждена.**
 
 ### Подтверждено
 
@@ -47,3 +47,10 @@
 ## Подключение Unity к серверу (добавлено после CI №52)
 
 Подготовлены `MirSceneSnapshot`, публичный `/api/v1/spectator/scene`, CORS allowlist и транспорт `MirRemoteWorldSync`. Режим офлайн остаётся значением по умолчанию. Авторитетная серверная симуляция пока передаёт **только NPC-позиции**; игрок и экономика не синхронизированы, сетевые команды не поддерживаются. После коммита нужно выполнить .NET- и HTTP-тесты; Unity Editor/WebGL ещё нельзя считать проверенным.
+
+## Управленческая проверка 24.10.26
+
+- GitHub `main` защищена активным Ruleset `NONATION — Main Protection` (ID `25749583`), обязательная проверка `Ownership and change integrity`; force-push/deletions заблокированы.
+- [CI Cross-Branch #40012146794](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012146794) — SUCCESS: виртуальный Git merge трёх рабочих веток без конфликтов, 48 Python тестов, 6 тестов подготовки Rocketbox, .NET build/domain tests и локальный HTTP/CORS/spectator smoke. Затронутые SHA указаны в журнале CI; код не публиковался.
+- Последний отдельно просмотренный [Unity CI #40010115046](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40010115046): `source-validation SUCCESS`, `webgl`, `cloud-webgl`, `deploy`, `browser-smoke` **SKIPPED**. Это не доказательство Unity runtime.
+- P0 остаётся: требуется разрешённый доступ к Unity Cloud Build #3 log, затем одна успешная лицензированная Unity WebGL сборка на конкретном SHA, HTTPS-хостинг и запуск в браузере с проверкой Canvas/Console/NPC/input/save.
