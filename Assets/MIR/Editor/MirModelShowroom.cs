@@ -14,10 +14,9 @@ namespace MIR.Editor
         public static void Create()
         {
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-            var shader=Shader.Find("Standard")??Shader.Find("Universal Render Pipeline/Lit");
             var ground=GameObject.CreatePrimitive(PrimitiveType.Cube);ground.name="Art review floor";
             ground.transform.localScale=new Vector3(35,.2f,10);ground.transform.position=new Vector3(0,-.1f,0);
-            var material=new Material(shader){color=new Color(.66f,.69f,.69f)};
+            var material=MirRenderMaterials.Create(new Color(.66f,.69f,.69f));
             ground.GetComponent<Renderer>().sharedMaterial=material;
             var candidates=new (string path,string label)[]{
                 ("Assets/MIR/Art/Quaternius/Mannequin_F.fbx","QUATERNIUS · HUMANOID"),

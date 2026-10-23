@@ -28,9 +28,8 @@ namespace MIR.Editor
                 if(EditorApplication.isPlayingOrWillChangePlaymode)return;
                 try
                 {
-                    // Cloud builds clone source without a prebuilt scene: generate it on editor startup.
-                    if(!File.Exists(ScenePath))Install(false);
-                    else EnsureBuildScene();
+                    // The playable scene is committed to Git. Delayed creation is not a build dependency.
+                    EnsureBuildScene();
                 }
                 catch(Exception e)
                 {
@@ -41,20 +40,19 @@ namespace MIR.Editor
         }
         public static void EnsureBuildScene()
         {
-            Folder(Root+"/Scenes");
             if(!File.Exists(ScenePath))
+                throw new FileNotFoundException("The playable scene must be committed to Git: "+ScenePath,ScenePath);
+            var imported=AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
+            if(imported==null)
             {
-                var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-                var go=new GameObject("MIR Runtime Bootstrap (scene placeholder)");
-                go.AddComponent<MirGame>();
-                if(!EditorSceneManager.SaveScene(scene,ScenePath))
-                    throw new IOException("Could not save MIR playable scene: "+ScenePath);
                 AssetDatabase.ImportAsset(ScenePath,ImportAssetOptions.ForceSynchronousImport);
+                imported=AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
             }
-            bool enabled=false;
-            foreach(var item in EditorBuildSettings.scenes)
-                if(item.enabled && item.path==ScenePath){enabled=true;break;}
-            if(!enabled)EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(ScenePath,true)};
+            if(imported==null)
+                throw new IOException("Unity could not import the committed WebGL scene: "+ScenePath);
+            var configured=EditorBuildSettings.scenes;
+            if(configured.Length!=1 || !configured[0].enabled || configured[0].path!=ScenePath)
+                EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(ScenePath,true)};
         }
         static void Folder(string path)
         {
@@ -153,22 +151,24 @@ namespace MIR.Editor
             Folder(Root+"/Resources/MIR");Folder(Root+"/Scenes");
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             var clips=Clips(SourceA).Concat(Clips(SourceB)).ToArray();
-            if(clips.Length==0)Debug.LogWarning("MIR: animation FBXs missing. Character falls back to articulated proxy.");
             AnimatorController ctrl=BuildController(clips);
-            try
+            if(clips.Length==0)
             {
-                if(Prefab(Mannequin,"PlayableHuman",ctrl)==null)
-                    Debug.LogWarning("MIR: mannequin Avatar invalid; use Rig > Humanoid Configure on Mannequin_F.fbx.");
+                // Do not ship an Animator with an empty movement tree: that creates T-pose NPCs.
+                AssetDatabase.DeleteAsset(Root+"/Resources/MIR/PlayableHuman.prefab");
+                Debug.LogWarning("MIR: no imported Quaternius motion clips; articulated fallback enabled.");
             }
-            catch(Exception ex){Debug.LogWarning("MIR mannequin: "+ex.Message+"; procedural fallback is available.");}
-            try{Prefab(Root+"/Art/Characters/GIGN/gign_paranoia.fbx","GIGN",ctrl);}
-            catch(Exception ex){Debug.LogWarning("MIR GIGN: "+ex.Message);}
-            try{Prefab(Root+"/Art/Characters/Pinkdress/dressfor.fbx","Pinkdress",ctrl);}
-            catch(Exception ex){Debug.LogWarning("MIR Pinkdress: "+ex.Message);}
-            try{MirHumanoidFromGltf.TryCreate(Root+"/Art/Characters/Maid/maid_skinned_lod1.glb","Maid",ctrl);}
-            catch(Exception ex){Debug.LogWarning("MIR Maid glTF: "+ex.Message);}
-            // Not every user model is suitable for Humanoid retargeting; no invalid models enter the crowd.
-            // Static glTF/GLB files are intentionally NOT assigned Animator controllers; rig them first.
+            else
+            {
+                try
+                {
+                    if(Prefab(Mannequin,"PlayableHuman",ctrl)==null)
+                        Debug.LogWarning("MIR: mannequin Avatar invalid; articulated fallback enabled.");
+                }
+                catch(Exception ex){Debug.LogWarning("MIR mannequin: "+ex.Message+"; fallback enabled.");}
+            }
+            // Unlicensed / rights-unverified characters are NEVER auto-imported into
+            // Resources during public WebGL builds.
             EnsureBuildScene();
             AssetDatabase.SaveAssets();
             if(open)EditorSceneManager.OpenScene(ScenePath);
@@ -177,7 +177,7 @@ namespace MIR.Editor
         [MenuItem("MIR/02 — Build WebGL (requires Unity Web Build Support)")]
         static void BuildWeb()
         {
-            if(!File.Exists(ScenePath))Install(false);
+            PrepareForCloud();
             if(!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL,BuildTarget.WebGL))
             {EditorUtility.DisplayDialog("WebGL module missing","Install Web Build Support from Unity Hub for this editor version.","OK");return;}
             if(EditorUserBuildSettings.activeBuildTarget!=BuildTarget.WebGL)

@@ -29,9 +29,7 @@ namespace MIR
         }
         Material NewMat(Color c,float metal=0f)
         {
-            var m=new Material(Shader.Find("Standard")??Shader.Find("Universal Render Pipeline/Lit"));
-            m.color=c;if(m.HasProperty("_Metallic"))m.SetFloat("_Metallic",metal);
-            return m;
+            return MirRenderMaterials.Create(c,metal);
         }
         GameObject Cube(string n,Vector3 p,Vector3 size,Material mat,Transform parent=null)
         {

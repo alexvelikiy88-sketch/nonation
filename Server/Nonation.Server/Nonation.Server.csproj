@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/MIR/Scripts/MirState.cs" Link="Core/MirState.cs" />
+    <Compile Include="../../Assets/MIR/Scripts/MirEconomy.cs" Link="Core/MirEconomy.cs" />
+    <Compile Include="../../Assets/MIR/Scripts/MirSimulationLoop.cs" Link="Core/MirSimulationLoop.cs" />
+  </ItemGroup>
+</Project>

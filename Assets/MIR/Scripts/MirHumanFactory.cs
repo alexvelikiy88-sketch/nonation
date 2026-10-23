@@ -6,20 +6,23 @@ namespace MIR
     {
         static Material Skin(int variant)
         {
-            var shader=Shader.Find("Standard")??Shader.Find("Universal Render Pipeline/Lit");
-            var m=new Material(shader);var tones=new[]{new Color(.80f,.59f,.45f),new Color(.56f,.39f,.28f),new Color(.94f,.72f,.58f),new Color(.43f,.30f,.23f)};
-            m.color=tones[Mathf.Abs(variant)%tones.Length];return m;
+            var tones=new[]{new Color(.80f,.59f,.45f),new Color(.56f,.39f,.28f),new Color(.94f,.72f,.58f),new Color(.43f,.30f,.23f)};
+            return MirRenderMaterials.Create(tones[Mathf.Abs(variant)%tones.Length]);
         }
         static Material Cloth(int variant)
         {
-            var shader=Shader.Find("Standard")??Shader.Find("Universal Render Pipeline/Lit");
-            var m=new Material(shader);var c=new[]{new Color(.27f,.47f,.62f),new Color(.47f,.39f,.31f),new Color(.45f,.51f,.36f),new Color(.66f,.36f,.30f),new Color(.28f,.34f,.39f)};
-            m.color=c[Mathf.Abs(variant)%c.Length];return m;
+            var c=new[]{new Color(.27f,.47f,.62f),new Color(.47f,.39f,.31f),new Color(.45f,.51f,.36f),new Color(.66f,.36f,.30f),new Color(.28f,.34f,.39f)};
+            return MirRenderMaterials.Create(c[Mathf.Abs(variant)%c.Length]);
         }
         public static MirMotionDriver Attach(Transform holder,MirCitizen person)
         {
             int variant=Mathf.Abs(person.id.GetHashCode());
-            GameObject source=Resources.Load<GameObject>("MIR/" + (person.look=="default" || string.IsNullOrEmpty(person.look)?"PlayableHuman":person.look));
+            var catalog=Resources.Load<MirAnimationCatalog>("MIR/QuaterniusCatalog");
+            bool hasWalk=catalog!=null && catalog.entries!=null &&
+                catalog.entries.Exists(x=>x!=null&&x.clip!=null&&x.name!=null&&
+                    x.name.IndexOf("Walk",System.StringComparison.OrdinalIgnoreCase)>=0);
+            GameObject source=hasWalk?Resources.Load<GameObject>("MIR/" +
+                (person.look=="default" || string.IsNullOrEmpty(person.look)?"PlayableHuman":person.look)):null;
             if(source==null)source=Resources.Load<GameObject>("MIR/PlayableHuman");
             if(source!=null)
             {
@@ -75,7 +78,7 @@ namespace MIR
             MirHumanFactory.Capsule("Right leg",rightLeg,new Vector3(0,-.43f,0),new Vector3(.12f,.46f,.12f),clothes);
         }
         Material GetMaterial(Color c)
-        {var m=new Material(Shader.Find("Standard")??Shader.Find("Universal Render Pipeline/Lit"));m.color=c;return m;}
+        {return MirRenderMaterials.Create(c);}
         public void Pose(float normalizedSpeed,float t,MirActivity activity)
         {
             float speed=Mathf.Clamp01(normalizedSpeed);

@@ -13,9 +13,9 @@ namespace MIR
         public MirFreightDriver Freight {get;private set;}
         public readonly List<MirNpcAgent> NPCs = new List<MirNpcAgent>();
         public bool Paused;
-        float saveClock, simulationBuffer;
-        int lastMinute=-1;
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        float saveClock;
+        MirSimulationLoop simulation;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void AutoStart()
         {
             if(FindFirstObjectByType<MirGame>()==null)
@@ -30,7 +30,8 @@ namespace MIR
         {
             Application.targetFrameRate=60;
             World=MirPersistence.Load();Economy=new MirEconomy(World);
-            City=new MirCity();City.Build();
+            simulation=new MirSimulationLoop(World,Economy);
+            City=new MirCity();City.Build();City.UpdateLighting(World.Hour);
             var hero=World.citizens.Find(c=>c.player)??World.citizens[0];
             GameObject playerRoot=new GameObject("Player · "+hero.name);
             playerRoot.transform.position=new Vector3(hero.x,1.1f,hero.z);
@@ -44,6 +45,7 @@ namespace MIR
                 var npc=go.AddComponent<MirNpcAgent>();npc.Init(r,City);NPCs.Add(npc);
             }
             var camObj=new GameObject("MIR Camera");var camera=camObj.AddComponent<Camera>();camera.fieldOfView=58f;
+            camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.67f,.73f,.77f);
             camObj.AddComponent<AudioListener>();camObj.AddComponent<MirFollowCamera>().Init(Player.transform);
             var sun=new GameObject("Sun").AddComponent<Light>();sun.type=LightType.Directional;sun.shadows=LightShadows.Soft;
             sun.transform.rotation=Quaternion.Euler(42f,-38f,0f);sun.intensity=1.25f;
@@ -54,13 +56,7 @@ namespace MIR
         void Update()
         {
             if(World==null||Paused)return;
-            // Simulate at 0.5 in-game minute per second, independent from camera/player selection.
-            float delta=Mathf.Min(Time.deltaTime,0.2f);
-            World.gameMinutes+=delta*0.5f;
-            simulationBuffer+=delta*0.5f;
-            if(simulationBuffer>=0.1f){Economy.Tick(simulationBuffer);simulationBuffer=0;}
-            int minute=Mathf.FloorToInt(World.gameMinutes);
-            if(minute!=lastMinute){lastMinute=minute; City.UpdateLighting(World.Hour);}
+            if(simulation.Advance(Time.deltaTime)) City.UpdateLighting(World.Hour);
             saveClock+=Time.deltaTime;
             if(saveClock>=30f){saveClock=0;Save();}
         }

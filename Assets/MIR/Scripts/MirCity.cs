@@ -30,11 +30,8 @@ namespace MIR
         Material Mat(string key,Color c,float metallic=0f,float smooth=0.12f)
         {
             Material m;if(mats.TryGetValue(key,out m))return m;
-            var shader=Shader.Find("Standard")??Shader.Find("Universal Render Pipeline/Lit")??Shader.Find("Diffuse");
-            m=new Material(shader);m.color=c;m.enableInstancing=true;
-            if(m.HasProperty("_Metallic"))m.SetFloat("_Metallic",metallic);
-            if(m.HasProperty("_Smoothness"))m.SetFloat("_Smoothness",smooth);
-            mats[key]=m;return m;
+            m=MirRenderMaterials.Create(c,metallic,smooth);
+            m.enableInstancing=true;mats[key]=m;return m;
         }
         GameObject Cube(string name,Vector3 pos,Vector3 scale,Material material,Transform parent=null,bool collider=false)
         {

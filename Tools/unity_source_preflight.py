@@ -139,6 +139,59 @@ def main() -> int:
         data = file.read_text(encoding='utf-8-sig')
         for marker in signatures:
             require(marker in data, f'{name}: missing build safety marker {marker!r}')
+    # Unity must receive its scene before build callbacks or scene enumeration.
+    scene = ROOT / 'Assets/MIR/Scenes/MIR_PlayableDistrict.unity'
+    scene_meta = ROOT / 'Assets/MIR/Scenes/MIR_PlayableDistrict.unity.meta'
+    game_meta = ROOT / 'Assets/MIR/Scripts/MirGame.cs.meta'
+    build_settings = ROOT / 'ProjectSettings/EditorBuildSettings.asset'
+    for artifact in (scene, scene_meta, game_meta, build_settings):
+        require(artifact.is_file(), f'Missing committed Unity asset: {artifact.relative_to(ROOT)}')
+    if all(x.is_file() for x in (scene, scene_meta, game_meta, build_settings)):
+        scene_guid = re.search(r'^guid:\s*([0-9a-f]{32})\s*
+    if not all((assets / name).exists() for name in (
+        'Mannequin_F.fbx', 'UAL1_Standard_Unity.fbx', 'UAL2_Standard_Unity.fbx')):
+        notes.append('Quaternius FBX not committed: use the Unity Cloud pre-build download hook')
+    print(f'MIR preflight: {len(all_cs)} C# files, {len(problems)} errors, {len(notes)} notes')
+    for note in notes:
+        print('NOTE:', note)
+    for item in problems:
+        print('ERROR:', item, file=sys.stderr)
+    if problems:
+        print('Static preflight failed; real Unity compilation has NOT been run.', file=sys.stderr)
+        return 1
+    print('PASS: structural and known Unity API regression checks; NOT a Unity build')
+    return 0
+
+if __name__ == '__main__':
+    raise SystemExit(main())
+, scene_meta.read_text(), re.M)
+        game_guid = re.search(r'^guid:\s*([0-9a-f]{32})\s*
+    if not all((assets / name).exists() for name in (
+        'Mannequin_F.fbx', 'UAL1_Standard_Unity.fbx', 'UAL2_Standard_Unity.fbx')):
+        notes.append('Quaternius FBX not committed: use the Unity Cloud pre-build download hook')
+    print(f'MIR preflight: {len(all_cs)} C# files, {len(problems)} errors, {len(notes)} notes')
+    for note in notes:
+        print('NOTE:', note)
+    for item in problems:
+        print('ERROR:', item, file=sys.stderr)
+    if problems:
+        print('Static preflight failed; real Unity compilation has NOT been run.', file=sys.stderr)
+        return 1
+    print('PASS: structural and known Unity API regression checks; NOT a Unity build')
+    return 0
+
+if __name__ == '__main__':
+    raise SystemExit(main())
+, game_meta.read_text(), re.M)
+        require(scene_guid is not None and game_guid is not None, 'Invalid Unity .meta GUID')
+        if scene_guid:
+            require(scene_guid.group(1) in build_settings.read_text(), 'Build Settings scene GUID mismatches scene .meta')
+        if game_guid:
+            require(game_guid.group(1) in scene.read_text(), 'Bootstrap script GUID mismatches MirGame.cs.meta')
+    for shared in ('MirState.cs', 'MirEconomy.cs', 'MirSimulationLoop.cs'):
+        content = (ROOT / 'Assets/MIR/Scripts' / shared).read_text()
+        require('using UnityEngine' not in content and 'Mathf.' not in content,
+                f'{shared}: shared simulation must be UnityEngine-independent')
     assets = ROOT / 'Assets/MIR/Art/Quaternius'
     if not all((assets / name).exists() for name in (
         'Mannequin_F.fbx', 'UAL1_Standard_Unity.fbx', 'UAL2_Standard_Unity.fbx')):

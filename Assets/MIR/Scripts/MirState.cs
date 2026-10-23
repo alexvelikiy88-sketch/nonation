@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace MIR
 {
@@ -58,7 +57,7 @@ namespace MIR
         public MirFreightOrder ActiveFreight() { return freight.Find(o => o.status != MirOrderStatus.Completed && o.status != MirOrderStatus.Cancelled); }
         public string NewId(string prefix) { return prefix + "-" + transactionSequence++; }
         public float Hour { get { return (gameMinutes / 60f) % 24f; } }
-        public int Day { get { return 1 + Mathf.FloorToInt(gameMinutes / 1440f); } }
+        public int Day { get { return 1 + (int)Math.Floor(gameMinutes / 1440f); } }
         public static MirWorldState NewWorld(int npcCount = 39)
         {
             var s = new MirWorldState();

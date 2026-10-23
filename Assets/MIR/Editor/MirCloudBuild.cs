@@ -20,7 +20,9 @@ namespace MIR.Editor
             // GitHub Pages does not allow custom Content-Encoding response headers.
             // Build uncompressed Unity Web assets to avoid a broken loading screen.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
-            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
+            if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.WebGL &&
+                !EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL))
+                throw new Exception("Unity WebGL build support is missing or could not be activated.");
             var options = new BuildPlayerOptions
             {
                 scenes = new[] { scene },
@@ -31,6 +33,8 @@ namespace MIR.Editor
             BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)
                 throw new Exception("MIR WebGL build failed: " + report.summary.result + " (" + report.summary.totalErrors + " errors)");
+            if (!File.Exists(Path.Combine(output, "index.html")))
+                throw new IOException("Unity reported success without index.html at " + output);
             Debug.Log("MIR WebGL output: " + Path.GetFullPath(output));
         }
     }

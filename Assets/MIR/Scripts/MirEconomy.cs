@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace MIR
 {
@@ -52,8 +51,8 @@ namespace MIR
         {
             if(person==null || person.inventoryFood<=0)return false;
             person.inventoryFood--;
-            person.satiety=Mathf.Min(100f,person.satiety+35f);
-            person.mood=Mathf.Min(100f,person.mood+2f);
+            person.satiety=Math.Min(100f,person.satiety+35f);
+            person.mood=Math.Min(100f,person.mood+2f);
             Log(person.name+" поел из своего запаса.");return true;
         }
         public bool Work(MirCitizen worker)
@@ -65,7 +64,7 @@ namespace MIR
             if(!Transfer(id,employer.id,worker.id,1200,"completed shift"))return false;
             worker.nextWorkMinute=s.gameMinutes+360f;
             worker.daysWorked++;worker.skill=Math.Min(999,worker.skill+1);
-            worker.energy=Mathf.Max(0,worker.energy-9);
+            worker.energy=Math.Max(0,worker.energy-9);
             if(employer.kind=="farm" && employer.stock+4<=employer.capacity && employer.seed>0 && employer.water>0)
             {
                 employer.stock+=4;employer.seed--;employer.water--;
@@ -121,13 +120,13 @@ namespace MIR
         {
             foreach(var citizen in s.citizens)
             {
-                citizen.satiety=Mathf.Max(0,citizen.satiety-minutes*0.047f);
-                citizen.hydration=Mathf.Max(0,citizen.hydration-minutes*0.078f);
-                citizen.energy=Mathf.Max(0,citizen.energy-minutes*0.025f);
+                citizen.satiety=Math.Max(0,citizen.satiety-minutes*0.047f);
+                citizen.hydration=Math.Max(0,citizen.hydration-minutes*0.078f);
+                citizen.energy=Math.Max(0,citizen.energy-minutes*0.025f);
             }
             // Work is performed only for an assigned, present NPC via MirNpcAgent; never batch free wages here.
             // Limited real seed/water resources. No magical refilling of shops.
-            int period=Mathf.FloorToInt(s.gameMinutes/360f);
+            int period=(int)Math.Floor(s.gameMinutes/360f);
             if(period!=(int)previousWorkPeriod)
             {
                 previousWorkPeriod=period;

@@ -8,6 +8,7 @@ on:
       - 'Packages/**'
       - 'ProjectSettings/**'
       - 'Tools/**'
+      - 'Server/**'
       - '.github/workflows/unity-webgl.yml'
   workflow_dispatch:
 
@@ -41,6 +42,14 @@ jobs:
           echo 'Unity project and public asset checks passed'
       - name: C# source, build scene and manifest preflight
         run: python3 Tools/unity_source_preflight.py
+      - name: Install .NET 8 for shared gameplay tests and server
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test shared city economy and simulation
+        run: dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release
+      - name: Compile authoritative server
+        run: dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo
       - name: Cache verified CC0 humanoid animation packs
         uses: actions/cache@v4
         with:

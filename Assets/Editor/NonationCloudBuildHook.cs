@@ -27,7 +27,7 @@ public sealed class NonationBuildPreflight : IPreprocessBuildWithReport
 
     public void OnPreprocessBuild(BuildReport report)
     {
-        MIR.Editor.MirUnitySetup.EnsureBuildScene();
+        // Validate only. Scene generation must happen before Unity enumerates build scenes.
         const string scenePath = "Assets/MIR/Scenes/MIR_PlayableDistrict.unity";
         if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
             throw new BuildFailedException("MIR WebGL scene could not be imported: " + scenePath);
