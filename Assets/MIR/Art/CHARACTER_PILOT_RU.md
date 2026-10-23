@@ -2,7 +2,7 @@
 
 **Дата начала:** 23.10.26 · **Аудит:** 24.10.26  
 **Владелец документа:** AGENT 03 — Graphics/UI  
-**Статус:** исходный 3D FBX Microsoft Rocketbox MIT **получен в GitHub**, но текстуры, Unity prefab/Animator/LOD и WebGL **ещё не готовы**
+**Статус:** исходный FBX и **все шесть оптимизированных лицензируемых текстур (1024×1024) находятся в GitHub**; Unity prefab/Animator/LOD, качество материалов и WebGL **ещё не проверены**.
 
 ## Источники и ограничения
 
@@ -33,7 +33,7 @@
 
 ## Пайплайн и зоны ответственности
 
-1. **AGENT 03** получил оригинальный MIT Rocketbox FBX, preview и лицензии в `Assets/MIR/Art/Rocketbox/` (коммит `269d77e0`). Для 6 TGA предоставлен `fetch_textures.py`: pinned blob checks, staging всех шести до записи, понижение разрешения, нормализация normal maps и SHA-256 manifest. Шесть синтетических unittest прошли 24.10.26; реальная загрузка оригинальных TGA ещё не проверена. Никаких NC/unverified материалов в `Assets/MIR/Resources/`.
+1. **AGENT 03** получил оригинальный MIT Rocketbox FBX, preview и лицензии в `Assets/MIR/Art/Rocketbox/` (коммит `269d77e0`). Для 6 TGA предоставлен `fetch_textures.py`: pinned blob checks, staging всех шести до записи, понижение разрешения, нормализация normal maps и SHA-256 manifest. Семь unit-тестов прошли 24.10.26; реальная загрузка шести исходных Microsoft 24-bit TGA, их Git SHA, сохранение 1024×1024 и SHA-256 manifest **подтверждены** [GitHub Actions run 40013964977](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013964977), коммит `eb58e07f`. Unity Material assignment всё ещё не проверен. Никаких NC/unverified материалов в `Assets/MIR/Resources/`.
 2. **AGENT 01** (владелец `Assets/MIR/Editor/**`, `Assets/MIR/Scenes/**`) импортирует FBX/GLB как Humanoid, проверяет скелет/weights/Avatar и создаёт `Resources/MIR/PilotHuman01.prefab` с `Animator Controller`. Отдельный `CROSS-OWNER REQUEST` в отчёте 03.
 3. В Unity проверить, что `Animator` содержит float `Speed`, состояние `Locomotion` и назначенные Idle/Walk/Run (не T-pose). `MirHumanFactory` проверяет наличие, но **не доказывает качество деформации**.
 4. Проверить переходы Idle↔Walk↔Run, развороты NPC, бег игрока и Carrying. Просмотреть плечи, локти, колени, стопы, кожу/текстуры и положение ног на земле, в том числе после 15–30 секунд работы.
@@ -49,4 +49,4 @@
 
 ## Стоп-факторы
 
-Сырой FBX/preview/лицензия Rocketbox уже скопированы и проверены на совпадение исходных Git blob SHA. **Character Pilot 01 остаётся BLOCKED** до получения всех 6 текстур, настройки Unity Humanoid+Animator+LOD, визуального теста skin/deformation и реального WebGL экспорта. Не подменять 3D-художественный результат описанием архитектуры, procedural mesh или скриншотом.
+Сырой FBX/preview/лицензия Rocketbox уже скопированы и проверены на совпадение исходных Git blob SHA. **Character Pilot 01 остаётся BLOCKED**, несмотря на наличие всех 6 текстур, до настройки Unity Humanoid+Animator+LOD, корректного назначения материалов, визуального теста skin/deformation и реального WebGL экспорта. Не подменять 3D-художественный результат описанием архитектуры, procedural mesh или скриншотом.
