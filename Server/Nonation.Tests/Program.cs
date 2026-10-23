@@ -165,15 +165,17 @@ HeadlessPopulationTests();
 static void PublicSnapshotTests()
 {
     var world = MirWorldState.NewWorld();
-    var publicView = MirSceneSnapshot.FromWorld(world, "test-server-id");
-    Check(publicView.version == 1 && publicView.serverId == "test-server-id" &&
+    var publicView = MirSceneSnapshot.FromWorld(world, "test-server-id", 1);
+    Check(publicView.version == MirSceneSnapshot.CurrentVersion &&
+          publicView.sequence == 1 && publicView.serverId == "test-server-id" &&
           publicView.citizens.Length == 39,
         "public spectator snapshot includes exactly 39 non-player NPCs");
     Check(Array.TrueForAll(publicView.citizens, x => x.id != "player-001"),
         "player identity and position are not serialized as public NPC");
     var json = System.Text.Json.JsonSerializer.Serialize(publicView,
         new System.Text.Json.JsonSerializerOptions { IncludeFields = true });
-    Check(json.Contains("gameMinutes") && json.Contains("citizens"),
+    Check(json.Contains("gameMinutes") && json.Contains("citizens") &&
+          json.Contains("sequence"),
         "public spectator JSON uses the Unity-compatible field schema");
     Check(!json.Contains("cash") && !json.Contains("transactions") &&
           !json.Contains("stock") && !json.Contains("cityTreasury"),
@@ -183,3 +185,52 @@ static void PublicSnapshotTests()
         "public spectator snapshot cannot mutate authoritative world state");
 }
 PublicSnapshotTests();
+
+static void SnapshotOrderingTests()
+{
+    var world = MirWorldState.NewWorld();
+    var cursor = new MirSceneSnapshotCursor();
+    var initial = MirSceneSnapshot.FromWorld(world, "server-A", 1);
+    Check(cursor.Accept(initial), "v2 snapshot starts a spectator session");
+    Check(!cursor.Accept(initial), "replayed snapshot cannot rewind a client");
+
+    world.gameMinutes += 0.25f;
+    var next = MirSceneSnapshot.FromWorld(world, "server-A", 2);
+    Check(cursor.Accept(next), "higher sequence with forward clock is accepted");
+    Check(!cursor.Accept(initial), "out-of-order sequence is rejected");
+    var duplicateSequence = MirSceneSnapshot.FromWorld(world, "server-A", 2);
+    Check(!cursor.Accept(duplicateSequence), "duplicate sequence is rejected");
+
+    var rolledClock = MirSceneSnapshot.FromWorld(world, "server-A", 3);
+    rolledClock.gameMinutes = initial.gameMinutes - 0.5f;
+    Check(!cursor.Accept(rolledClock), "clock rollback within one server is rejected");
+
+    var wrongVersion = MirSceneSnapshot.FromWorld(world, "server-A", 3);
+    wrongVersion.version = 1;
+    Check(!cursor.Accept(wrongVersion), "old schema version is rejected");
+
+    var duplicateCitizen = MirSceneSnapshot.FromWorld(world, "server-A", 3);
+    duplicateCitizen.citizens[1].id = duplicateCitizen.citizens[0].id;
+    Check(!cursor.Accept(duplicateCitizen), "duplicate resident IDs are rejected");
+
+    var nonFiniteCitizen = MirSceneSnapshot.FromWorld(world, "server-A", 3);
+    nonFiniteCitizen.citizens[0].x = float.NaN;
+    Check(!cursor.Accept(nonFiniteCitizen), "nonfinite positions are rejected");
+
+    var noSequence = MirSceneSnapshot.FromWorld(world, "server-A", 0);
+    Check(!cursor.Accept(noSequence), "missing snapshot sequence is rejected");
+
+    var reboot = MirSceneSnapshot.FromWorld(world, "server-B", 1);
+    reboot.gameMinutes = initial.gameMinutes - 1f; // Last persisted tick can precede a crash.
+    Check(cursor.Accept(reboot), "new server identity recovers from saved-time rollback");
+    Check(!cursor.Accept(MirSceneSnapshot.FromWorld(world, "server-A", 99)),
+        "retired server sessions cannot overwrite post-restart NPC positions");
+
+    var populated = MirWorldState.NewWorld(320);
+    var bounded = MirSceneSnapshot.FromWorld(populated, "server-large", 1);
+    Check(bounded.citizens.Length == MirSceneSnapshot.MaxCitizens &&
+          MirSceneSnapshot.IsValidNext(bounded, "", 0, -1f),
+        "public snapshot caps NPC count and stays contract-valid");
+}
+SnapshotOrderingTests();
+

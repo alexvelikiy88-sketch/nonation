@@ -9,6 +9,7 @@ public sealed class WorldAuthority
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true, WriteIndented = true };
     private readonly object gate = new();
     private readonly string serverId = Guid.NewGuid().ToString("N");
+    private long spectatorSequence;
     private readonly string savePath;
     private readonly ILogger<WorldAuthority> log;
     private readonly MirWorldState world;
@@ -66,7 +67,11 @@ public sealed class WorldAuthority
 
     public MirSceneSnapshot SpectatorSnapshot()
     {
-        lock (gate) return MirSceneSnapshot.FromWorld(world, serverId);
+        lock (gate)
+        {
+            // Ordered at the same lock boundary as simulation advances.
+            return MirSceneSnapshot.FromWorld(world, serverId, ++spectatorSequence);
+        }
     }
 
     public void Save()
