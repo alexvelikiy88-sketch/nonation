@@ -115,6 +115,11 @@ def poll_build(number: int, revision: str) -> dict:
                     if isinstance(failure, dict):
                         print("Build error:", failure.get("publicMessage") or failure.get("displayName"),
                               "line:", failure.get("logline"))
+            try:
+                diagnose_build(number)
+            except Exception as diagnostic_error:
+                print("Unable to download full Cloud failure log: " +
+                      redact_log(str(diagnostic_error)), flush=True)
             raise RuntimeError(f"Unity Cloud WebGL build #{number} failed ({status})")
         if status in TERMINAL_GOOD:
             actual = result.get("lastBuiltRevision") or result.get("requestedRevision")
