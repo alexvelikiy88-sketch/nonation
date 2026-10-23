@@ -89,7 +89,7 @@ def wait_for_autobuild(revision: str) -> int:
     print("Unity Auto-build enabled; following its build instead of triggering a duplicate.")
     deadline = time.monotonic() + 180
     while time.monotonic() < deadline:
-        _, records = api("GET", ROOT + "/builds?limit=20&offset=0")
+        _, records = api("GET", ROOT + "/builds?per_page=20&page=1")
         if isinstance(records, dict):
             records = records.get("builds", records.get("items", []))
         if isinstance(records, list):
@@ -281,41 +281,74 @@ def verify_hosted(root: Path, page_url: str):
 
 
 def read_cloud_log(number: int) -> str:
-    """Read existing Unity Cloud log without triggering a new build or leaking auth."""
+    """Read a completed UBA v2 log without submitting a new build.
+
+    Documented v2 responses: 200 inline text, 202 JSON with signed URL
+    (redirect=manual), or 307 HTTP redirect. Do not send Unity credentials
+    to the signed storage URL.
+    """
     if number < 1:
         raise ValueError("Build number must be positive")
-    endpoint = f"{ROOT}/builds/{number}/log"
-    request = Request(endpoint, method="GET", headers={
-        "Authorization": secret_header(), "Accept": "text/plain"
-    })
     maximum = 20 * 1024 * 1024
+    endpoint = f"{ROOT}/builds/{number}/log?redirect=manual"
+    request = Request(endpoint, method="GET", headers={
+        "Authorization": secret_header(), "Accept": "text/plain, application/json"
+    })
+    signed = None
     try:
         with build_opener(NoRedirect()).open(request, timeout=35) as response:
-            if response.status != 200:
-                raise RuntimeError("Unity Cloud log returned HTTP " + str(response.status))
-            data = response.read(maximum + 1)
+            if response.status == 200:
+                data = response.read(maximum + 1)
+            elif response.status == 202:
+                # A 202 body contains a signed storage link rather than log text.
+                payload = json.loads(response.read(65537).decode("utf-8"))
+                signed = log_redirect_url(payload)
+                data = None
+            else:
+                raise RuntimeError(
+                    "Unexpected Unity Cloud log response: HTTP " + str(response.status)
+                )
     except HTTPError as error:
-        if error.code != 303:
-            raise RuntimeError("Unity Cloud build log is inaccessible: HTTP " + str(error.code)) from None
-        # The API may return the signed storage URL as Location or JSON {url}.
-        href = error.headers.get("Location")
-        if not href:
+        if error.code not in (303, 307):
+            raise RuntimeError(
+                "Unity Cloud build log is inaccessible: HTTP " + str(error.code)
+            ) from None
+        # Some API versions use Location (307), others return JSON (303).
+        signed = error.headers.get("Location")
+        if not signed:
             try:
-                redirect = json.loads(error.read().decode("utf-8"))
-                if isinstance(redirect, dict):
-                    href = redirect.get("url")
+                signed = log_redirect_url(json.loads(error.read(65537).decode("utf-8")))
             except (ValueError, UnicodeError):
-                pass
-        if not href:
-            raise RuntimeError("Unity Cloud log redirect has no signed download URL")
-        url, internal = artifact_link(href)
+                raise RuntimeError(
+                    "Unity Cloud log redirect did not contain a valid download link"
+                ) from None
+        data = None
+    if signed is not None:
+        # Only a fresh, external HTTPS link is acceptable. No Authorization
+        # headers are propagated to the storage endpoint.
+        url, internal = artifact_link(signed)
         if internal:
-            raise RuntimeError("Unity Cloud log redirect remained inside the authenticated API")
+            raise RuntimeError("Unity Cloud log redirect stayed inside the authenticated API")
         with urlopen(url, timeout=60) as response:
             data = response.read(maximum + 1)
+    if data is None:
+        raise RuntimeError("Unity Cloud API returned neither log text nor download URL")
     if len(data) > maximum:
         raise ValueError("Unity Cloud log exceeds 20 MiB diagnostic limit")
     return data.decode("utf-8", errors="replace")
+
+
+def log_redirect_url(payload) -> str:
+    """Unwrap a v2 signed log link without printing it into CI logs."""
+    if isinstance(payload, str):
+        signed = payload
+    elif isinstance(payload, dict):
+        signed = payload.get("url") or payload.get("href") or payload.get("signedUrl")
+    else:
+        signed = None
+    if not isinstance(signed, str) or not signed:
+        raise ValueError("Unity Cloud log response has no signed URL")
+    return signed
 
 
 def redact_log(line: str) -> str:
@@ -375,7 +408,7 @@ def run():
         raise RuntimeError("Could not inspect Unity build target")
     if not target.get("enabled", True):
         raise RuntimeError("Unity build target 'default-webgl' is disabled")
-    if target.get("settings", {}).get("autoBuild"):
+    if (target.get("settings") or {}).get("autoBuild"):
         number = wait_for_autobuild(revision)
     else:
         status, created = api("POST", ROOT + "/builds", {"clean": False, "delay": 0, "branch": "main"})
