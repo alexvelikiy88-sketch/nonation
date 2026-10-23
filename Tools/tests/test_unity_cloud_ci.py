@@ -130,7 +130,7 @@ class CloudBuildTests(unittest.TestCase):
 
 class CloudLogDiagnosisTests(unittest.TestCase):
     def test_earliest_compile_error_excludes_terminal_export_failure(self):
-        log = "\\n".join((
+        log = "\n".join((
             "Starting Unity Editor",
             "Importing assets",
             "Assets/MIR/Scripts/Test.cs(5,17): error CS0117: bad API",
