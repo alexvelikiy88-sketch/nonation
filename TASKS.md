@@ -2,8 +2,16 @@
 
 **Актуализация CHAT 04: 24.10.26**  
 **Каноническая ветка:** `main`, защищённая GitHub Ruleset №25749583.  
-**Интеграционная кандидатная ветка:** `manager/full-integration-20261024`, [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19).  
+**Все три направления объединены в `main`:** [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) MERGED, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. История и исходные SHA трёх агентов сохранены.  
 **Предыдущая полная история:** [архив реестра](Documentation/STATUS_HISTORY_23_10_26.md). Для новых решений использовать этот файл и актуальный GitHub, а не устаревшие строки архива.
+
+## P0 — публикация: установлен отдельный блокер GitHub Pages
+
+- **Все три агента объединены** в защищённую `main` через PR #19, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. Проверки source/.NET и совместной интеграции на новом `main` завершились успешно: [CI #40020804529](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804529).
+- Старый main SHA `47a6424ea7b8a55db82db27b3133a98c3160e139` отдельно **успешно собран Unity Cloud**, но [Actions #40019259462](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462) провалился на `actions/configure-pages@v5`: `Get Pages site failed — Not Found`. Unity экспорт прошёл; GitHub Pages ещё не включён через Settings.
+- **Действие владельца:** [GitHub → Settings → Pages](https://github.com/alexvelikiy88-sketch/nonation/settings/pages) → Build and deployment → Source → **GitHub Actions** → Save. Самостоятельное включение `configure-pages enablement:true` требует повышенного PAT/App токена, стандартный `GITHUB_TOKEN` этого не умеет. Никаких токенов в чат или Git.
+- **Совмещённый исходный SHA `a75602df...`** проходит отдельный Cloud WebGL job в [Actions #40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542). До фактического SUCCESS и Deploy/Chromium нельзя утверждать, что публичная игра работает. Если Pages включена после сборки и deployment упадёт, переисполнить только failed deploy job для точного SHA, без лишнего Cloud build.
+- Встроенная Chromium среда этого разговора блокирует навигацию и localhost политикой `ERR_BLOCKED_BY_ADMINISTRATOR` даже для `file://`; это **не** ошибка игры. Поэтому официальный Pages browser-smoke является решающим доказательством runtime.
 
 ## Текущее состояние
 
