@@ -158,6 +158,97 @@ class CloudLogDiagnosisTests(unittest.TestCase):
         self.assertIn("[REDACTED]", redacted)
 
 
+
+class UnityCloudV2ContractTests(unittest.TestCase):
+    """The supported v2 log API responds with 200, 202 or 307 (not only 303)."""
+
+    def _response(self, status, body):
+        class Response:
+            def __init__(self):
+                self.status = status
+            def read(self, amount=-1):
+                return body[:amount] if amount >= 0 else body
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+        return Response()
+
+    def test_autobuild_uses_documented_pagination_and_follows_revision(self):
+        from unittest.mock import patch
+        sha = "c" * 40
+        with patch.object(cloud, "api", return_value=(
+            200, [{"build": 12, "requestedRevision": sha}]
+        )) as mocked:
+            self.assertEqual(cloud.wait_for_autobuild(sha), 12)
+        mocked.assert_called_once_with(
+            "GET", cloud.ROOT + "/builds?per_page=20&page=1"
+        )
+
+    def test_v2_inline_200_log_requires_no_signed_download(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        response = self._response(200, b"Assets/Test.cs(1): error CS0117")
+        opener = SimpleNamespace(open=Mock(return_value=response))
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
+                patch.object(cloud, "build_opener", return_value=opener), \\
+                patch.object(cloud, "urlopen") as storage:
+            text = cloud.read_cloud_log(3)
+            self.assertIn("error CS0117", text)
+            storage.assert_not_called()
+        request = opener.open.call_args.args[0]
+        self.assertIn("/builds/3/log?redirect=manual", request.full_url)
+        self.assertEqual(request.get_header("Authorization"), "Basic test")
+
+    def test_v2_manual_202_signed_url_has_no_unity_auth(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        import json
+        signed = "https://storage.googleapis.com/log.txt?sig=fake"
+        response = self._response(202, json.dumps({"url": signed}).encode())
+        opener = SimpleNamespace(open=Mock(return_value=response))
+        storage = self._response(200, b"first real error\nother line\n")
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
+                patch.object(cloud, "build_opener", return_value=opener), \\
+                patch.object(cloud, "urlopen", return_value=storage) as downloader:
+            self.assertIn("first real error", cloud.read_cloud_log(3))
+            downloader.assert_called_once_with(signed, timeout=60)
+
+    def test_v2_307_location_is_handled_without_credentials_redirect(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from urllib.error import HTTPError
+        from io import BytesIO
+        signed = "https://storage.googleapis.com/log.txt?sig=another"
+        redirect = HTTPError(
+            cloud.ROOT + "/builds/3/log", 307, "Temporary Redirect",
+            {"Location": signed}, BytesIO(b"")
+        )
+        opener = SimpleNamespace(open=Mock(side_effect=redirect))
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
+                patch.object(cloud, "build_opener", return_value=opener), \\
+                patch.object(cloud, "urlopen", return_value=self._response(
+                    200, b"Unity Editor imported the scene"
+                )) as downloader:
+            self.assertIn("Unity Editor", cloud.read_cloud_log(3))
+            downloader.assert_called_once_with(signed, timeout=60)
+
+    def test_log_redirect_cannot_loop_back_to_authenticated_api(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        import json
+        internal = f"{cloud.ROOT}/builds/3/log"
+        opener = SimpleNamespace(open=Mock(return_value=self._response(
+            202, json.dumps({"url": internal}).encode()
+        )))
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \\
+                patch.object(cloud, "build_opener", return_value=opener), \\
+                patch.object(cloud, "urlopen") as downloader:
+            with self.assertRaisesRegex(RuntimeError, "authenticated API"):
+                cloud.read_cloud_log(3)
+            downloader.assert_not_called()
+
+
 class UnityDownloadLinkTests(unittest.TestCase):
     def test_project_scoped_v2_artifact(self):
         url, internal = cloud.artifact_link(
