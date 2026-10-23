@@ -131,3 +131,15 @@ python3 Tools/unity_cloud_ci.py --verify-hosted build/WebGL https://<published-p
 ### CROSS-OWNER REQUEST — контроль интеграции
 
 - **`.github/workflows/integration-guard.yml` (MANAGER):** [прежний run №15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007977456) вернул `Ran 0 tests`, exit 5, поскольку workflow выполнил тест из старого base без `Tools/tests/test_pr_integration_guard.py`. Обновление main до `e2cfca4` выполнял Manager; AGENT 01 файл не исправляет. Запрос: подтвердить, что новый Integration Guard для PR #3 работает после изменения base.
+
+
+### Дополнение: независимая проверка прав владения исправлена (23.10.26)
+
+Руководитель обновил `main` коммитом `bfd331cd61ea49ee7f05e25d9b2415ce44c42f08`: Integration Guard теперь сравнивает изменения агента от общего merge-base, не приписывая ему обновления `TASKS.md`, внесённые менеджером в `main`. Перестраивать историю рабочей ветки не пришлось. AGENT 01 **не менял** ни `TASKS.md`, ни `.github/workflows/integration-guard.yml`.
+
+- [Integration Guard run №25](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008651266): **SUCCESS**; job `Ownership and change integrity`, все steps SUCCESS, финальный лог `PASS: integration ownership and change integrity`.
+- [Unity CI №106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008258550): workflow SUCCESS, Unity build/Cloud/deploy/browser-smoke SKIPPED.
+- [PR Source/.NET CI №49](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008258521): SUCCESS.
+- PR [#3](https://github.com/alexvelikiy88-sketch/nonation/pull/3) остаётся **Draft** по причине внешнего P0 блокера (Unity credentials / реальная WebGL сборка). Отсутствие валидного запуска в браузере не скрывается.
+
+CROSS-OWNER REQUEST для прежнего сбоя Guard закрыт исправлением менеджера; новый запрос на чужие файлы не нужен.
