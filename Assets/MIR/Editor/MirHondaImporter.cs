@@ -30,10 +30,12 @@ namespace MIR.Editor
             if(imported==null)
             {Debug.LogWarning("MIR Honda: glTFast could not import scene.gltf; check Package Manager and Unity Console.");return;}
             var clone=UnityEngine.Object.Instantiate(imported);clone.name="HondaCivic_NC";
-            PrefabUtility.SaveAsPrefabAsset(clone,"Assets/MIR/Resources/MIR/HondaCivic_NC.prefab");
+            // Keep NC art outside Resources; all Resources assets are included in builds.
+            // The prefab is only for local Editor study, not public WebGL.
+            PrefabUtility.SaveAsPrefabAsset(clone,dest+"/HondaCivic_NC.prefab");
             UnityEngine.Object.DestroyImmediate(clone);
             AssetDatabase.SaveAssets();
-            Debug.Log("MIR Honda NC imported for one prototype drivable car. Verify wheel pivots and coordinate system in scene.");
+            Debug.Log("MIR Honda NC imported for local Editor study ONLY. Not included in public WebGL without redistribution rights.");
         }
     }
 }

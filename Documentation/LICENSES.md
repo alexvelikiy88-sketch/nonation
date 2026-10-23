@@ -5,3 +5,5 @@
 - `maid_skinned_lod1.glb`, Floral, Casual, Girl, GIGN, Pinkdress, Freya: provided by project owner, redistribution and commercial rights NOT verified. Do not distribute them commercially without checking the original source license and rights.
 - Honda Civic BTCC 2023 / vecarz: **CC BY-NC-SA 4.0**. Source https://sketchfab.com/3d-models/honda-civic-btcc-2023-wwwvecarzcom-e1e0f3cb5f754838a5313da1e8999334 . **NON-COMMERCIAL USE ONLY**, Attribution, ShareAlike. Honda is supplied ONLY in the optional addon, and is NOT used in the build by default.
 - Do not mistake Unity Package Manager packages for original game assets; they are installed by Unity and subject to Unity terms.
+- Unity Editor licensing is **not bypassed**: Unity Cloud Build Automation uses its managed build environment. GitHub Actions without GameCI credentials runs source validation only, **not** a WebGL compilation.
+- Honda NC local-study prefabs remain outside `Resources`; the WebGL preflight rejects known non-commercial/unverified models referenced by enabled scenes or placed in `Resources`. This is a safeguard, not certification of every asset.
