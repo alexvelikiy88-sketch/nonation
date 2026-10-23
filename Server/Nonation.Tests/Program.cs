@@ -428,4 +428,71 @@ static void ServerPersistenceTests()
 }
 ServerPersistenceTests();
 
+static void AtomicAuthoritySaveTests()
+{
+    var path = Path.Combine(Path.GetTempPath(),
+        "nonation-atomic-" + Guid.NewGuid().ToString("N") + ".json");
+    string? former = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+    var temp = path + ".tmp";
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
+        var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        authority.Save();
+        string originalSave = File.ReadAllText(path);
+        long originalMoney = new MirEconomy(authority.Snapshot()).TotalKnownMoney();
+
+        // An abandoned or half-written stage must never be loaded as the world.
+        File.WriteAllText(temp, "{\"version\":");
+        var resumed = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        Check(resumed.Snapshot().citizens.Count == 40 &&
+              File.ReadAllText(path) == originalSave,
+            "partial temporary file cannot replace a valid canonical world");
+        resumed.Save();
+        Check(!File.Exists(temp), "next successful save removes abandoned stage");
+
+        // Make staging fail deterministically. The previous canonical save must
+        // remain byte-for-byte intact, even though the in-memory world advanced.
+        var durableSave = File.ReadAllText(path);
+        Directory.CreateDirectory(temp);
+        bool failedAsExpected = false;
+        try
+        {
+            resumed.Advance(.1f);
+            resumed.Save();
+        }
+        catch (IOException) { failedAsExpected = true; }
+        catch (UnauthorizedAccessException) { failedAsExpected = true; }
+        finally { Directory.Delete(temp); }
+        Check(failedAsExpected && File.ReadAllText(path) == durableSave,
+            "failed staging cannot corrupt or replace the previous save");
+
+        // Concurrent Save callers and Advance always leave one parseable,
+        // latest-in-memory persisted snapshot rather than interleaved writes.
+        System.Threading.Tasks.Parallel.For(0, 24, i =>
+        {
+            resumed.Advance(.1f);
+            resumed.Save();
+        });
+        var expected = resumed.Snapshot();
+        var restored = new WorldAuthority(NullLogger<WorldAuthority>.Instance).Snapshot();
+        Check(restored.gameMinutes == expected.gameMinutes &&
+              restored.Citizen("citizen-001")!.x == expected.Citizen("citizen-001")!.x &&
+              restored.Citizen("citizen-001")!.z == expected.Citizen("citizen-001")!.z,
+            "concurrent saves preserve the latest world clock and NPC coordinates");
+        Check(new MirEconomy(restored).TotalKnownMoney() == originalMoney &&
+              !File.Exists(temp),
+            "concurrent saves conserve money and leave no temporary save");
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", former);
+        if (File.Exists(temp)) File.Delete(temp);
+        if (Directory.Exists(temp)) Directory.Delete(temp);
+        if (File.Exists(path)) File.Delete(path);
+    }
+}
+AtomicAuthoritySaveTests();
+
+
 

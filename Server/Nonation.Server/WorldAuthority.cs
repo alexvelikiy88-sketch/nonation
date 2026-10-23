@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using MIR;
 
@@ -9,6 +10,8 @@ public sealed class WorldAuthority
 {
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true, WriteIndented = true };
     private readonly object gate = new();
+    // Serializes snapshot capture AND disk replacement across concurrent saves.
+    private readonly object saveGate = new();
     private readonly string serverId = Guid.NewGuid().ToString("N");
     private long spectatorSequence;
     private readonly string savePath;
@@ -87,12 +90,33 @@ public sealed class WorldAuthority
 
     public void Save()
     {
-        string content;
-        lock (gate) content = JsonSerializer.Serialize(world, Json);
-        string? directory = Path.GetDirectoryName(savePath);
-        if (directory is not null) Directory.CreateDirectory(directory);
-        string temp = savePath + ".tmp";
-        File.WriteAllText(temp, content);
-        File.Move(temp, savePath, true);
+        // Save order must match capture order. Holding only 'gate' during
+        // serialization allows a slower, older writer to overwrite a newer save.
+        lock (saveGate)
+        {
+            string content;
+            lock (gate) content = JsonSerializer.Serialize(world, Json);
+            string? directory = Path.GetDirectoryName(savePath);
+            if (directory is not null) Directory.CreateDirectory(directory);
+            string temp = savePath + ".tmp";
+            try
+            {
+                // Stage and flush a complete JSON document before replacing the
+                // canonical save. A failed stage must leave the old file intact.
+                using (var stream = new FileStream(temp, FileMode.Create,
+                    FileAccess.Write, FileShare.None))
+                using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
+                {
+                    writer.Write(content);
+                    writer.Flush();
+                    stream.Flush(true);
+                }
+                File.Move(temp, savePath, true);
+            }
+            finally
+            {
+                if (File.Exists(temp)) File.Delete(temp);
+            }
+        }
     }
 }
