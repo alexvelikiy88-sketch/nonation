@@ -39,6 +39,12 @@
 - **QA наблюдение:** ранние красные Guard-checks CHAT 01/02 с `TASKS.md` были ложными (выявлена причина, исправлена в #8/#9); review-разъяснения оставлены в PR #1 и PR #3. Graphics #2 добавил Rocketbox FBX/PNG; Guard проверяет наличие явного evidence в PR, но реальная Unity компиляция, импорт, PBR/LOD и юридическая полнота материалов остаются непроверенными.
 - **Открытый блокер управленческой защиты:** GitHub `main` по API `protected=false` на 23.10.26. Нужно включить Branch Rules/Required checks (`Ownership and change integrity`, `Source preflight and .NET 8`), требование PR и запрет force-push. До этого CI может быть красным, но GitHub не запретит ручной merge.
 - Три агентских PR остаются на самостоятельном ревью по фактам GitHub; успешные source-validation не доказывают браузерный запуск. Публичная WebGL-игра не подтверждена.
+## Независимый Unity ↔ Backend spectator contract gate
+
+- [PR #11](https://github.com/alexvelikiy88-sketch/nonation/pull/11) принят (merge SHA `053715e1bfd41835034d74d437104261b40c3bea`): `Tools/tests/test_client_server_contracts.py`, **5 новых статических** контрактных тестов, без изменения игровых файлов агентов.
+- [CI #40009026193](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009026193) **SUCCESS**: 30 Python tests, .NET 8 build/tests и реальный HTTP smoke; [Integration Guard #40009026209](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009026209) **SUCCESS**.
+- Проверяет единый источник публичного DTO в Unity/.NET, совместимость GET `/api/v1/spectator/scene`, field serialization, CORS, browser HTTPS/offline по умолчанию, read-only API и отсутствие денежных полей в spectator DTO.
+- Это только source-contract validation + HTTP smoke .NET. **Unity Editor / IL2CPP / WebGL runtime не проверены.**
 ## Приоритетные контрольные точки
 
 | ID | Критерий завершения | Состояние | Владелец |
@@ -72,5 +78,7 @@
 | 23.10.26 | Manager создал и влил PR #5 (`bfd363e`): 14/14 Guard тестов и .NET/HTTP CI SUCCESS; PR #6 (`b902057`) включает Guard для всех PR, два workflow SUCCESS. Остаётся блокер Branch Rules (main unprotected). | [PR #5](https://github.com/alexvelikiy88-sketch/nonation/pull/5) · [PR #6](https://github.com/alexvelikiy88-sketch/nonation/pull/6) |
 
 | 23.10.26 | CHAT 04 исправил собственный Guard после независимого анализа CI: PR #7, #8, #9 приняты; 15-й регрессионный тест и оба CI на #9 SUCCESS. Устаревшие event base SHA больше не приписывают чужие файлы агентам. Merge SHA `bfd331cd61ea49ee7f05e25d9b2415ce44c42f08`. | [PR #7](https://github.com/alexvelikiy88-sketch/nonation/pull/7) · [PR #8](https://github.com/alexvelikiy88-sketch/nonation/pull/8) · [PR #9](https://github.com/alexvelikiy88-sketch/nonation/pull/9) |
+
+| 23.10.26 | Независимые интеграционные контракты Unity↔Backend: PR #11 / merge `053715e1`, 5 новых статических тестов, 30 Python tests и .NET/HTTP SUCCESS; Unity WebGL пока не подтверждён. | [PR #11](https://github.com/alexvelikiy88-sketch/nonation/pull/11) · [CI](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40009026193) |
 
 **Правило:** Manager после каждого принятого PR добавляет дату, PR, проверенный SHA, результат CI и изменённые контрольные точки. Никогда не ставить «готово» по словам исполнителя без проверок.
