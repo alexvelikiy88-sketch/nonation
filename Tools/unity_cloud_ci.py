@@ -453,6 +453,13 @@ def diagnostic_build_steps(number: int):
         print("UBA STEP ERROR index=" + str(index) + " name=" +
               redact_log(name) + " message=" + excerpt, flush=True)
     if not hits:
+        for index, step in enumerate(records[-10:], start=max(0, len(records) - 10)):
+            if isinstance(step, dict):
+                messages = step.get("messages") or []
+                print("UBA STEP SUMMARY index=" + str(index) +
+                      " name=" + redact_log(str(step.get("name") or "unknown")) +
+                      " message_count=" + str(len(messages)), flush=True)
+    if not hits:
         print("No primary error signature found in structured UBA build steps.",
               flush=True)
     return hits
@@ -465,8 +472,12 @@ def redact_log(line: str) -> str:
         value = os.environ.get(key)
         if value:
             line = line.replace(value, "[REDACTED]")
-    line = re.sub(r"https://[^\s]+", "[URL]", line)
-    return line[:500]
+    # Prevent accidently publishing Unity project SCM credentials or signed URLs.
+    line = re.sub(r"(?i)\b(?:authorization|password|secret|token|api[-_]?key)\b\s*[:=]\s*\S+",
+                  "[REDACTED_FIELD]", line)
+    line = re.sub(r"https?://[^\s]+", "[URL]", line)
+    line = re.sub(r"[\x00-\x1f\x7f]", " ", line)
+    return line.replace("::", ": :")[:500]
 
 
 def primary_failure_lines(log: str):
@@ -488,33 +499,45 @@ def primary_failure_lines(log: str):
 
 
 def diagnostic_log_signals(log: str):
-    """Show bounded, sanitized evidence; no raw 4,000-line log in public CI."""
+    """Output bounded, scrubbed context for diagnosing a historical Unity build."""
     lines = log.splitlines()
+    noisy = re.compile(
+        r"(?i)\[AssemblyUpdater\] Failed to resolve type|"
+        r"Native extension for .* target not found|"
+        r"LOCALCOPY dir=|BuildScriptInfoCaches|RebuildScriptCaches|"
+        r"LogAssemblyErrors \(\d+ms\)"
+    )
     signal = re.compile(
         r"(?i)\b(?:error|failed|failure|exception|abort|unable|"
         r"cannot|missing|not found|crashed|nonzero|non-zero)\b|"
-        r"buildscript|commandinvocationfailure|il2cpp|exit code"
+        r"buildscript|commandinvocationfailure|exit code|"
+        r"\[error\]|compiler|compilation"
     )
     matches = [(i + 1, line) for i, line in enumerate(lines)
-               if signal.search(line)
+               if signal.search(line) and not noisy.search(line)
                and not re.search(r"(?i)\b(?:0 errors|no errors|0 failed)\b", line)]
-    print("UBA_FULL_LOG_SIGNALS total=" + str(len(matches)) +
-          " lines=" + str(len(lines)), flush=True)
-    selected = matches[:12]
-    if len(matches) > 12:
-        selected += matches[-8:]
+    print("UBA_NONNOISY_LOG_SIGNALS total=" + str(len(matches)) +
+          " source_lines=" + str(len(lines)), flush=True)
+    selected = matches[:16] + matches[-34:]
     seen = set()
-    for line_number, content in selected:
-        if line_number in seen:
+    for index, content in selected:
+        if index in seen:
             continue
-        seen.add(line_number)
-        print("UBA LOG SIGNAL line " + str(line_number) + ": " +
+        seen.add(index)
+        print("UBA LOG CANDIDATE line " + str(index) + ": " +
               redact_log(content), flush=True)
-    if not matches:
-        for line_number in range(max(0, len(lines) - 15), len(lines)):
-            if lines[line_number].strip():
-                print("UBA LOG TAIL line " + str(line_number + 1) + ": " +
-                      redact_log(lines[line_number]), flush=True)
+    terminal = next(
+        (i for i, line in enumerate(lines)
+         if "unity player export failed" in line.casefold()), None
+    )
+    if terminal is not None:
+        print("UBA_TERMINAL_EXPORT_FAILURE line=" + str(terminal + 1),
+              flush=True)
+        for offset in range(max(0, terminal - 24), terminal + 1):
+            if lines[offset].strip():
+                print("UBA BEFORE EXPORT line " + str(offset + 1) + ": " +
+                      redact_log(lines[offset]), flush=True)
+
 
 
 def diagnose_build(number: int):
