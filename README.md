@@ -1,37 +1,28 @@
-# nonation — MIR Dockside (Unity 6)
+# nonation — MIR Dockside · Unity 6
 
-Браузерная 3D-игра-симулятор города. Жители сохраняют жильё, работу, навыки, имущество и историю; игрок может управлять своим персонажем.
+**Исходный Unity-проект браузерного симулятора города** (alpha / vertical slice). Это не запущенная онлайн-игра и не сборка WebGL.
 
-## Статус
+## Что уже находится в GitHub
 
-**Подготовка облачной сборки.** Репозиторий создан, но игра **пока не опубликована как Unity WebGL**, и рабочий билд в Unity Cloud не проверен.
+- 21 C#-модуль под `Assets/MIR/Scripts` и `Assets/MIR/Editor`: городской район, управление жителем, 39 автономных NPC, экономика, магазин/кафе, машина, грузовой рейс, камера и интерфейс.
+- `Packages/manifest.json`, `ProjectSettings` под **Unity 6000.0.30f1**.
+- Каталоги `products_60.json`, `professions_36.json` и документация: в Unity alpha эти каталоги ещё **не полностью реализованы как игровые системы**.
+- `Tools/fetch_quaternius.py`: скачивает **CC0** Quaternius Universal Animation Library 1 и 2 (Standard) с OpenGameArt и сверяет SHA-256 трёх оригинальных FBX.
+- `.github/workflows/unity-webgl.yml`: ручная облачная сборка через GameCI Unity Builder v4 с публикацией ZIP-артефакта после успеха.
 
-Исходный Unity 6 alpha-проект подготовлен ранее как отдельный ZIP `MIR_Dockside_Unity6_Project.zip`. Его материалы ещё необходимо загрузить в этот репозиторий, импортировать и скомпилировать в редакторе Unity. Не путать исходный ZIP с готовым WebGL.
+**Изначальные модели Maid, Girl, Floral, Casual, GIGN, Pinkdress, Freya и Honda в публичный репозиторий НЕ загружены:** их права на распространение не проверены; Honda имеет лицензию CC BY-NC-SA и не может быть частью коммерческой WebGL-публикации. При отсутствии модели код использует упрощённую процедурную замену, чтобы избежать некорректных T-поз.
 
-## Планируемый клиент
+## Сборка онлайн без установки Unity на ПК
 
-- Unity **6000.0.30f1**, Universal Render Pipeline 17.0.3.
-- Камеры сверху/от третьего лица, управляемый житель, NPC, транспорт, работа, магазин, грузовые рейсы.
-- Готовые анимации Quaternius Universal Animation Library 1 и 2 (CC0) через Unity Humanoid.
-- Работа с внешними 3D-моделями требует настройки их Avatar/Rig. При ошибке — безопасная временная модель, не сломанная T-поза.
+1. Подключите репозиторий `alexvelikiy88-sketch/nonation` в Unity Cloud Build Automation, выберите `main`, Unity `6000.0.30f1` и WebGL. В конфигурации сборки обеспечьте вызов `MIR.Editor.MirCloudBuild.Build`.
+2. Либо используйте [GitHub Actions — MIR Unity WebGL](../../actions/workflows/unity-webgl.yml). Для GameCI потребуется активация Unity через **Actions Secrets** (не размещайте секреты в коде): [GameCI Activation](https://game.ci/docs/github/activation/).
+3. При успехе получите готовые WebGL-файлы в разделе Artifacts и разместите их на HTTPS-хостинге. **Публичной игровой ссылки пока нет.**
 
-## Unity Cloud
+## Важно о проверках
 
-Проект: `nonation`, репозиторий `alexvelikiy88-sketch/nonation`, ветка `main`.
+- C# и игровые правила ранее прошли только статическую проверку структуры: Unity Editor в рабочей среде недоступен.
+- Веб-сборка, реальная анимация Humanoid, производительность GPU и долговечность сохранений Unity **ещё не проверены**.
+- Временный локальный мир Unity не является переносом всего MIR V10/V11: нет сервера 24/7, синхронизации нескольких игроков или подтверждённой поддержки 5 000 NPC.
+- `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` генерируется редакторским скриптом `MIR.Editor.MirUnitySetup` / `MirCloudBuild`.
 
-После размещения полных исходников в Unity Build Automation нужно выбрать:
-1. Source Control: GitHub, `main`.
-2. Unity Editor: **6000.0.30f1** (либо совместимая 6000.0 LTS).
-3. Target Platform: **WebGL / Web**.
-4. Build Scene: `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` (создаётся скриптом `MIR → Rebuild Playable District` при импорте).
-5. Проверить успешную компиляцию, ошибки в Console, Humanoid Avatar и затем опубликовать выходные файлы через HTTPS.
-
-**Важно:** проект ранее проходил только статические проверки; успешная сборка Unity Editor/WebGL не подтверждалась.
-
-## Права на ассеты
-
-**Этот репозиторий публичный.** Не загружайте без проверки прав Maid, Floral, Casual, Girl, GIGN, Pinkdress и Freya. Honda Civic BTCC 2023 имеет лицензию **CC BY-NC-SA 4.0** и не может использоваться в коммерческом релизе без отдельного разрешения. Quaternius Standard — CC0.
-
-## Дальнейшие задачи
-
-Перенос полной логики экономики, сервер 24/7, многопользовательская синхронизация и население 3000–5000 пока не завершены.
+Полная документация: [README_RU.md](README_RU.md), [GITHUB_SETUP_RU.md](GITHUB_SETUP_RU.md) и [LICENSES.md](Documentation/LICENSES.md).
