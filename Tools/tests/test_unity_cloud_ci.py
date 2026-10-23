@@ -37,6 +37,37 @@ class CloudBuildTests(unittest.TestCase):
             self.assertTrue((w / "out" / "index.html").is_file())
             self.assertTrue((w / "out" / "Build" / "game.wasm").is_file())
 
+    def test_missing_individual_webgl_component(self):
+        for missing in ("wasm", "data", "js"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as work:
+                root = Path(work)
+                (root / "Build").mkdir()
+                (root / "index.html").write_text("<html>Unity</html>")
+                for ext in ("wasm", "data", "js"):
+                    if ext != missing:
+                        (root / "Build" / f"game.{ext}").write_bytes(b"test")
+                with self.assertRaisesRegex(ValueError, "Missing uncompressed"):
+                    cloud.check_webgl(root)
+
+    def test_compressed_artifact_is_not_pages_safe(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            (root / "Build").mkdir()
+            (root / "index.html").write_text("<html>Unity</html>")
+            for ext in ("wasm", "data", "js"):
+                (root / "Build" / f"game.{ext}").write_bytes(b"test")
+            (root / "Build" / "game.wasm.br").write_bytes(b"compressed")
+            with self.assertRaisesRegex(ValueError, "Brotli/Gzip"):
+                cloud.check_webgl(root)
+
+    def test_empty_html_is_rejected(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            (root / "Build").mkdir()
+            (root / "index.html").write_bytes(b"")
+            with self.assertRaisesRegex(ValueError, "nonempty index.html"):
+                cloud.check_webgl(root)
+
     def test_no_empty_artifact(self):
         with tempfile.TemporaryDirectory() as work:
             w = Path(work)
