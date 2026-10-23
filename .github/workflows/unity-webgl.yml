@@ -2,7 +2,7 @@ name: MIR Unity WebGL
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'agent/unity-webgl']
     paths:
       - 'Assets/**'
       - 'Packages/**'
@@ -10,6 +10,8 @@ on:
       - 'Tools/**'
       - 'Server/**'
       - '.github/workflows/unity-webgl.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -142,8 +144,8 @@ jobs:
           set -euo pipefail
           test -s build/WebGL/index.html
           test -d build/WebGL/Build
-          find build/WebGL/Build -type f | grep -Eq '\.(wasm|data|js)$'
-          echo 'WebGL build files exist'
+          python3 Tools/unity_cloud_ci.py --verify-dir build/WebGL
+          echo 'WebGL artifact layout valid; browser runtime not yet verified'
       - name: Upload downloadable WebGL ZIP
         uses: actions/upload-artifact@v4
         with:
@@ -187,7 +189,7 @@ jobs:
   deploy:
     name: Publish Unity WebGL to GitHub Pages
     needs: [webgl, cloud-webgl]
-    if: always() && (needs.webgl.result == 'success' || (needs.cloud-webgl.result == 'success' && needs.cloud-webgl.outputs.webgl_ready == 'true'))
+    if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (needs.webgl.result == 'success' || (needs.cloud-webgl.result == 'success' && needs.cloud-webgl.outputs.webgl_ready == 'true'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
