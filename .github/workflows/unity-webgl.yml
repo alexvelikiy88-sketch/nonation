@@ -175,7 +175,9 @@ jobs:
   cloud-diagnostics:
     name: Read existing Unity Cloud build failure log (no new build)
     needs: source-validation
-    if: github.event_name == 'workflow_dispatch' && inputs.inspect_cloud_build != '' && needs.source-validation.outputs.cloud_credentials_present == 'true'
+    # Temporary one-time probe: the agent-branch push can safely read build #3
+    # without merging unfinished WebGL pipeline changes into main.
+    if: needs.source-validation.outputs.cloud_credentials_present == 'true' && ((github.event_name == 'workflow_dispatch' && inputs.inspect_cloud_build != '') || (github.event_name == 'push' && github.ref == 'refs/heads/agent/unity-webgl'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -185,7 +187,7 @@ jobs:
         env:
           UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
           UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
-          BUILD_NUMBER_TO_INSPECT: ${{ inputs.inspect_cloud_build }}
+          BUILD_NUMBER_TO_INSPECT: ${{ inputs.inspect_cloud_build || '3' }}
         run: python3 Tools/unity_cloud_ci.py --diagnose-build "$BUILD_NUMBER_TO_INSPECT"
 
   cloud-webgl:
