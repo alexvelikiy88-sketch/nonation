@@ -27,23 +27,32 @@ namespace MIR
             var left=new Rect(12,12,w,Screen.height-24);
             GUI.Box(new Rect(left.x,left.y,w,390),GUIContent.none,box);
             GUILayout.BeginArea(new Rect(left.x+13,left.y+10,w-26,375));
-            GUILayout.Label("MIR / DOCKSIDE",title);
-            GUILayout.Label("UNITY 6 · PLAYABLE DISTRICT",small);
+            GUILayout.Label("NONATION",title);
+            GUILayout.Label(game.RemoteSpectator?"SERVER · READ-ONLY":"UNITY 6 · OFFLINE PLAYABLE DISTRICT",small);
             GUILayout.Space(7);
             var resident=game.Player.Resident;
             GUILayout.Label("День "+game.World.Day+"  •  "+(int)game.World.Hour+":"+(((int)game.World.gameMinutes)%60).ToString("00")+"  •  жителей "+game.World.citizens.Count,body);
-            GUILayout.Label("Баланс: "+(resident.cash/100f).ToString("0.00")+" кредитов",body);
-            GUILayout.Label("Еда: "+Mathf.RoundToInt(resident.satiety)+" / 100  •  энергия: "+Mathf.RoundToInt(resident.energy)+" / 100",small);
-            GUILayout.Label("Инвентарь: "+resident.inventoryFood+" продукта(ов)",small);
-            var place=game.City.Nearest(game.Player.transform.position,8f);
-            GUILayout.Label("Рядом: "+(place!=null?place.name:"улица"),small);
-            GUILayout.Space(8);
-            if(GUILayout.Button("E  ·  взаимодействовать",button))game.Player.Interact();
-            if(GUILayout.Button("F  ·  сесть / выйти из машины",button))game.Player.ToggleVehicle();
-            if(GUILayout.Button("R  ·  поесть",button))game.Economy.Eat(resident);
-            if(GUILayout.Button("Заказать поставку на рынок",button))game.Player.OrderFreight();
-            if(GUILayout.Button(game.Paused?"Продолжить симуляцию":"Пауза",button))game.Paused=!game.Paused;
-            if(GUILayout.Button("Сохранить мир",button)){game.Save();game.Notify("Сохранение записано.");}
+            if(game.RemoteSpectator)
+            {
+                GUILayout.Label("Просмотр серверных NPC и игрового времени.",body);
+                GUILayout.Label(game.RemoteStatus,small);
+                GUILayout.Label("Движение камеры и персонажа доступно. Покупки, транспорт и сохранение отключены.",small);
+            }
+            else
+            {
+                GUILayout.Label("Баланс: "+(resident.cash/100f).ToString("0.00")+" кредитов",body);
+                GUILayout.Label("Еда: "+Mathf.RoundToInt(resident.satiety)+" / 100  •  энергия: "+Mathf.RoundToInt(resident.energy)+" / 100",small);
+                GUILayout.Label("Инвентарь: "+resident.inventoryFood+" продукта(ов)",small);
+                var place=game.City.Nearest(game.Player.transform.position,8f);
+                GUILayout.Label("Рядом: "+(place!=null?place.name:"улица"),small);
+                GUILayout.Space(8);
+                if(GUILayout.Button("E  ·  взаимодействовать",button))game.Player.Interact();
+                if(GUILayout.Button("F  ·  сесть / выйти из машины",button))game.Player.ToggleVehicle();
+                if(GUILayout.Button("R  ·  поесть",button))game.Economy.Eat(resident);
+                if(GUILayout.Button("Заказать поставку на рынок",button))game.Player.OrderFreight();
+                if(GUILayout.Button(game.Paused?"Продолжить симуляцию":"Пауза",button))game.Paused=!game.Paused;
+                if(GUILayout.Button("Сохранить мир",button)){game.Save();game.Notify("Сохранение записано.");}
+            }
             GUILayout.EndArea();
             float h=140;
             GUI.Box(new Rect(12,Screen.height-h-12,w,h),GUIContent.none,box);

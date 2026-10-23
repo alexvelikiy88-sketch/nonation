@@ -8,6 +8,7 @@ public sealed class WorldAuthority
 {
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true, WriteIndented = true };
     private readonly object gate = new();
+    private readonly string serverId = Guid.NewGuid().ToString("N");
     private readonly string savePath;
     private readonly ILogger<WorldAuthority> log;
     private readonly MirWorldState world;
@@ -61,6 +62,11 @@ public sealed class WorldAuthority
             return JsonSerializer.Deserialize<MirWorldState>(json, Json)
                 ?? throw new InvalidOperationException("Could not clone state");
         }
+    }
+
+    public MirSceneSnapshot SpectatorSnapshot()
+    {
+        lock (gate) return MirSceneSnapshot.FromWorld(world, serverId);
     }
 
     public void Save()

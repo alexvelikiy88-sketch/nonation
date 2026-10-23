@@ -24,34 +24,61 @@ def run():
                 raise RuntimeError("nonation server never became ready on loopback")
             time.sleep(.25)
 
-    world = get_json("/api/v1/world")
-    assert world.get("version") == 1, "unexpected world protocol"
-    assert len(world.get("citizens", [])) == 40, "missing city population"
-    assert len(world.get("businesses", [])) >= 8, "businesses not serialized"
-    assert world.get("gameMinutes", 0) >= 480, "invalid simulated clock"
-    # This service is read-only until authoritative authenticated commands exist.
-    req = urllib.request.Request(BASE + "/api/v1/world", data=b"{}",
-                                 method="POST", headers={"Content-Type": "application/json"})
-    try:
-        urllib.request.urlopen(req, timeout=3)
-    except urllib.error.HTTPError as error:
-        assert error.code == 405, "write endpoint must be unavailable"
-    else:
-        raise AssertionError("unauthenticated world POST unexpectedly accepted")
+    spectator = get_json("/api/v1/spectator/scene")
+    assert spectator["version"] == 1
+    assert len(spectator["serverId"]) == 32
+    assert len(spectator["citizens"]) == 39
+    assert all(c["id"] != "player-001" for c in spectator["citizens"])
+    assert all(set(c) == {"id", "x", "z"} for c in spectator["citizens"])
+    assert set(spectator) == {"version", "serverId", "gameMinutes", "citizens"}
+    assert spectator["gameMinutes"] >= 480
 
-    original_time = world["gameMinutes"]
-    start_resident = world["citizens"][1]
+    # Private economic state is not served even to a local caller by default.
+    try:
+        get_json("/api/v1/world")
+    except urllib.error.HTTPError as error:
+        assert error.code == 404, "private state must not be exposed by default"
+    else:
+        raise AssertionError("full economic state is accessible without opt-in")
+
+    request = urllib.request.Request(BASE + "/api/v1/spectator/scene", data=b"{}",
+                                     method="POST", headers={"Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(request, timeout=3)
+    except urllib.error.HTTPError as error:
+        assert error.code == 405, "spectator mode must stay read-only"
+    else:
+        raise AssertionError("server unexpectedly accepted an unauthenticated write")
+
+    # Explicit CORS allowlist, never wildcard.
+    req = urllib.request.Request(BASE + "/api/v1/spectator/scene",
+                                 headers={"Origin": "https://alexvelikiy88-sketch.github.io"})
+    with urllib.request.urlopen(req, timeout=3) as response:
+        assert response.headers.get("Access-Control-Allow-Origin") == (
+            "https://alexvelikiy88-sketch.github.io"
+        ), "expected origin must be allowed for the spectator API"
+    req = urllib.request.Request(BASE + "/api/v1/spectator/scene",
+                                 headers={"Origin": "https://untrusted.example"})
+    with urllib.request.urlopen(req, timeout=3) as response:
+        assert response.headers.get("Access-Control-Allow-Origin") is None, (
+            "untrusted websites must not receive spectator CORS permission"
+        )
+
+    original_time = spectator["gameMinutes"]
+    start_resident = spectator["citizens"][0]
     end = time.monotonic() + 4
     while time.monotonic() < end:
         time.sleep(.35)
-        current = get_json("/api/v1/world")
+        current = get_json("/api/v1/spectator/scene")
+        resident = current["citizens"][0]
         if current["gameMinutes"] > original_time and (
-            abs(current["citizens"][1]["x"] - start_resident["x"]) > .04 or
-            abs(current["citizens"][1]["z"] - start_resident["z"]) > .04
+            abs(resident["x"] - start_resident["x"]) > .04 or
+            abs(resident["z"] - start_resident["z"]) > .04
         ):
-            print("PASS: readonly API, live simulation and moving server NPCs")
+            assert current["serverId"] == spectator["serverId"]
+            print("PASS: public spectator API, readonly security, CORS and moving server NPCs")
             return
-    raise AssertionError("server world clock did not advance")
+    raise AssertionError("server NPCs or world clock did not advance")
 
 if __name__ == "__main__":
     run()

@@ -23,9 +23,12 @@ namespace MIR
         void Update()
         {
             if(Resident==null||MirGame.Instance==null||MirGame.Instance.Paused)return;
-            if(Input.GetKeyDown(KeyCode.F))ToggleVehicle();
-            if(Input.GetKeyDown(KeyCode.E))Interact();
-            if(Input.GetKeyDown(KeyCode.R))MirGame.Instance.Economy.Eat(Resident);
+            if(!MirGame.Instance.RemoteSpectator)
+            {
+                if(Input.GetKeyDown(KeyCode.F))ToggleVehicle();
+                if(Input.GetKeyDown(KeyCode.E))Interact();
+                if(Input.GetKeyDown(KeyCode.R))MirGame.Instance.Economy.Eat(Resident);
+            }
             if(Driving!=null)
             {
                 Driving.SetPlayerControl(Input.GetAxisRaw("Vertical"),Input.GetAxisRaw("Horizontal"),Input.GetKey(KeyCode.Space));
@@ -60,6 +63,7 @@ namespace MIR
         }
         public void ToggleVehicle()
         {
+            if(MirGame.Instance.RemoteSpectator)return;
             if(Driving!=null){ExitVehicle();return;}
             MirVehicle near=null;float d=9f;
             foreach(var car in MirGame.Instance.City.Vehicles)
@@ -85,6 +89,7 @@ namespace MIR
         }
         public void Interact()
         {
+            if(MirGame.Instance.RemoteSpectator)return;
             var place=MirGame.Instance.City.Nearest(transform.position,7f);
             if(place==null){MirGame.Instance.Notify("Подойди к входу здания для взаимодействия.");return;}
             var economy=MirGame.Instance.Economy;
@@ -107,6 +112,7 @@ namespace MIR
         }
         public void OrderFreight()
         {
+            if(MirGame.Instance.RemoteSpectator)return;
             if(MirGame.Instance.Economy.CreateRestock()!=null)MirGame.Instance.Notify("Оформлен рейс со склада на рынок.");
             else MirGame.Instance.Notify("Заказ недоступен: деньги, товар, вместимость или занят грузовик.");
         }

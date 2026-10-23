@@ -13,6 +13,8 @@ namespace MIR
         public MirFreightDriver Freight {get;private set;}
         public readonly List<MirNpcAgent> NPCs = new List<MirNpcAgent>();
         public bool Paused;
+        public bool RemoteSpectator {get;private set;}
+        public string RemoteStatus {get;internal set;} = "Оффлайн";
         float saveClock;
         MirSimulationLoop simulation;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -51,16 +53,33 @@ namespace MIR
             sun.transform.rotation=Quaternion.Euler(42f,-38f,0f);sun.intensity=1.25f;
             var ui=new GameObject("MIR · HUD").AddComponent<MirHUD>();ui.Init(this);
             Freight=new GameObject("Supply Truck Controller").AddComponent<MirFreightDriver>();Freight.Init(this);
-            Economy.Log("Открыт управляемый район MIR Dockside (Unity).");
+            Economy.Log("Открыт управляемый район nonation (Unity).");
+            MirRemoteWorldSync.TryAttach(this);
         }
         void Update()
         {
-            if(World==null||Paused)return;
+            if(World==null||Paused||RemoteSpectator)return;
             if(simulation.Advance(Time.deltaTime)) City.UpdateLighting(World.Hour);
             saveClock+=Time.deltaTime;
             if(saveClock>=30f){saveClock=0;Save();}
         }
-        public void Save(){if(World==null)return; if(Player!=null)Player.WritePosition(); foreach(var a in NPCs) if(a!=null)a.WritePosition();MirPersistence.Save(World);}
+        public void ActivateRemoteSpectator()
+        {
+            if(RemoteSpectator)return;
+            if(Player != null && Player.Driving != null)Player.ExitVehicle();
+            RemoteSpectator = true;
+            Paused = false;
+            foreach(var npc in NPCs)if(npc!=null)npc.SetRemoteControl();
+            Debug.Log("nonation: read-only authoritative NPC spectator mode enabled.");
+        }
+        public void Save()
+        {
+            // Remote snapshots must never overwrite the player's local save.
+            if(World==null||RemoteSpectator)return;
+            if(Player!=null)Player.WritePosition();
+            foreach(var a in NPCs)if(a!=null)a.WritePosition();
+            MirPersistence.Save(World);
+        }
         void OnApplicationPause(bool value){if(value)Save();}
         void OnApplicationQuit(){Save();}
         public void Notify(string text){Economy.Log(text);}

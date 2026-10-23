@@ -152,10 +152,26 @@ def main() -> int:
         require(scene_guid in build_settings.read_text(), 'Build Settings scene GUID mismatch')
         require(game_guid in scene.read_text(), 'Bootstrap script GUID mismatch')
     for shared in ('MirState.cs', 'MirEconomy.cs', 'MirSimulationLoop.cs',
-                   'MirWorldGeometry.cs', 'MirCitizenDecision.cs', 'MirHeadlessPopulation.cs'):
+                   'MirWorldGeometry.cs', 'MirCitizenDecision.cs', 'MirHeadlessPopulation.cs',
+                   'MirSceneSnapshot.cs'):
         content = (ROOT / 'Assets/MIR/Scripts' / shared).read_text()
         require('using UnityEngine' not in content and 'Mathf.' not in content,
                 f'{shared}: shared domain must not reference UnityEngine')
+    config_path = ROOT / 'Assets/MIR/Resources/MIR/NetworkConfig.json'
+    if not config_path.is_file():
+        problems.append('NetworkConfig.json missing: required for explicit offline default')
+    else:
+        try:
+            network = json.loads(config_path.read_text(encoding='utf-8'))
+            require(isinstance(network, dict) and isinstance(network.get('snapshotUrl'), str),
+                    'NetworkConfig.json must define snapshotUrl as a string')
+            require(not network.get('snapshotUrl', '').lower().startswith('http://'),
+                    'Release network config must not contain an insecure HTTP endpoint')
+        except (json.JSONDecodeError, UnicodeError) as err:
+            problems.append(f'NetworkConfig.json is malformed: {err}')
+    for unit in ('MirRemoteWorldSync.cs', 'MirSceneSnapshot.cs'):
+        require((ROOT / 'Assets/MIR/Scripts' / unit).is_file(),
+                'Missing WebGL spectator transport component: ' + unit)
     assets = ROOT / 'Assets/MIR/Art/Quaternius'
     if not all((assets / name).exists() for name in (
         'Mannequin_F.fbx', 'UAL1_Standard_Unity.fbx', 'UAL2_Standard_Unity.fbx')):

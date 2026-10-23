@@ -31,3 +31,8 @@
 - `Assets/MIR/Scenes/MIR_PlayableDistrict.unity` генерируется редакторским скриптом `MIR.Editor.MirUnitySetup` / `MirCloudBuild`.
 
 Полная документация: [README_RU.md](README_RU.md), [GITHUB_SETUP_RU.md](GITHUB_SETUP_RU.md) и [LICENSES.md](Documentation/LICENSES.md).
+
+
+## Unity ↔ .NET (режим наблюдения)
+
+Unity поддерживает опциональный read-only просмотр серверных NPC. По умолчанию `Assets/MIR/Resources/MIR/NetworkConfig.json` содержит пустой `snapshotUrl`, поэтому игра продолжает работать локально. Для тестового подключения разверните .NET backend за HTTPS reverse proxy и укажите URL `https://.../api/v1/spectator/scene`, а на сервере настройте `NONATION_CORS_ORIGINS` под сайт WebGL. Клиент применяет только публичные координаты жителей, не отправляет деньги/команды и в сетевом режиме отключает локальные транзакции. Подробности — [ARCHITECTURE_RU.md](Documentation/ARCHITECTURE_RU.md).

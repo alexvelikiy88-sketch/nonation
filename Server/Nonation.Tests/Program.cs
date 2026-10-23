@@ -131,3 +131,26 @@ static void HeadlessPopulationTests()
         "NPC with unconsumed food returns home instead of buying repeatedly");
 }
 HeadlessPopulationTests();
+
+// Public network DTO must never expose private state or the untrusted player.
+static void PublicSnapshotTests()
+{
+    var world = MirWorldState.NewWorld();
+    var publicView = MirSceneSnapshot.FromWorld(world, "test-server-id");
+    Check(publicView.version == 1 && publicView.serverId == "test-server-id" &&
+          publicView.citizens.Length == 39,
+        "public spectator snapshot includes exactly 39 non-player NPCs");
+    Check(Array.TrueForAll(publicView.citizens, x => x.id != "player-001"),
+        "player identity and position are not serialized as public NPC");
+    var json = System.Text.Json.JsonSerializer.Serialize(publicView,
+        new System.Text.Json.JsonSerializerOptions { IncludeFields = true });
+    Check(json.Contains("gameMinutes") && json.Contains("citizens"),
+        "public spectator JSON uses the Unity-compatible field schema");
+    Check(!json.Contains("cash") && !json.Contains("transactions") &&
+          !json.Contains("stock") && !json.Contains("cityTreasury"),
+        "public spectator JSON excludes financial and transaction details");
+    publicView.citizens[0].x += 100f;
+    Check(world.Citizen(publicView.citizens[0].id)!.x != publicView.citizens[0].x,
+        "public spectator snapshot cannot mutate authoritative world state");
+}
+PublicSnapshotTests();

@@ -12,5 +12,6 @@
     <Compile Include="../../Assets/MIR/Scripts/MirWorldGeometry.cs" Link="Core/MirWorldGeometry.cs" />
     <Compile Include="../../Assets/MIR/Scripts/MirCitizenDecision.cs" Link="Core/MirCitizenDecision.cs" />
     <Compile Include="../../Assets/MIR/Scripts/MirHeadlessPopulation.cs" Link="Core/MirHeadlessPopulation.cs" />
+    <Compile Include="../../Assets/MIR/Scripts/MirSceneSnapshot.cs" Link="Core/MirSceneSnapshot.cs" />
   </ItemGroup>
 </Project>

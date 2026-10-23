@@ -12,6 +12,9 @@ namespace MIR
         MirPlace destination;
         MirActivity activity=MirActivity.Idle;
         float nextPlanTime, nextWorkTime, waitSeconds, gait;
+        bool remoteControl, remoteTargetSet;
+        Vector3 remoteTarget;
+        public string CitizenId {get {return resident == null ? "" : resident.id;}}
         public void Init(MirCitizen p,MirCity world)
         {
             resident=p;city=world;gait=p.gaitSeed;
@@ -22,6 +25,35 @@ namespace MIR
             var home=city.Get(p.homeId);
             if(home!=null && Vector3.Distance(transform.position,home.entry)>17f)
             {transform.position=home.entry;resident.x=transform.position.x;resident.z=transform.position.z;}
+        }
+        public void SetRemoteControl()
+        {
+            remoteControl = true;
+            route.Clear();
+            destination = null;
+        }
+        public void ApplyRemotePosition(float x,float z)
+        {
+            if(!remoteControl)return;
+            remoteTarget = new Vector3(x,.3f,z);
+            if(!remoteTargetSet || Vector3.Distance(transform.position,remoteTarget)>20f)
+                transform.position = remoteTarget;
+            remoteTargetSet = true;
+        }
+        void UpdateRemote()
+        {
+            if(!remoteTargetSet || motion==null)return;
+            Vector3 towards=remoteTarget-transform.position;towards.y=0;
+            float distance=towards.magnitude;
+            bool moving=distance>.025f;
+            float speed=Mathf.Clamp(distance*5f,0f,6f);
+            if(moving)
+            {
+                Vector3 direction=towards/distance;
+                transform.position=Vector3.MoveTowards(transform.position,remoteTarget,speed*Time.deltaTime);
+                transform.rotation=Quaternion.Slerp(transform.rotation,Quaternion.LookRotation(direction),Time.deltaTime*8f);
+            }
+            motion.Tick(moving?speed:0f,moving?MirActivity.Walking:MirActivity.Idle,moving);
         }
         void Plan()
         {
@@ -37,7 +69,9 @@ namespace MIR
         }
         void Update()
         {
-            if(resident==null||MirGame.Instance==null||MirGame.Instance.Paused)return;
+            if(resident==null||MirGame.Instance==null)return;
+            if(remoteControl){UpdateRemote();return;}
+            if(MirGame.Instance.Paused)return;
             float minutes=MirGame.Instance.World.gameMinutes;
             if(destination==null || (minutes>=nextPlanTime && route.Count==0))Plan();
             if(route.Count>0)
