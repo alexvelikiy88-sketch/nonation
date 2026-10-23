@@ -15,10 +15,15 @@ on:
   workflow_dispatch:
     inputs:
       inspect_cloud_build:
-        description: 'Read an existing Unity Cloud build log without starting another build (for example, 3)'
+        description: 'Read existing Unity Cloud build log ONLY (example: 3); no build is triggered'
         required: false
         type: string
         default: ''
+      run_webgl_build:
+        description: 'Explicitly authorize ONE licensed Unity WebGL build; leave false for log-only diagnostics'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -107,7 +112,9 @@ jobs:
 
   webgl:
     needs: source-validation
-    if: needs.source-validation.outputs.unity_license_present == 'true'
+    # Avoid expensive Unity compiles for every PR/push to agent branches.
+    # Manual log-only diagnostics must never start another build.
+    if: needs.source-validation.outputs.unity_license_present == 'true' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.run_webgl_build == true))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -184,7 +191,7 @@ jobs:
   cloud-webgl:
     name: Unity Cloud WebGL (optional service account)
     needs: source-validation
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.source-validation.outputs.cloud_credentials_present == 'true' && needs.source-validation.outputs.unity_license_present != 'true'
+    if: github.ref == 'refs/heads/main' && ((github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.run_webgl_build == true)) && needs.source-validation.outputs.cloud_credentials_present == 'true' && needs.source-validation.outputs.unity_license_present != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
