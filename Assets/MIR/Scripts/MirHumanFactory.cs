@@ -14,6 +14,43 @@ namespace MIR
             var c=new[]{new Color(.27f,.47f,.62f),new Color(.47f,.39f,.31f),new Color(.45f,.51f,.36f),new Color(.66f,.36f,.30f),new Color(.28f,.34f,.39f)};
             return MirRenderMaterials.Create(c[Mathf.Abs(variant)%c.Length]);
         }
+        // A valid Humanoid Avatar by itself is not sufficient: an empty controller
+        // or a static mesh can leave a crowd character frozen in a bind/T-pose.
+        // This is a runtime safety gate, NOT a substitute for Unity rig/weight/LOD QA.
+        static bool HasPlayableRig(GameObject instance, Animator animator)
+        {
+            if(animator==null || animator.avatar==null || !animator.avatar.isValid ||
+               !animator.avatar.isHuman || animator.runtimeAnimatorController==null)
+                return false;
+
+            bool speedParameter=false;
+            foreach(var parameter in animator.parameters)
+            {
+                if(parameter.name=="Speed" && parameter.type==AnimatorControllerParameterType.Float)
+                {speedParameter=true;break;}
+            }
+            if(!speedParameter)return false;
+
+            bool idle=false,walk=false,run=false;
+            var clips=animator.runtimeAnimatorController.animationClips;
+            if(clips==null)return false;
+            foreach(var clip in clips)
+            {
+                if(clip==null || clip.length<=.03f)continue;
+                string name=clip.name;
+                if(name.IndexOf("TPose",System.StringComparison.OrdinalIgnoreCase)>=0 ||
+                   name.IndexOf("T-Pose",System.StringComparison.OrdinalIgnoreCase)>=0)continue;
+                idle |= name.IndexOf("Idle",System.StringComparison.OrdinalIgnoreCase)>=0;
+                walk |= name.IndexOf("Walk",System.StringComparison.OrdinalIgnoreCase)>=0;
+                run |= name.IndexOf("Run",System.StringComparison.OrdinalIgnoreCase)>=0 ||
+                       name.IndexOf("Jog",System.StringComparison.OrdinalIgnoreCase)>=0 ||
+                       name.IndexOf("Sprint",System.StringComparison.OrdinalIgnoreCase)>=0;
+            }
+            if(!idle || !walk || !run)return false;
+            foreach(var renderer in instance.GetComponentsInChildren<SkinnedMeshRenderer>())
+                if(renderer.enabled && renderer.sharedMesh!=null)return true;
+            return false;
+        }
         public static MirMotionDriver Attach(Transform holder,MirCitizen person)
         {
             int variant=Mathf.Abs(person.id.GetHashCode());
@@ -29,7 +66,7 @@ namespace MIR
                 var instance=Object.Instantiate(source,holder);instance.name="Humanoid · Quaternius";
                 instance.transform.localPosition=Vector3.zero;instance.transform.localRotation=Quaternion.identity;
                 var a=instance.GetComponentInChildren<Animator>();
-                if(a!=null && a.avatar!=null && a.avatar.isValid && a.avatar.isHuman)
+                if(HasPlayableRig(instance,a))
                 {
                     // Match human height to ~1.72m while preserving authored proportions.
                     var rends=instance.GetComponentsInChildren<Renderer>();
