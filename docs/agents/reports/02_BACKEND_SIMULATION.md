@@ -9,7 +9,7 @@
 - **PR:** [#1 — Backend invariants and spectator contract (draft)](https://github.com/alexvelikiy88-sketch/nonation/pull/1)
 - **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests), `5b9182a428e0d748cf0abfb961f15524dd8d82bb` (stock/counter overflow), `6471209060155f6d3a389c27d35c667149bfe81c` (freight lifecycle), `6a396a61f38b74b78c30ac1202f264a75d6b577a` (serial save)
 - **Достоверные тесты по собственной работе:** [PR Validation #43](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007776559) **SUCCESS** на `6a396a61`: .NET 8 доменные и серверные тесты, включая freight и concurrent saves; server build, HTTP/CORS smoke. Unity C#/WebGL не проверялись
-- **Блокеры:** нет локального .NET SDK; фактический .NET CI успешен; Unity Editor, WebGL, браузер не проверены. Открыт CROSS-OWNER REQUEST на отделение remote-времени. Сбой старого Integration Guard #11 из-за отсутствующего теста в старом base; `main` уже содержит fix `e2cfca4`, требуется повторная проверка guard на текущем PR
+- **Блокеры:** нет локального .NET SDK; фактический .NET CI успешен; Unity Editor, WebGL, браузер не проверены. Открыт CROSS-OWNER REQUEST на отделение remote-времени. Integration Guard [#12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) **FAIL** из-за ложного определения `TASKS.md` как изменения агента при сравнении устаревшего PR base и head; требуется исправление инструмента Manager. .NET CI при этом SUCCESS
 
 ## Журнал работы
 
@@ -27,6 +27,8 @@
 | 23.10.26 | Исправлен некорректный переход `Returning → Completed` при неоплаченном заказе; введены строгие пред/постусловия состояния freight и запрет возврата неверного товара; тестированы перевод, отмена, replay и сериализация `Loading` | [`6471209060`](https://github.com/alexvelikiy88-sketch/nonation/commit/6471209060155f6d3a389c27d35c667149bfe81c) | [PR Validation](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007526159) **SUCCESS** (freight invariant tests + .NET build/HTTP) | Unity C#, WebGL |
 | 23.10.26 | Защищена операция `WorldAuthority.Save()`: `saveGate` охватывает сериализацию и запись/rename, flush-to-disk временного файла, очистка временного файла при сбое; тесты fail-before-replace, orphan .tmp, 24 параллельных сохранений и NPC/денежного состояния | [`6a396a61f3`](https://github.com/alexvelikiy88-sketch/nonation/commit/6a396a61f38b74b78c30ac1202f264a75d6b577a) | [PR Validation #43](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007776559) **SUCCESS**: все новые `PASS`, .NET build и HTTP smoke | Реальный сбой питания, multi-process locks, Unity, WebGL |
 
+| 23.10.26 | Интеграционный Guard на обновлённом PR #1 обнаружил `TASKS.md` из-за сравнительного диапазона base…head, хотя в собственных коммитах AGENT 02 этот файл не изменялся | [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) | `14/14` тестов самого Guard прошли; итог **FAIL** в шаге проверки владельца из-за stale base. В `Tools/pr_integration_guard.py` используется `git diff base head`, нужно сравнивать с merge-base. Менеджерский блокер | Unity/WebGL; Guard PASS после фикса Manager |
+
 ## Последнее проверенное состояние
 
 **CI:** [NONATION Pull Request Validation #43](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007776559) — **SUCCESS**, `head_sha=6a396a61f38b74b78c30ac1202f264a75d6b577a`. В журнале верифицированы актуальные тесты freight и atomic save, после этого `dotnet build` и `python3 Tools/smoke_server.py`. По логу `Source preflight and .NET 8` выполнено:
@@ -35,7 +37,7 @@
 - `dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo` — `Build succeeded` с nullable warnings (`CS8618/CS8603` и др.), без ошибок сборки.
 - Локальный HTTP smoke на запущенном `Nonation.Server.dll` — `PASS: public spectator API, readonly security, CORS and moving server NPCs`. Истинная публичная HTTPS-среда не проверялась.
 
-Работа ведётся в `agent/backend-simulation`; [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) остаётся Draft до проверки Unity и браузера. `TASKS.md` и `main` исполнитель не редактировал. Последний подтверждённый **кодовый** SHA — `6a396a61`; последующие изменения отчёта не меняют серверный код.
+Работа ведётся в `agent/backend-simulation`; [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) остаётся Draft до проверки Unity и браузера. `TASKS.md` и `main` исполнитель не редактировал. Последний подтверждённый **кодовый** SHA — `6a396a61`; последующие изменения отчёта не меняют серверный код. **Важно:** [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) FAIL не свидетельствует о чужой правке агента: код Guard сравнивает весь diff устаревшего PR base с head вместо diff от merge-base.
 
 ### Аудит и исправленные дефекты
 
@@ -74,9 +76,11 @@
 - После готовности интерфейса AGENT 02 в `MirRemoteWorldSync.Accept` заменит `game.World.gameMinutes = snapshot.gameMinutes` на `game.SetRemoteGameMinutes(snapshot.gameMinutes)`.
 - Причина: сейчас при просмотре удалённого мира меняется локальный часовой показатель, от которого рассчитываются offline-экономические тики; хотя save заблокирован, лучше не мутировать локальный world вообще.
 
+**Исправить ложную блокировку Integration Guard (MANAGER):** `Tools/pr_integration_guard.py` и при необходимости `.github/workflows/integration-guard.yml` — в `main` код читает `base, head` из PR-event и вызывает `git diff base head`; для давно открытого PR #1 сюда попадает `TASKS.md`, изменённый менеджером в `main` **после** ветвления агента. Требуется определять фактический merge-base и проверять изменения **только** `merge-base → PR head`, добавить регрессионный тест для stale-base PR. AGENT 02 эти файлы не изменяет. Лог: [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153), строка `TASKS.md: owner is manager, not agent/backend-simulation`.
+
 ## Следующее конкретное действие
 
-Проверить новый `Ownership and change integrity` на обновлённом PR #1 после фикса менеджером `integration-guard.yml`. Перед merge интегратор должен проверить Unity C# + WebGL/browser и согласованное обновление spectator v2; доменная и серверная проверка .NET успешно пройдена на SHA `6a396a61`. После CROSS-OWNER REQUEST заменить мутацию `World.gameMinutes` на отдельные удалённые часы. Следующие технические риски: контроль целостности сохранённого доменного состояния при старте и границы многопроцессного persistence.
+После исправления сравнения диапазона PR в Guard менеджером повторить `Ownership and change integrity` на PR #1. Перед merge интегратор должен проверить Unity C# + WebGL/browser и согласованное обновление spectator v2; доменная и серверная проверка .NET успешно пройдена на SHA `6a396a61`. После CROSS-OWNER REQUEST заменить мутацию `World.gameMinutes` на отдельные удалённые часы. Следующие технические риски: контроль целостности сохранённого доменного состояния при старте и границы многопроцессного persistence.
 
 ## Правила заполнения
 
