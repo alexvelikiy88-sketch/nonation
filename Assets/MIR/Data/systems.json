@@ -1,0 +1,391 @@
+{
+  "schema": "mir-life-economy-design/0.1",
+  "status": "draft_design_not_integrated",
+  "base_build": "MIR_Dockside_v07.html",
+  "currency": {
+    "name": "MIR credits (игровые)",
+    "minor_per_credit": 100,
+    "integer_minor_units": true,
+    "real_money": false
+  },
+  "clock": {
+    "unit": "game_minute",
+    "hours_per_day": 24,
+    "days_per_month": 30,
+    "days_per_year": 360,
+    "seasons_days": 90,
+    "note": "Все сроки используют одно мировое время. Интерфейс показывает реальные и игровые сроки раздельно."
+  },
+  "needs": {
+    "convention": "0 = плохо, 100 = хорошо; стресс хранить отдельно с обратной шкалой или преобразовать в mood.",
+    "fields": [
+      "stamina",
+      "rest",
+      "satiety",
+      "hydration",
+      "health",
+      "bladder_comfort",
+      "hygiene",
+      "mood",
+      "social",
+      "thermal_comfort"
+    ],
+    "game_hour_rates": {
+      "satiety_loss": 2.8,
+      "hydration_loss": 5,
+      "awake_rest_loss": 4.2,
+      "sleep_rest_gain": 10,
+      "awake_baseline_stamina_loss": 1.2,
+      "walking_extra_stamina_loss": 7,
+      "cycling_extra_stamina_loss": 10,
+      "work_light_extra_stamina_loss": 3,
+      "work_heavy_extra_stamina_loss": 6,
+      "home_sitting_stamina_gain": 8,
+      "sleep_stamina_gain": 22,
+      "bladder_comfort_loss": 5,
+      "hygiene_loss": 2,
+      "social_loss": 1.5
+    },
+    "thresholds": {
+      "low": 35,
+      "urgent": 20,
+      "critical": 10
+    },
+    "health_policy": "Красная выносливость не означает мгновенную смерть. Учитывать длительность опасного состояния, причины и помощь.",
+    "meal_policy": "Эффект только после употребления порции; одно событие на порцию. Сон не восстанавливается от кофе.",
+    "state_updates_include": [
+      "walking",
+      "working",
+      "sleeping",
+      "indoors",
+      "driving",
+      "passenger",
+      "waiting",
+      "hospital"
+    ],
+    "blood_policy": "Ограниченный стилизованный эффект только при подходящей травме, не от простого истощения."
+  },
+  "inventory": {
+    "owner_types": [
+      "person",
+      "home",
+      "business",
+      "vehicle",
+      "city"
+    ],
+    "lot_fields": [
+      "lot_id",
+      "product_id",
+      "quantity",
+      "created_at",
+      "expires_at",
+      "storage_owner",
+      "reservation_id"
+    ],
+    "home_stock_target_days": 2.5,
+    "reorder_at_days": 1,
+    "expiry_priority": "first_expiring_first_out",
+    "requires_refrigeration_for": [
+      "protein",
+      "dairy"
+    ],
+    "exceptions": [
+      "beans",
+      "canned_fish"
+    ],
+    "no_automatic_free_refill": true,
+    "storage_fields": [
+      "capacity",
+      "temperature",
+      "power_state",
+      "water_access"
+    ],
+    "minimum_purchase_rule": "Выбирать допустимую упаковку; не продавать дробный пакет, если не задана торговля на вес."
+  },
+  "transport": {
+    "rules": "Сравнивать полный маршрут с подходом, ожиданием, пробкой, пересадкой, парковкой и риском опоздания.",
+    "fares": {
+      "walk": {
+        "flat_minor": 0
+      },
+      "private_bike": {
+        "flat_minor": 0,
+        "wear_minor_per_trip": 50
+      },
+      "rental_bike": {
+        "flat_minor": 800
+      },
+      "bus": {
+        "flat_minor": 600
+      },
+      "taxi": {
+        "base_minor": 1800,
+        "minor_per_route_km": 700,
+        "minor_per_wait_minute": 100,
+        "quote_lock": true
+      },
+      "private_car": {
+        "fuel_litre_minor": 800,
+        "reference_litres_per_km": 0.08,
+        "parking_minor_per_hour": 400
+      }
+    },
+    "driver": {
+      "max_continuous_drive_game_minutes": 240,
+      "break_game_minutes": 30,
+      "max_regular_week_hours": 40,
+      "unfit_policy": "Не назначать новый рейс; безопасно остановиться или передать смену.",
+      "salary_source": "Счёт перевозчика; стоимость рейса, топливо, ремонт и страховка/резерв расходуются отдельно."
+    },
+    "payment": "Бронь не равна списанию. На посадке фиксировать билет/договор поездки; отмену и возврат учитывать идемпотентно.",
+    "phone_actions": [
+      "unlock_phone",
+      "request_taxi",
+      "wait_for_dispatch",
+      "confirm_pickup",
+      "call_contact",
+      "call_emergency"
+    ],
+    "no_phone_use_by_driver_while_moving": true
+  },
+  "economy": {
+    "accounts": [
+      "resident",
+      "business",
+      "municipality",
+      "utility",
+      "external_counterparty",
+      "escrow"
+    ],
+    "transactions_fields": [
+      "id",
+      "game_time",
+      "debit_account",
+      "credit_account",
+      "amount_minor",
+      "reason",
+      "reference_id"
+    ],
+    "order_rules": [
+      "reserve_wage_or_reward",
+      "reserve_inventory",
+      "execute_validated_work",
+      "transfer_once",
+      "release_unused_reservations"
+    ],
+    "household_workday": {
+      "gross_minor": 24000,
+      "income_tax_bps": 800,
+      "home_food_minor": 3600,
+      "housing_minor": 4800,
+      "utilities_minor": 1400,
+      "hygiene_minor": 500,
+      "bus_return_minor": 1200,
+      "leisure_minor": 1500,
+      "training_minor": 1200
+    },
+    "initial_price_policy": "Фиксированные начальные цены; ограниченное изменение только после проверки замкнутого денежного учёта.",
+    "emergency_aid": "Явно финансируемые питание, вода, приют и экстренная помощь. Ограниченные мощности и фонд, без автоматической эмиссии.",
+    "bankruptcy": "Сохранить обязательства, отменить незарезервированные заказы, открыть вакансии в других местах; не удалять население.",
+    "crime": "Хищение переносит существующую вещь/сумму и создаёт потерпевшего, а не новую валюту.",
+    "mortality_economy": "Умерший не работает и не получает повторную зарплату; имущество, договоры, дети и опека обрабатываются отдельной транзакцией."
+  },
+  "missions": {
+    "required_fields": [
+      "id",
+      "issuer",
+      "reason",
+      "inputs",
+      "output",
+      "reward_minor",
+      "escrow_account",
+      "created_at",
+      "deadline",
+      "required_skills",
+      "workplace",
+      "state",
+      "completion_receipt"
+    ],
+    "states": [
+      "available",
+      "reserved",
+      "in_progress",
+      "completed",
+      "expired",
+      "cancelled"
+    ],
+    "types": [
+      "food_delivery",
+      "stock_replenishment",
+      "equipment_repair",
+      "utility_outage",
+      "public_space_cleaning",
+      "shift_cover",
+      "paid_training",
+      "external_contract",
+      "medical_response",
+      "fire_response",
+      "crime_response"
+    ],
+    "phone_is_action_not_popup": true,
+    "return_to_work_allowed_after_emergency": true,
+    "urgent_survival_preempts_mission": true,
+    "system_bug_penalty": false
+  },
+  "utilities": {
+    "types": [
+      "electricity",
+      "water",
+      "wastewater",
+      "district_heat",
+      "telecom"
+    ],
+    "node_fields": [
+      "id",
+      "type",
+      "capacity",
+      "buffer",
+      "supply",
+      "demand",
+      "connections",
+      "condition",
+      "staffed",
+      "backup"
+    ],
+    "update_interval_game_minutes": 5,
+    "meters_interval_game_minutes": 60,
+    "dependencies": {
+      "power_station": [
+        "fuel",
+        "staff",
+        "maintenance"
+      ],
+      "water_plant": [
+        "electricity",
+        "staff"
+      ],
+      "boiler_plant": [
+        "water",
+        "fuel",
+        "electricity",
+        "staff"
+      ],
+      "hospital": [
+        "water",
+        "electricity",
+        "staff",
+        "supplies"
+      ],
+      "supermarket": [
+        "electricity",
+        "stock",
+        "staff"
+      ],
+      "fuel_station": [
+        "fuel",
+        "electricity",
+        "staff"
+      ]
+    },
+    "heat_model": "Lumped thermal balance per room/building; weather, insulation, occupancy and heater/AC power.",
+    "damage_model": "Абстрактные износ и очаги событий. Не обещает CFD, медицинскую или инженерную точность."
+  },
+  "family": {
+    "separate_participant_and_character_ids": true,
+    "all_people_need_registered_home": true,
+    "household_capacity_policy": "Каждому место; квартиры V07 сохраняют 1 место. Семейные варианты вводить явно с новой вместимостью.",
+    "children_have_adult_jobs": false,
+    "guardian_required": true,
+    "school_kindergarten_capacity": true,
+    "life_clock": "Возраст и взросление по мировому времени без скачков от закрытия браузера.",
+    "death_continuity": "Архив персонажа и потомок/новый житель с отдельным id; не воскрешать и не дублировать деньги."
+  },
+  "emergency": {
+    "states": [
+      "reported",
+      "triaged",
+      "assigned",
+      "en_route",
+      "on_scene",
+      "stabilized",
+      "resolved",
+      "failed"
+    ],
+    "services": {
+      "ambulance": [
+        "crew",
+        "vehicle",
+        "supplies",
+        "hospital_slot"
+      ],
+      "fire": [
+        "crew",
+        "vehicle",
+        "water",
+        "access"
+      ],
+      "police": [
+        "crew",
+        "vehicle_or_patrol",
+        "report_and_evidence"
+      ]
+    },
+    "pay_policy": "Оплачивать смену, готовность и обслуживание; не платить за число созданных бедствий/арестов.",
+    "help_does_not_require_cash_upfront": true
+  },
+  "implementation_phases": [
+    {
+      "id": "A",
+      "name": "Выживание и учёт",
+      "features": [
+        "separate_needs",
+        "wallet_ledger",
+        "home_inventory",
+        "60_products",
+        "purchases_consumption",
+        "sleep",
+        "validated_work_pay",
+        "decision_trace"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Занятость и поездки",
+      "features": [
+        "36_job_registry_progressive_activation",
+        "shifts",
+        "training",
+        "paid_bus_taxi",
+        "fuel",
+        "phone",
+        "real_mission_orders"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Инфраструктура и происшествия",
+      "features": [
+        "water_power_heat",
+        "staffing",
+        "wear",
+        "dispatch",
+        "police_ambulance_fire",
+        "mortality_after_balance_tests"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "Сезоны и поколения",
+      "features": [
+        "weather_temperature",
+        "HVAC",
+        "households",
+        "births",
+        "schools_childcare",
+        "inheritance",
+        "long_run_balance"
+      ]
+    }
+  ],
+  "validation_status": "Только проверка целостности конфигурации; игровая интеграция и баланс пока не проверены."
+}
