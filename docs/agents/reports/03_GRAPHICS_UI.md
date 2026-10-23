@@ -130,6 +130,18 @@
 
 **CROSS-OWNER REQUEST для AGENT 01:** `Assets/MIR/Editor/MirAssetImport.cs`, `MirUnitySetup.cs` и свой Editor QA: на реально импортируемом `Male_Adult_12.fbx` проверить `Avatar.isValid/isHuman`, 80 skin clusters/weights/bindpose mapping, 6 TGA+материалы, `Quaternius` retarget Idle/Walk/Run и absence of T-pose; **не создавать LODGroup из четырёх фиктивных записей**, сначала получить настоящие LOD-меши. Стадия WebGL release остаётся P0 блокером AGENT 01 и Manager. Никаких чужих файлов мы не меняли.
 
+## Реальная установка текстур Rocketbox — 24.10.26
+
+**Пользователь поручил скачать текстуры через GitHub и установить в репозиторий. Исполнено.** Временный workflow `rocketbox-textures-one-shot.yml` запущен на `agent/graphics-ui` через GitHub Actions, а после успешной установки **удалён**, чтобы не оставить чужой workflow в итоговом PR. Ни `main`, ни `TASKS.md`, ни Editor-файлы не менялись.
+
+1. Первый запуск [Actions #40013648557](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013648557) успешно получил оригинальный файл Microsoft с совпадающим хешем, но обнаружил неверное допущение старого парсера: **исходные TGA имеют 24 бита**, а не 32. Это было реальной, воспроизведённой ошибкой, а не сетевым блокером GitHub runner.
+2. Коммит [`214254c7`](https://github.com/alexvelikiy88-sketch/nonation/commit/214254c7a0cd1778813e53ae0dd939758356e1d2) — поддержка **24/32-bit true-color TGA** с корректной длиной пикселя и BGR/BGRA. Коммит [`e6a8ff6e`](https://github.com/alexvelikiy88-sketch/nonation/commit/e6a8ff6e761cd0cee88c9f29014203802a8bdbd8) — регрессия 24-bit BGR и normal-vector.
+3. Повторный [GitHub Actions #40013964977](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013964977) **SUCCESS на всех стадиях**: 7 Python unit tests, загрузка шести оригинальных MIT Microsoft TGA, проверки upstream Git blob SHA-1, уменьшение до **1024×1024**, проверка шести SHA-256 результатов, commit+push и artifact upload.
+4. **Ветка `agent/graphics-ui` получила реальный ассетный коммит [`eb58e07f`](https://github.com/alexvelikiy88-sketch/nonation/commit/eb58e07f5a1fd97597b71affa1c7a774f3292ebf)** с шестью `Assets/MIR/Art/Rocketbox/Textures/m007_{body,head}_{color,normal,specular}.tga` по **3 145 746 байт каждый** и [`Textures/textures_manifest.json`](https://github.com/alexvelikiy88-sketch/nonation/blob/agent/graphics-ui/Assets/MIR/Art/Rocketbox/Textures/textures_manifest.json) со всеми SHA-256 и upstream хешами. Суммарно шесть текстур: 18 874 476 байт (~18 МиБ) плюс JSON manifest.
+5. Отдельно сверены GitHub tree и содержание manifest: **6 из 6 текстур присутствуют**; `source_blob_sha1` для каждого имени совпадает с pinned Microsoft `0943055db6ec570bcef9f2c8b41c9e5467c808f9`. Изображения записаны в `Art/Rocketbox/Textures`, **не в `Resources` или сцену**.
+
+**Граница готовности:** полноценного Unity `PilotHuman01.prefab`, проверенного Humanoid Avatar, корректных слотов материалов, Animator/retarget, отдельных LOD1–3 и подтверждённого WebGL FPS **по-прежнему нет**. Текстуры теперь доступны для проверки AGENT 01. Следующий CROSS-OWNER REQUEST адресован AGENT 01: правильно настроить ModelImporter/TextureImporter для `Assets/MIR/Art/Rocketbox/Male_Adult_12.fbx` + шести 1024×1024 TGA, создать и проверить material mappings (sRGB для albedo, normal map importer для нормалей, specular workflow по фактическому render pipeline), Humanoid mapping и реальные LOD. Не делать release без реального Unity QA.
+
 ## Журнал
 
 | Дата | Работа | Коммит / PR | Проверки / ограничения |
@@ -139,6 +151,7 @@
 | 23.10.26 | Перенастройка locomotion, caching материала, runtime-диагностика, официальный аудит лицензии, контракт пилота | `60937d8`, `fa4a64f`, `b5f510d`, `a3d508b` / PR #2 | Статический анализ; Unity/WebGL, FPS, импорт модели НЕ проверены |
 | 23.10.26 | MIT Microsoft Rocketbox исходный FBX/PNG, license provenance, проверяемый fetch текстур и 4 синтетических offline теста | `269d77e`, `77fdec1`, `1a36c4d`, `c51e6c3`, `c29e1ca`, merge `063a26d`; PR #2 Draft | FBX blob идентичен upstream, 4/4 Python unittest PASS; текстуры/Unity/WebGL не проверены |
 | 24.10.26 | Установлено фактическое количество FBX Mesh/Skins; staging текстур и SHA-256 manifest, нормализация normal maps; проверка bones/bindposes | `b5339300`, `93557f2d`, `2bd9f049` / PR #2 Draft | 6/6 синтетических unittest PASS и анализ бинарника; Unity, реальные TGA, LOD, FPS не проверены |
+| 24.10.26 | Через GitHub Actions действительно загружены и установлены 6 MIT Rocketbox текстур 1024×1024, исправлен 24-bit parser, сохранены upstream SHA и SHA-256 output manifest | `214254c7`, `e6a8ff6e`, `eb58e07f`; [Actions 40013964977](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013964977) | 7/7 Python unittest, реальный download и hash checks, commit success; Unity/WebGL не проверены |
 
 **CI-контроль 23.10.26:** PR #2 HEAD `91888444` — [run 40005479208](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005479208), source/.NET success; Unity WebGL remains unverified.
 
@@ -153,4 +166,4 @@
 
 ## Следующее конкретное действие
 
-Один лицензированный FBX уже получен. Следующие необходимые факты: реальные 6 TGA из фиксированного Microsoft source (Git SHA/манифест), Unity Editor import с правильным boneWeights/Avatar/Idle-Walk-Run, **действительные** LOD-меши (только один Mesh поставлен), первый WebGL export и браузерные FPS/draw calls на названной платформе. Только после этого — отдельный PR по разнообразию города/UI; не смешивать с Cloud Build.
+Один лицензированный FBX **и 6 проверенных уменьшенных TGA уже получены и закоммичены**. Следующее — AGENT 01: Unity Editor material/skin/boneWeights/Avatar/Idle-Walk-Run QA, реальные LOD-меши (в FBX всего один Mesh), первый WebGL export и браузерные FPS/draw calls на документированной платформе. Только после этого — отдельный PR по разнообразию города/UI; не смешивать с Cloud Build.
