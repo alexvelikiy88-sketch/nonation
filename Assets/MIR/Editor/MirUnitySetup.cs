@@ -26,11 +26,35 @@ namespace MIR.Editor
             EditorApplication.delayCall+=()=>
             {
                 if(EditorApplication.isPlayingOrWillChangePlaymode)return;
-                if(!File.Exists(ScenePath))
+                try
                 {
-                    try{Install(false);}catch(Exception e){Debug.LogWarning("MIR auto-setup: "+e.Message+". Run MIR > Rebuild Playable District.");}
+                    // Cloud builds clone source without a prebuilt scene: generate it on editor startup.
+                    if(!File.Exists(ScenePath))Install(false);
+                    else EnsureBuildScene();
+                }
+                catch(Exception e)
+                {
+                    // An absent scene must never silently turn into an empty WebGL export.
+                    Debug.LogError("MIR scene initialization failed: "+e);
                 }
             };
+        }
+        public static void EnsureBuildScene()
+        {
+            Folder(Root+"/Scenes");
+            if(!File.Exists(ScenePath))
+            {
+                var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                var go=new GameObject("MIR Runtime Bootstrap (scene placeholder)");
+                go.AddComponent<MirGame>();
+                if(!EditorSceneManager.SaveScene(scene,ScenePath))
+                    throw new IOException("Could not save MIR playable scene: "+ScenePath);
+                AssetDatabase.ImportAsset(ScenePath,ImportAssetOptions.ForceSynchronousImport);
+            }
+            bool enabled=false;
+            foreach(var item in EditorBuildSettings.scenes)
+                if(item.enabled && item.path==ScenePath){enabled=true;break;}
+            if(!enabled)EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(ScenePath,true)};
         }
         static void Folder(string path)
         {
@@ -145,14 +169,7 @@ namespace MIR.Editor
             catch(Exception ex){Debug.LogWarning("MIR Maid glTF: "+ex.Message);}
             // Not every user model is suitable for Humanoid retargeting; no invalid models enter the crowd.
             // Static glTF/GLB files are intentionally NOT assigned Animator controllers; rig them first.
-            if(!File.Exists(ScenePath))
-            {
-                var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-                var go=new GameObject("MIR Runtime Bootstrap (scene placeholder)");
-                go.AddComponent<MirGame>();
-                EditorSceneManager.SaveScene(scene,ScenePath);
-            }
-            EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(ScenePath,true)};
+            EnsureBuildScene();
             AssetDatabase.SaveAssets();
             if(open)EditorSceneManager.OpenScene(ScenePath);
             Debug.Log("MIR Unity ready. Open Assets/MIR/Scenes/MIR_PlayableDistrict, press Play.");
