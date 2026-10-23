@@ -23,9 +23,11 @@ on:
 permissions:
   contents: read
 
+# Isolate PR/branch validation from main releases. A shared concurrency group
+# otherwise replaces queued runs (including release runs) when agents push.
 concurrency:
-  group: mir-webgl-release
-  cancel-in-progress: false
+  group: mir-webgl-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   source-validation:
