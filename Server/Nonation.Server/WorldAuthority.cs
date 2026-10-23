@@ -6,12 +6,17 @@ using MIR;
 namespace Nonation.Server;
 
 // One authoritative world; all state mutations are serialized under the same lock.
-public sealed class WorldAuthority
+public sealed class WorldAuthority : IDisposable
 {
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true, WriteIndented = true };
     private readonly object gate = new();
     // Serializes snapshot capture AND disk replacement across concurrent saves.
     private readonly object saveGate = new();
+    // The lock file is intentionally persistent. Unlinking it while owned on
+    // Unix could allow a second process to acquire a new inode at the same path.
+    // FileShare.None holds the OS-managed lease until Dispose/process exit.
+    private readonly FileStream worldLease;
+    private bool disposed;
     private readonly string serverId = Guid.NewGuid().ToString("N");
     private long spectatorSequence;
     private readonly string savePath;
@@ -25,11 +30,36 @@ public sealed class WorldAuthority
         log = logger;
         savePath = Path.GetFullPath(Environment.GetEnvironmentVariable("NONATION_WORLD_FILE") ??
             Path.Combine(AppContext.BaseDirectory, "data", "world.json"));
-        world = Load();
-        var economy = new MirEconomy(world);
-        simulation = new MirSimulationLoop(world, economy);
-        population = new MirHeadlessPopulation(world, economy);
-        log.LogInformation("nonation authority loaded {Count} citizens", world.citizens.Count);
+        var lockPath = savePath + ".lock";
+        string? directory = Path.GetDirectoryName(savePath);
+        if (directory is not null) Directory.CreateDirectory(directory);
+        // Acquire before even reading the save, so two servers cannot load a
+        // stale copy and later race to write the same world.json / .tmp.
+        try
+        {
+            worldLease = new FileStream(lockPath, FileMode.OpenOrCreate,
+                FileAccess.ReadWrite, FileShare.None);
+        }
+        catch (IOException error)
+        {
+            throw new IOException("nonation world save is already owned or locked: " +
+                savePath, error);
+        }
+
+        try
+        {
+            world = Load();
+            var economy = new MirEconomy(world);
+            simulation = new MirSimulationLoop(world, economy);
+            population = new MirHeadlessPopulation(world, economy);
+            log.LogInformation("nonation authority loaded {Count} citizens", world.citizens.Count);
+        }
+        catch
+        {
+            // Invalid saves must not leak the lease or block later recovery.
+            worldLease.Dispose();
+            throw;
+        }
     }
 
     private MirWorldState Load()
@@ -169,10 +199,30 @@ public sealed class WorldAuthority
         return true;
     }
 
+    private void RequireActive()
+    {
+        if (disposed) throw new ObjectDisposedException(nameof(WorldAuthority));
+    }
+
+    public void Dispose()
+    {
+        lock (saveGate)
+        {
+            lock (gate)
+            {
+                if (disposed) return;
+                disposed = true;
+                worldLease.Dispose();
+            }
+        }
+        GC.SuppressFinalize(this);
+    }
+
     public void Advance(float elapsedSeconds)
     {
         lock (gate)
         {
+            RequireActive();
             simulation.Advance(elapsedSeconds);
             population.Advance(elapsedSeconds);
         }
@@ -182,6 +232,7 @@ public sealed class WorldAuthority
     {
         lock (gate)
         {
+            RequireActive();
             var json = JsonSerializer.Serialize(world, Json);
             return JsonSerializer.Deserialize<MirWorldState>(json, Json)
                 ?? throw new InvalidOperationException("Could not clone state");
@@ -192,6 +243,7 @@ public sealed class WorldAuthority
     {
         lock (gate)
         {
+            RequireActive();
             // Ordered at the same lock boundary as simulation advances.
             return MirSceneSnapshot.FromWorld(world, serverId, ++spectatorSequence);
         }
@@ -204,7 +256,11 @@ public sealed class WorldAuthority
         lock (saveGate)
         {
             string content;
-            lock (gate) content = JsonSerializer.Serialize(world, Json);
+            lock (gate)
+            {
+                RequireActive();
+                content = JsonSerializer.Serialize(world, Json);
+            }
             string? directory = Path.GetDirectoryName(savePath);
             if (directory is not null) Directory.CreateDirectory(directory);
             string temp = savePath + ".tmp";

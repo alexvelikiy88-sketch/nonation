@@ -2,6 +2,23 @@ using MIR;
 using Nonation.Server;
 using Microsoft.Extensions.Logging.Abstractions;
 
+// Used only by the cross-process file-lease regression. This child process
+// exits without running the normal suite.
+if (args.Length == 2 && args[0] == "--probe-world-lease")
+{
+    Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", args[1]);
+    try
+    {
+        using var probe = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        Console.WriteLine("WORLD_LEASE_ACQUIRED");
+    }
+    catch (IOException)
+    {
+        Console.WriteLine("WORLD_LEASE_DENIED");
+    }
+    return;
+}
+
 static void Check(bool success, string description)
 {
     if (!success) throw new Exception("FAIL: " + description);
@@ -365,7 +382,7 @@ static void ServerPersistenceTests()
     try
     {
         Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
-        var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        using var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
         var start = authority.Snapshot();
         long totalMoney = new MirEconomy(start).TotalKnownMoney();
         float startX = start.Citizen("citizen-001")!.x;
@@ -383,7 +400,8 @@ static void ServerPersistenceTests()
         Check(first.serverId == second.serverId && second.sequence > first.sequence,
             "real server emits monotonic spectator sequences");
         authority.Save();
-        var restoredAuthority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        authority.Dispose();
+        using var restoredAuthority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
         var restored = restoredAuthority.Snapshot();
         var restoredNpc = restored.Citizen("citizen-001")!;
         Check(restored.gameMinutes == advanced.gameMinutes &&
@@ -397,6 +415,7 @@ static void ServerPersistenceTests()
               restartedSnapshot.serverId != second.serverId &&
               restartedSnapshot.sequence == 1,
             "server restart rotates its identity and resets the snapshot sequence");
+        restoredAuthority.Dispose();
 
         File.WriteAllText(path,
             "{\"version\":1,\"citizens\":null,\"businesses\":[{\"id\":\"market\"}]}");
@@ -437,14 +456,15 @@ static void AtomicAuthoritySaveTests()
     try
     {
         Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
-        var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        using var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
         authority.Save();
         string originalSave = File.ReadAllText(path);
         long originalMoney = new MirEconomy(authority.Snapshot()).TotalKnownMoney();
 
         // An abandoned or half-written stage must never be loaded as the world.
         File.WriteAllText(temp, "{\"version\":");
-        var resumed = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        authority.Dispose();
+        using var resumed = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
         Check(resumed.Snapshot().citizens.Count == 40 &&
               File.ReadAllText(path) == originalSave,
             "partial temporary file cannot replace a valid canonical world");
@@ -475,7 +495,9 @@ static void AtomicAuthoritySaveTests()
             resumed.Save();
         });
         var expected = resumed.Snapshot();
-        var restored = new WorldAuthority(NullLogger<WorldAuthority>.Instance).Snapshot();
+        resumed.Dispose();
+        using var reloaded = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        var restored = reloaded.Snapshot();
         Check(restored.gameMinutes == expected.gameMinutes &&
               restored.Citizen("citizen-001")!.x == expected.Citizen("citizen-001")!.x &&
               restored.Citizen("citizen-001")!.z == expected.Citizen("citizen-001")!.z,
@@ -576,7 +598,7 @@ static void SavedWorldIntegrityTests()
             "legitimate freight is ready for restart");
         long money = before.TotalKnownMoney();
         File.WriteAllText(saveFile, System.Text.Json.JsonSerializer.Serialize(valid, json));
-        var loaded = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        using var loaded = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
         var restored = loaded.Snapshot();
         Check(restored.freight.Count == 1 &&
               restored.freight[0].status == MirOrderStatus.Loading &&
@@ -642,6 +664,97 @@ static void PersistedIdentifierSequenceTests()
         "once exhausted, cancelled freight cannot reuse an ID or lose escrow");
 }
 PersistedIdentifierSequenceTests();
+
+static void WorldLeaseTests()
+{
+    var saveFile = Path.Combine(Path.GetTempPath(),
+        "nonation-lease-" + Guid.NewGuid().ToString("N") + ".json");
+    string? original = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+
+    static string ChildProbe(string savePath)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo("dotnet")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        start.ArgumentList.Add(typeof(WorldAuthority).Assembly.Location);
+        start.ArgumentList.Add("--probe-world-lease");
+        start.ArgumentList.Add(savePath);
+        using var child = System.Diagnostics.Process.Start(start)
+            ?? throw new Exception("World lease probe process could not start");
+        string output = child.StandardOutput.ReadToEnd().Trim();
+        if (!child.WaitForExit(15000))
+        {
+            child.Kill(entireProcessTree: true);
+            throw new Exception("World lease probe timed out");
+        }
+        if (child.ExitCode != 0)
+            throw new Exception("World lease probe failed: " + child.StandardError.ReadToEnd());
+        return output;
+    }
+
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", saveFile);
+        string saved;
+        long expectedMoney;
+        float expectedMinutes;
+        float expectedX;
+        using (var owner = new WorldAuthority(NullLogger<WorldAuthority>.Instance))
+        {
+            for (int i = 0; i < 80; i++) owner.Advance(.1f);
+            owner.Save();
+            var world = owner.Snapshot();
+            expectedMoney = new MirEconomy(world).TotalKnownMoney();
+            expectedMinutes = world.gameMinutes;
+            expectedX = world.Citizen("citizen-001")!.x;
+            saved = File.ReadAllText(saveFile);
+
+            Check(ChildProbe(saveFile) == "WORLD_LEASE_DENIED",
+                "second OS process cannot claim the same active world file");
+            bool sameProcessDenied = false;
+            try { using var second = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+            catch (IOException) { sameProcessDenied = true; }
+            Check(sameProcessDenied, "second authority in same process cannot claim the world");
+            Check(File.ReadAllText(saveFile) == saved && !File.Exists(saveFile + ".tmp"),
+                "failed concurrent owner cannot replace saved money or NPC positions");
+        }
+
+        Check(File.Exists(saveFile + ".lock"),
+            "persistent lease marker remains after owner shutdown");
+        Check(ChildProbe(saveFile) == "WORLD_LEASE_ACQUIRED",
+            "next OS process may safely recover the world after lease release");
+        using (var reopened = new WorldAuthority(NullLogger<WorldAuthority>.Instance))
+        {
+            var state = reopened.Snapshot();
+            Check(new MirEconomy(state).TotalKnownMoney() == expectedMoney &&
+                  state.gameMinutes == expectedMinutes &&
+                  state.Citizen("citizen-001")!.x == expectedX,
+                "lease handoff preserves money, world time and NPC coordinates");
+        }
+
+        // The lock must also be released if a constructor fails during Load().
+        File.WriteAllText(saveFile, "{\"version\":1,\"citizens\":null}");
+        bool refused = false;
+        try { using var invalid = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+        catch (InvalidDataException) { refused = true; }
+        Check(refused, "invalid persisted world rejects construction");
+        File.WriteAllText(saveFile, saved);
+        Check(ChildProbe(saveFile) == "WORLD_LEASE_ACQUIRED",
+            "failed world load does not leak the cross-process lease");
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", original);
+        if (File.Exists(saveFile + ".tmp")) File.Delete(saveFile + ".tmp");
+        if (File.Exists(saveFile)) File.Delete(saveFile);
+        if (File.Exists(saveFile + ".lock")) File.Delete(saveFile + ".lock");
+    }
+}
+WorldLeaseTests();
+
 
 
 
