@@ -96,6 +96,81 @@ static void InvariantAndRestartTests()
 }
 InvariantAndRestartTests();
 
+static void FreightStateRegressionTests()
+{
+    var world = MirWorldState.NewWorld();
+    var economy = new MirEconomy(world);
+    long totalBefore = economy.TotalKnownMoney();
+    var supplier = world.Business("warehouse")!;
+    var buyer = world.Business("market")!;
+    int supplierBefore = supplier.stock, buyerBefore = buyer.stock;
+    var order = economy.CreateRestock(qty: 4)!;
+    Check(order != null, "freight created with real stock and escrow");
+    int heldEscrow = order.escrow, heldFee = order.freightFee;
+    int reservedSupplierStock = supplier.stock;
+
+    // A corrupted saved order could previously be marked Completed without
+    // unloading/settling escrow, leaving credits permanently stranded.
+    order.status = MirOrderStatus.Returning;
+    Check(!economy.SetFreightStage(order, MirOrderStatus.Completed),
+        "unpaid Returning order cannot be completed");
+    Check(!economy.CancelFreight(order),
+        "corrupt unpaid Returning order cannot be refunded as valid transit");
+    Check(order.status == MirOrderStatus.Returning && supplier.stock == reservedSupplierStock &&
+          buyer.stock == buyerBefore && economy.TotalKnownMoney() == totalBefore,
+        "rejected corrupt freight stage has no side effects");
+
+    order.status = MirOrderStatus.Created;
+    Check(economy.SetFreightStage(order, MirOrderStatus.Loading) &&
+          economy.SetFreightStage(order, MirOrderStatus.Driving),
+        "valid reservation progresses through loading and driving");
+    order.paid = true;
+    Check(!economy.SetFreightStage(order, MirOrderStatus.Unloading),
+        "forged prepaid flag cannot skip goods and escrow settlement");
+    order.paid = false;
+
+    order.productId = "fuel";
+    Check(!economy.SetFreightStage(order, MirOrderStatus.Unloading) &&
+          !economy.CancelFreight(order), "mismatched product cannot settle or refund");
+    order.productId = "bread";
+
+    Check(economy.SetFreightStage(order, MirOrderStatus.Unloading),
+        "validated transit pays and unloads exactly once");
+    Check(buyer.stock == buyerBefore + 4 && supplier.stock == supplierBefore - 4 &&
+          order.paid && !order.stockReserved &&
+          order.escrow == 0 && order.freightFee == 0,
+        "unloading consumes reserved stock and closes escrow");
+    Check(!economy.CancelFreight(order) && !economy.SetFreightStage(order, MirOrderStatus.Unloading),
+        "settled freight can neither refund nor unload a second time");
+    Check(economy.SetFreightStage(order, MirOrderStatus.Returning) &&
+          economy.SetFreightStage(order, MirOrderStatus.Completed),
+        "settled freight may return and finish");
+    Check(economy.TotalKnownMoney() == totalBefore, "complete freight conserves money");
+    Check(heldEscrow > 0 && heldFee > 0, "freight reservation held actual funds");
+
+    // A half-complete freight saved during loading can still finish after reload.
+    var toResume = MirWorldState.NewWorld();
+    var beforeResume = new MirEconomy(toResume);
+    var reserved = beforeResume.CreateRestock(qty: 3)!;
+    Check(reserved != null && beforeResume.SetFreightStage(reserved, MirOrderStatus.Loading),
+        "freight can be persisted in Loading state");
+    long pendingMoney = beforeResume.TotalKnownMoney();
+    var json = System.Text.Json.JsonSerializer.Serialize(toResume,
+        new System.Text.Json.JsonSerializerOptions { IncludeFields = true });
+    var resumedWorld = System.Text.Json.JsonSerializer.Deserialize<MirWorldState>(json,
+        new System.Text.Json.JsonSerializerOptions { IncludeFields = true })!;
+    var afterResume = new MirEconomy(resumedWorld);
+    var resumedOrder = resumedWorld.freight[0];
+    Check(afterResume.SetFreightStage(resumedOrder, MirOrderStatus.Driving) &&
+          afterResume.SetFreightStage(resumedOrder, MirOrderStatus.Unloading),
+        "restored pending delivery settles once");
+    Check(!afterResume.SetFreightStage(resumedOrder, MirOrderStatus.Unloading) &&
+          afterResume.TotalKnownMoney() == pendingMoney,
+        "restored freight cannot repay escrow on replay");
+}
+FreightStateRegressionTests();
+
+
 static void WideLedgerTests()
 {
     var world = MirWorldState.NewWorld();

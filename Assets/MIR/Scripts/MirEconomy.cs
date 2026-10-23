@@ -94,17 +94,45 @@ namespace MIR
                 productId=from.productId,quantity=qty,escrow=cost,freightFee=fee,stockReserved=true,status=MirOrderStatus.Created};
             s.freight.Add(order);Log("Заказан реальный груз: "+qty+" ед. "+from.productId);return order;
         }
+        // Persisted orders and Unity references may contain inconsistent fields.
+        // Reject impossible states BEFORE any money, stock or stage mutation.
+        bool FreightMatchesState(MirFreightOrder o)
+        {
+            if(o==null || !s.freight.Contains(o) || o.quantity<=0 ||
+                String.IsNullOrEmpty(o.productId) || o.supplierId==o.consumerId)
+                return false;
+            var supplier=s.Business(o.supplierId);
+            var buyer=s.Business(o.consumerId);
+            if(supplier==null || buyer==null || supplier==buyer ||
+                supplier.productId!=o.productId || buyer.productId!=o.productId)
+                return false;
+
+            switch(o.status)
+            {
+                case MirOrderStatus.Created:
+                case MirOrderStatus.Loading:
+                case MirOrderStatus.Driving:
+                    return !o.paid && o.stockReserved && o.escrow>0 && o.freightFee>0;
+                case MirOrderStatus.Unloading:
+                case MirOrderStatus.Returning:
+                case MirOrderStatus.Completed:
+                    return o.paid && !o.stockReserved && o.escrow==0 && o.freightFee==0;
+                case MirOrderStatus.Cancelled:
+                    return !o.paid && !o.stockReserved && o.escrow==0 && o.freightFee==0;
+                default:
+                    return false;
+            }
+        }
         public bool SetFreightStage(MirFreightOrder o,MirOrderStatus next)
         {
-            if(o==null || !s.freight.Contains(o) || o.status==next)return false;
-            if(o.status<=MirOrderStatus.Driving && (!o.stockReserved || o.quantity<=0))return false;
+            if(!FreightMatchesState(o) || o.status==next)return false;
             bool okay= (o.status==MirOrderStatus.Created && next==MirOrderStatus.Loading)
                 ||(o.status==MirOrderStatus.Loading && next==MirOrderStatus.Driving)
                 ||(o.status==MirOrderStatus.Driving && next==MirOrderStatus.Unloading)
                 ||(o.status==MirOrderStatus.Unloading && next==MirOrderStatus.Returning)
                 ||(o.status==MirOrderStatus.Returning && next==MirOrderStatus.Completed);
             if(!okay)return false;
-            if(next==MirOrderStatus.Unloading && !o.paid)
+            if(next==MirOrderStatus.Unloading)
             {
                 MirBusiness buyer=s.Business(o.consumerId),seller=s.Business(o.supplierId);
                 if(buyer==null||seller==null||!o.stockReserved || o.quantity<=0 ||
@@ -122,8 +150,9 @@ namespace MIR
         }
         public bool CancelFreight(MirFreightOrder o)
         {
-            if(o==null || !s.freight.Contains(o) || !o.stockReserved || o.paid ||
-                o.status==MirOrderStatus.Cancelled || o.status==MirOrderStatus.Completed)return false;
+            // A delivered/settled order must not be refunded, nor may a corrupt
+            // unpaid Returning/Unloading state create inventory via cancellation.
+            if(!FreightMatchesState(o) || o.status>MirOrderStatus.Driving)return false;
             MirBusiness supplier=s.Business(o.supplierId),buyer=s.Business(o.consumerId);
             if(supplier==null||buyer==null||o.quantity<=0||o.escrow<0||o.freightFee<0||
                 (long)supplier.stock+o.quantity>supplier.capacity ||
