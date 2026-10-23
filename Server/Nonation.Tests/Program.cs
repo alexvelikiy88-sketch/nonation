@@ -1,4 +1,6 @@
 using MIR;
+using Nonation.Server;
+using Microsoft.Extensions.Logging.Abstractions;
 
 static void Check(bool success, string description)
 {
@@ -233,4 +235,76 @@ static void SnapshotOrderingTests()
         "public snapshot caps NPC count and stays contract-valid");
 }
 SnapshotOrderingTests();
+
+static void ServerPersistenceTests()
+{
+    var path = Path.Combine(Path.GetTempPath(),
+        "nonation-authority-" + Guid.NewGuid().ToString("N") + ".json");
+    string? former = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", path);
+        var authority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        var start = authority.Snapshot();
+        long totalMoney = new MirEconomy(start).TotalKnownMoney();
+        float startX = start.Citizen("citizen-001")!.x;
+        float startZ = start.Citizen("citizen-001")!.z;
+        for (int i = 0; i < 60; i++) authority.Advance(0.1f);
+        var advanced = authority.Snapshot();
+        var moving = advanced.Citizen("citizen-001")!;
+        Check(Math.Abs(moving.x - startX) + Math.Abs(moving.z - startZ) > 0.2f,
+            "authority tick advances an NPC through world coordinates");
+        Check(new MirEconomy(advanced).TotalKnownMoney() == totalMoney,
+            "authority ticks conserve total money");
+
+        var first = authority.SpectatorSnapshot();
+        var second = authority.SpectatorSnapshot();
+        Check(first.serverId == second.serverId && second.sequence > first.sequence,
+            "real server emits monotonic spectator sequences");
+        authority.Save();
+        var restoredAuthority = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        var restored = restoredAuthority.Snapshot();
+        var restoredNpc = restored.Citizen("citizen-001")!;
+        Check(restored.gameMinutes == advanced.gameMinutes &&
+              restoredNpc.x == moving.x && restoredNpc.z == moving.z,
+            "persisted NPC coordinates and clock survive authority restart");
+        Check(new MirEconomy(restored).TotalKnownMoney() == totalMoney,
+            "persisted financial ledger survives authority restart");
+        var restartedSnapshot = restoredAuthority.SpectatorSnapshot();
+        var cursor = new MirSceneSnapshotCursor();
+        Check(cursor.Accept(second) && cursor.Accept(restartedSnapshot) &&
+              restartedSnapshot.serverId != second.serverId &&
+              restartedSnapshot.sequence == 1,
+            "server restart rotates its identity and resets the snapshot sequence");
+
+        File.WriteAllText(path,
+            "{\"version\":1,\"citizens\":null,\"businesses\":[{\"id\":\"market\"}]}");
+        bool rejectedNullCitizens = false;
+        try { _ = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+        catch (InvalidDataException) { rejectedNullCitizens = true; }
+        Check(rejectedNullCitizens, "explicit null citizens list is rejected on load");
+
+        File.WriteAllText(path,
+            "{\"version\":1,\"citizens\":[{\"id\":\"player-001\"}],\"businesses\":null}");
+        bool rejectedNullBusinesses = false;
+        try { _ = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+        catch (InvalidDataException) { rejectedNullBusinesses = true; }
+        Check(rejectedNullBusinesses, "explicit null businesses list is rejected on load");
+
+        File.WriteAllText(path,
+            "{\"version\":1,\"citizens\":[{\"id\":\"player-001\"}],\"businesses\":[{\"id\":\"market\"}],\"transactions\":null}");
+        bool rejectedNullTransactions = false;
+        try { _ = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+        catch (InvalidDataException) { rejectedNullTransactions = true; }
+        Check(rejectedNullTransactions, "explicit null transaction ledger is rejected on load");
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", former);
+        if (File.Exists(path)) File.Delete(path);
+        if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+    }
+}
+ServerPersistenceTests();
+
 

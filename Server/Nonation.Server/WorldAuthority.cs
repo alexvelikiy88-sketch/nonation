@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using MIR;
 
 namespace Nonation.Server;
@@ -34,8 +35,18 @@ public sealed class WorldAuthority
         try
         {
             var candidate = JsonSerializer.Deserialize<MirWorldState>(File.ReadAllText(savePath), Json);
-            if (candidate is null || candidate.version != 1 || candidate.citizens?.Count < 1 ||
-                candidate.businesses?.Count < 1)
+            // Nullable '?.Count < 1' is false when the list is null: explicitly
+            // reject missing collections before any simulation or ledger can run.
+            if (candidate is null || candidate.version != 1 ||
+                candidate.citizens == null || candidate.citizens.Count < 1 ||
+                candidate.businesses == null || candidate.businesses.Count < 1 ||
+                candidate.transactions == null || candidate.freight == null ||
+                candidate.events == null ||
+                candidate.citizens.Any(c => c == null) ||
+                candidate.businesses.Any(b => b == null) ||
+                candidate.transactions.Any(t => t == null) ||
+                candidate.freight.Any(o => o == null) ||
+                candidate.events.Any(e => e == null))
                 throw new InvalidDataException("Invalid world state or unsupported version");
             return candidate;
         }
