@@ -17,6 +17,9 @@ namespace MIR.Editor
             if (!File.Exists(scene)) throw new Exception("MIR scene was not generated: " + scene);
             var output = Path.Combine("build", "WebGL");
             Directory.CreateDirectory(output);
+            // GitHub Pages does not allow custom Content-Encoding response headers.
+            // Build uncompressed Unity Web assets to avoid a broken loading screen.
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
             var options = new BuildPlayerOptions
             {
