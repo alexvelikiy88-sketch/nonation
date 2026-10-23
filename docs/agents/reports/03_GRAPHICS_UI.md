@@ -1,12 +1,12 @@
 # NONATION / отчёт 03 — Graphics/UI
 
 - **Последнее обновление:** 24.10.26
-- **Статус:** IN PROGRESS — исходный реалистичный Rocketbox MIT FBX получен и проверен по Git blob; готовые prefab, текстуры и WebGL пока отсутствуют
+- **Статус:** IN PROGRESS — Rocketbox FBX, MIT license и шесть текстур 1024×1024 находятся в GitHub; код генерации настоящих skinned LOD подготовлен, но Blender/Unity/WebGL ещё не проверены
 - **Ветка:** `agent/graphics-ui`
 - **Промпт:** [Инструкция исполнителя](../CHAT_03_GRAPHICS_UI.md)
 - **Исходная база main/ветки при входе:** `f52d21a2b0e470bb79664f8be0e6fd0251b82596` (ветки идентичны; открытых PR не было)
 - **Собственный коммит патча:** [`3f2e733d`](https://github.com/alexvelikiy88-sketch/nonation/commit/3f2e733d1c9c1dc178d3e9a1660355c06ee931b6)
-- **PR:** [#2 Graphics — Draft](https://github.com/alexvelikiy88-sketch/nonation/pull/2), без merge; Integration Guard требует asset-license evidence и актуальную базу main
+- **PR:** [#2 Graphics — Draft](https://github.com/alexvelikiy88-sketch/nonation/pull/2), не объединён; source/.NET + ownership проверки ранее проходили, Unity/WebGL результат отсутствует
 
 ## Инвентаризация исходников GitHub, 23.10.26
 
@@ -142,6 +142,28 @@
 
 **Граница готовности:** полноценного Unity `PilotHuman01.prefab`, проверенного Humanoid Avatar, корректных слотов материалов, Animator/retarget, отдельных LOD1–3 и подтверждённого WebGL FPS **по-прежнему нет**. Текстуры теперь доступны для проверки AGENT 01. Следующий CROSS-OWNER REQUEST адресован AGENT 01: правильно настроить ModelImporter/TextureImporter для `Assets/MIR/Art/Rocketbox/Male_Adult_12.fbx` + шести 1024×1024 TGA, создать и проверить material mappings (sRGB для albedo, normal map importer для нормалей, specular workflow по фактическому render pipeline), Humanoid mapping и реальные LOD. Не делать release без реального Unity QA.
 
+## Подготовка настоящих Rocketbox LOD1–LOD3 — 24.10.26
+
+**Решение по качеству:** исходный MIT FBX содержит одну реальную скелетную сетку; дополнительные LOD нельзя объявить готовыми по строкам `midpoly/lowpoly`. По этой причине AGENT 03 подготовил отдельный fail-closed Blender-процесс. Он не изменяет импорт Unity, сцены, Packages или release WebGL.
+
+### Изменения ветки
+
+- [`f4bf6444`](https://github.com/alexvelikiy88-sketch/nonation/commit/f4bf6444bb588e66acd6af24c087d62d276f7cbf) — [`Assets/MIR/Art/Rocketbox/build_skinned_lods.py`](../../../Assets/MIR/Art/Rocketbox/build_skinned_lods.py). Проверяет исходный source Git blob/обязательный MIT notice/шесть SHA-256 текстур; через Blender 3.6+ импортирует **один** skinned Mesh, делает независимые копии и Decimate с целями **0.72 / 0.48 / 0.28**, требует сохранения UV/двух материальных слотов/костей и vertex groups, строгого падения triangle count, экспортирует FBX для каждого LOD и **повторно импортирует** все три файла перед выпуском. Записывает `lod_manifest.json` с source SHA, Blender version, фактическими vertex/triangle counts и output SHA-256. Три реальных LOD-файла **на момент этого отчёта не создавались**.
+- [`d376c3ee`](https://github.com/alexvelikiy88-sketch/nonation/commit/d376c3eec52fe248602efcd0ba4613fa80f20979) — [`test_build_skinned_lods.py`](../../../Assets/MIR/Art/Rocketbox/test_build_skinned_lods.py): шесть Python тестов без Blender на pinned source hash, разрешённые descending ratios, наличие/целостность MIT-лицензии и 6 texture blobs, fail-closed на повреждённых данных и отказ выполнять pipeline без Blender.
+- [`087b99b7`](https://github.com/alexvelikiy88-sketch/nonation/commit/087b99b7b6d3b4dee9903c115718f0047f22dee6) — [`LOD_GENERATION_RU.md`](../../../Assets/MIR/Art/Rocketbox/LOD_GENERATION_RU.md) с повторяемыми командами, владельцами, критериями отказа, запретом считать pipeline готовой 3D-моделью.
+- [`238cfb69`](https://github.com/alexvelikiy88-sketch/nonation/commit/238cfb69f3b5b2900a8f6b545be095861521caf2) — уточнена документация Rocketbox Pilot и ссылка на [issue #17](https://github.com/alexvelikiy88-sketch/nonation/issues/17).
+
+### Достоверная проверка
+
+- [GitHub Actions Cross-Branch Integration #40016593658](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016593658): **SUCCESS**, в логе запуск `python3 -m unittest discover -s Assets/MIR/Art/Rocketbox -p 'test_*.py' -v`. Подтверждены **6/6 новых offline тестов LOD и 7/7 существующих тестов TGA**; плюс cross-branch merge, Python source checks, .NET build и HTTP smoke. **Только статический Python-контур**, в workflow Blender/Unity/IL2CPP/WebGL не запускались.
+- API Blender сверено с официальной документацией, но это **не запуск Blender** и не проверка экспортируемых костей/материалов в Unity. Возможные непригодные упрощения, потерянные skin weights, UV seam artifacts — стоп-факторы и предмет реального Editor QA.
+- Новые бинарные LOD отсутствуют в Git; `GeneratedLODs/` — только путь будущего вывода. Никакого FPS/draw calls/triangle counts от генерации **не заявляется**.
+
+### CROSS-OWNER REQUEST
+
+- [**Issue #17 — Manager/AGENT 01**](https://github.com/alexvelikiy88-sketch/nonation/issues/17): менеджеру/владельцу CI — разрешить одноразовый Blender job или другой проверенный Blender runtime (Manager владеет `.github/workflows/**`); результат: 3 реально экспортированных+реимпортированных MIT FBX и `lod_manifest.json` в `agent/graphics-ui` только при PASS, вместе с логом Blender. При FAIL — log+blocker, не создавать фейковые LOD.
+- AGENT 01 — исключительно его `Assets/MIR/Editor/**`, `Assets/MIR/Scenes/**`: Unity импорт skinned FBX/6 TGA, Avatar/Animator/true LODGroup и анимационная QA, затем браузерный WebGL proof. AGENT 03 эти файлы не менял.
+
 ## Журнал
 
 | Дата | Работа | Коммит / PR | Проверки / ограничения |
@@ -152,6 +174,7 @@
 | 23.10.26 | MIT Microsoft Rocketbox исходный FBX/PNG, license provenance, проверяемый fetch текстур и 4 синтетических offline теста | `269d77e`, `77fdec1`, `1a36c4d`, `c51e6c3`, `c29e1ca`, merge `063a26d`; PR #2 Draft | FBX blob идентичен upstream, 4/4 Python unittest PASS; текстуры/Unity/WebGL не проверены |
 | 24.10.26 | Установлено фактическое количество FBX Mesh/Skins; staging текстур и SHA-256 manifest, нормализация normal maps; проверка bones/bindposes | `b5339300`, `93557f2d`, `2bd9f049` / PR #2 Draft | 6/6 синтетических unittest PASS и анализ бинарника; Unity, реальные TGA, LOD, FPS не проверены |
 | 24.10.26 | Через GitHub Actions действительно загружены и установлены 6 MIT Rocketbox текстур 1024×1024, исправлен 24-bit parser, сохранены upstream SHA и SHA-256 output manifest | `214254c7`, `e6a8ff6e`, `eb58e07f`; [Actions 40013964977](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013964977) | 7/7 Python unittest, реальный download и hash checks, commit success; Unity/WebGL не проверены |
+| 24.10.26 | Реализован Blender-pipeline трёх skinned LOD и шесть offline tests; создан запрос на одноразовый Blender job | `f4bf6444`, `d376c3ee`, `087b99b7`, `238cfb69` / [issue #17](https://github.com/alexvelikiy88-sketch/nonation/issues/17) | [CI 40016593658](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40016593658) 13/13 Python графических тестов PASS; реального Blender export, Unity/LOD визуального QA и WebGL ещё нет |
 
 **CI-контроль 23.10.26:** PR #2 HEAD `91888444` — [run 40005479208](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005479208), source/.NET success; Unity WebGL remains unverified.
 
@@ -166,4 +189,4 @@
 
 ## Следующее конкретное действие
 
-Один лицензированный FBX **и 6 проверенных уменьшенных TGA уже получены и закоммичены**. Следующее — AGENT 01: Unity Editor material/skin/boneWeights/Avatar/Idle-Walk-Run QA, реальные LOD-меши (в FBX всего один Mesh), первый WebGL export и браузерные FPS/draw calls на документированной платформе. Только после этого — отдельный PR по разнообразию города/UI; не смешивать с Cloud Build.
+Один лицензированный FBX **и 6 проверенных уменьшенных TGA уже получены и закоммичены**. AGENT 03 подготовил скрипт для настоящих LOD1–LOD3 и тесты, но Blender не запускался. Следующий факт — [issue #17](https://github.com/alexvelikiy88-sketch/nonation/issues/17): Manager запускает проверенный Blender job и публикует только успешно экспортированные FBX/manifest в графической ветке; AGENT 01 проверяет Unity Editor material/skin/boneWeights/Avatar/Idle-Walk-Run и реальные LOD meshes, затем первый WebGL export/браузерные FPS и draw calls. Не смешивать с Cloud Build; проектный статус `TASKS.md` редактирует только Manager.
