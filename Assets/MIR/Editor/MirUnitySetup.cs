@@ -25,7 +25,7 @@ namespace MIR.Editor
         {
             EditorApplication.delayCall+=()=>
             {
-                if(Application.isPlayingOrWillChangePlaymode)return;
+                if(EditorApplication.isPlayingOrWillChangePlaymode)return;
                 if(!File.Exists(ScenePath))
                 {
                     try{Install(false);}catch(Exception e){Debug.LogWarning("MIR auto-setup: "+e.Message+". Run MIR > Rebuild Playable District.");}
