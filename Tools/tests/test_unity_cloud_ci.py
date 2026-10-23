@@ -249,7 +249,7 @@ class UnityCloudV2ContractTests(unittest.TestCase):
             self.assertIn("error CS0117", text)
             storage.assert_not_called()
         request = opener.open.call_args.args[0]
-        self.assertIn("/builds/3/log?redirect=manual", request.full_url)
+        self.assertIn("/builds/3/log?redirect=auto", request.full_url)
         self.assertEqual(request.get_header("Authorization"), "Basic test")
 
     def test_v2_manual_202_signed_url_has_no_unity_auth(self):
@@ -284,6 +284,34 @@ class UnityCloudV2ContractTests(unittest.TestCase):
                 )) as downloader:
             self.assertIn("Unity Editor", cloud.read_cloud_log(3))
             downloader.assert_called_once_with(signed, timeout=60)
+
+    def test_nested_signed_url_envelope(self):
+        signed = "https://storage.googleapis.com/log.txt?sig=redacted"
+        self.assertEqual(
+            cloud.log_redirect_url({"data": {"links": {"downloadUrl": signed}}}),
+            signed,
+        )
+        with self.assertRaisesRegex(ValueError, "safe fields:"):
+            cloud.log_redirect_url({"status": "queued", "attempt": 3})
+
+    def test_structured_build_steps_find_compiler_error_without_exposing_url(self):
+        from unittest.mock import patch
+        steps = [
+            {"name": "Compile scripts", "messages": [
+                {"typeCode": 3, "content":
+                 "Assets/MIR/Scripts/MirTest.cs(4,20): error CS0117: unsupported API"}
+            ]},
+            {"name": "Final summary", "messages": [
+                {"content": "Unity Player Export Failure"}
+            ]}
+        ]
+        with patch.object(cloud, "api", return_value=(200, steps)) as mocked:
+            hits = cloud.diagnostic_build_steps(3)
+        self.assertEqual(len(hits), 1)
+        self.assertIn("error CS0117", hits[0][2])
+        mocked.assert_called_once_with(
+            "GET", cloud.ROOT + "/builds/3/steps"
+        )
 
     def test_log_redirect_cannot_loop_back_to_authenticated_api(self):
         from types import SimpleNamespace
