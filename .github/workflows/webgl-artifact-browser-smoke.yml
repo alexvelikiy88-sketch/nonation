@@ -1,0 +1,165 @@
+name: NONATION WebGL Artifact Browser Smoke
+
+# Browser runtime proof is independent of GitHub Pages enablement.
+# It downloads an existing verified Unity artifact; NEVER creates another Unity build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/webgl-artifact-browser-smoke.yml'
+      - 'Tools/browser_smoke_preview.js'
+  workflow_run:
+    workflows: ['MIR Unity WebGL']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: nonation-artifact-smoke-${{ github.event.workflow_run.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  local-chromium:
+    name: Real Unity browser smoke (artifact, no Pages)
+    if: github.event_name == 'push' || github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout current trusted main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select existing Unity WebGL artifact with exact provenance
+        id: select
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          UPSTREAM_RUN: ${{ github.event.workflow_run.id }}
+          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPOSITORY_NAME: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "push" ]; then
+            # Bootstrap one existing successful Unity-only preview; LABEL IT.
+            source_run=40015140424
+            source_sha=cb46b4960dd8bcd255880f569254dfe9876ea14b
+            scope=unity-agent-only-bootstrap
+          else
+            source_run="$UPSTREAM_RUN"
+            source_sha="$UPSTREAM_SHA"
+            scope=integrated-main
+            if ! [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Invalid upstream Git SHA"
+              exit 1
+            fi
+            git fetch --no-tags origin "$source_sha"
+            if ! git merge-base --is-ancestor "$source_sha" HEAD; then
+              echo "::notice::Skip stale Unity artifact, source revision is not ancestor of current main"
+              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if ! git diff --quiet "$source_sha" HEAD -- \
+              Assets Server Packages ProjectSettings \
+              Tools/unity_cloud_ci.py Tools/fetch_quaternius.py \
+              Tools/unity_cloud_prebuild.sh Tools/unity_source_preflight.py \
+              .github/workflows/unity-webgl.yml; then
+              echo "::notice::Skip stale artifact: current game code differs from upstream build"
+              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          echo "SOURCE_RUN_ID=$source_run" >> "$GITHUB_ENV"
+          echo "SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "SCOPE=$scope" >> "$GITHUB_ENV"
+          artifact="$(gh api "repos/$REPOSITORY_NAME/actions/runs/$source_run/artifacts?per_page=100" \
+            --jq '[.artifacts[] | select(.expired == false and (.name == "nonation-unity-cloud-webgl" or .name == "nonation-unity-webgl" or .name == "nonation-agent01-preview")) | .name] | .[0] // empty')"
+          if [ -z "$artifact" ]; then
+            echo "::warning::No verified WebGL artifact uploaded by source run $source_run"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ARTIFACT_NAME=$artifact" >> "$GITHUB_ENV"
+          echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "## NONATION Unity WebGL browser smoke"
+            echo "Source run: $source_run"
+            echo "Exact game SHA: $source_sha"
+            echo "Scope: $scope"
+            echo "Downloaded existing artifact: $artifact"
+            echo "No Unity Cloud build was requested."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Download archived WebGL bytes (no recompilation)
+        if: steps.select.outputs.eligible == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          name: ${{ steps.select.outputs.artifact }}
+          github-token: ${{ github.token }}
+          path: build/WebGL
+
+      - name: Verify nonempty, uncompressed Unity WebGL artifact
+        if: steps.select.outputs.eligible == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/WebGL/index.html
+          test -d build/WebGL/Build
+          python3 Tools/unity_cloud_ci.py --verify-dir build/WebGL
+
+      - name: Install Chromium and Playwright on GitHub runner
+        if: steps.select.outputs.eligible == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/nonation-playwright" --no-save playwright@1.56.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/nonation-playwright-browsers" \
+            "$RUNNER_TEMP/nonation-playwright/node_modules/.bin/playwright" \
+            install --with-deps chromium
+
+      - name: Serve Unity build on localhost and execute real browser smoke
+        if: steps.select.outputs.eligible == 'true'
+        shell: bash
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/nonation-playwright-browsers
+          NONATION_LOCAL_URL: http://127.0.0.1:8765/
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory build/WebGL \
+            > "$RUNNER_TEMP/nonation-http.log" 2>&1 &
+          http_pid=$!
+          trap 'kill "$http_pid" 2>/dev/null || true' EXIT
+          python3 - <<'PY'
+          import time
+          import urllib.request
+          for attempt in range(40):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8765/', timeout=2) as response:
+                      assert response.status == 200
+                  break
+              except Exception:
+                  time.sleep(.25)
+          else:
+              raise RuntimeError('Verified Unity archive was not served by localhost HTTP')
+          PY
+          node Tools/browser_smoke_preview.js
+
+      - name: Upload observed browser proof or failure screenshot
+        if: always() && steps.select.outputs.eligible == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonation-browser-proof-${{ github.run_id }}
+          path: |
+            nonation-browser-proof.json
+            nonation-browser-proof.png
+            nonation-browser-failure.png
+          if-no-files-found: ignore
