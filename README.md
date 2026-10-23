@@ -36,3 +36,7 @@
 ## Unity ↔ .NET (режим наблюдения)
 
 Unity поддерживает опциональный read-only просмотр серверных NPC. По умолчанию `Assets/MIR/Resources/MIR/NetworkConfig.json` содержит пустой `snapshotUrl`, поэтому игра продолжает работать локально. Для тестового подключения разверните .NET backend за HTTPS reverse proxy и укажите URL `https://.../api/v1/spectator/scene`, а на сервере настройте `NONATION_CORS_ORIGINS` под сайт WebGL. Клиент применяет только публичные координаты жителей, не отправляет деньги/команды и в сетевом режиме отключает локальные транзакции. Подробности — [ARCHITECTURE_RU.md](Documentation/ARCHITECTURE_RU.md).
+
+## Параллельная разработка nonation
+
+Проект разделён на три исполнительных чата и одного интегратора. Центральный статус — [TASKS.md](TASKS.md); общие правила — [AGENTS.md](AGENTS.md); инструкция руководителя — [NONATION_MANAGER.md](NONATION_MANAGER.md). Готовые промпты: [Unity/WebGL](docs/agents/CHAT_01_UNITY_WEBGL.md), [Backend/Simulation](docs/agents/CHAT_02_BACKEND_SIMULATION.md), [Graphics/UI](docs/agents/CHAT_03_GRAPHICS_UI.md). Исполнители работают через собственные ветки и PR и обновляют свои отчёты, не редактируя напрямую `main`.
