@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
+import math
 from pathlib import Path
 import struct
 import tempfile
@@ -45,10 +47,11 @@ def parse_tga_header(payload: bytes) -> tuple[int, int, int, int]:
     return width, height, offset, descriptor
 
 
-def resize_tga_box(payload: bytes, max_edge: int) -> bytes:
-    """Reduce dimensions by a power-of-two box average, preserving TGA orientation.
+def resize_tga_box(payload: bytes, max_edge: int, *, normal_map: bool = False) -> bytes:
+    """Power-of-two box filter for BGRA pixels while retaining TGA orientation.
 
-    BGRA and alpha are retained; normal maps still require Unity visual QA.
+    Tangent-space normals are renormalized after filtering, not treated as colors.
+    Unity material import and tangent-space correctness still require visual QA.
     """
     if not 64 <= max_edge <= 2048:
         raise ValueError("max_edge must be between 64 and 2048")
@@ -78,6 +81,16 @@ def resize_tga_box(payload: bytes, max_edge: int) -> bytes:
             index = (y * out_width + x) * 4
             for ch in range(4):
                 dst[index + ch] = (sums[ch] + area // 2) // area
+            if normal_map:
+                # TGA stores B,G,R,A; normalize the XYZ normal from RGB.
+                nx = (sums[2] / area - 127.5) / 127.5
+                ny = (sums[1] / area - 127.5) / 127.5
+                nz = (sums[0] / area - 127.5) / 127.5
+                length = math.sqrt(nx * nx + ny * ny + nz * nz)
+                if length < 1e-7:
+                    nx, ny, nz, length = 0.0, 0.0, 1.0, 1.0
+                for channel, value in ((2, nx), (1, ny), (0, nz)):
+                    dst[index + channel] = max(0, min(255, round((value / length * .5 + .5) * 255)))
     header = bytearray(payload[:18])
     header[0] = 0  # no image ID in generated texture
     struct.pack_into("<HH", header, 12, out_width, out_height)
@@ -98,27 +111,63 @@ def download_verified(name: str, expected_sha: str) -> bytes:
     return raw
 
 
+def prepare_textures(output: Path, max_edge: int, downloader=download_verified) -> dict:
+    """Stage and validate all six files before exposing any new texture.
+
+    A source failure never leaves a partially downloaded batch in output.
+    As with any multi-file replacement, disk failure during the final commit is
+    not atomic; preserve the generated manifest for post-import verification.
+    """
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    details = {}
+    with tempfile.TemporaryDirectory(prefix=".rocketbox-stage-", dir=output.parent) as staged:
+        staged = Path(staged)
+        for name, blob_sha in TEXTURES.items():
+            data = resize_tga_box(
+                downloader(name, blob_sha), max_edge, normal_map=name.endswith("_normal.tga")
+            )
+            width, height, _, _ = parse_tga_header(data)
+            details[name] = {
+                "source_blob_sha1": blob_sha,
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "width": width,
+                "height": height,
+                "bytes": len(data),
+            }
+            (staged / name).write_bytes(data)
+        manifest = {
+            "upstream_commit": SOURCE_COMMIT,
+            "license": "Microsoft Rocketbox MIT; retain LICENSE.md",
+            "max_edge": max_edge,
+            "normal_map_filter": "box-average then unit-vector normalization",
+            "textures": details,
+        }
+        (staged / "textures_manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        output.mkdir(parents=True, exist_ok=True)
+        for name in TEXTURES:
+            (staged / name).replace(output / name)
+        (staged / "textures_manifest.json").replace(output / "textures_manifest.json")
+    return manifest
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parent / "Textures")
     parser.add_argument("--max-edge", type=int, choices=(512, 1024, 2048), default=1024)
     parser.add_argument("--dry-run", action="store_true", help="List pinned inputs without downloading")
     args = parser.parse_args()
-    for name, blob_sha in TEXTURES.items():
-        if args.dry_run:
+    if args.dry_run:
+        for name, blob_sha in TEXTURES.items():
             print(f"MIT {name}: {SOURCE_LENGTH} bytes, git-sha1={blob_sha}")
-            continue
-        data = resize_tga_box(download_verified(name, blob_sha), args.max_edge)
-        args.output.mkdir(parents=True, exist_ok=True)
-        # Write only after source hash and TGA format validation, atomically.
-        with tempfile.NamedTemporaryFile(dir=args.output, prefix=".rocketbox-", delete=False) as tmp:
-            temp = Path(tmp.name)
-            tmp.write(data)
-        temp.replace(args.output / name)
-        w, h, _, _ = parse_tga_header(data)
-        print(f"OK: {name} {w}x{h}, {len(data)} bytes (verified upstream MIT source)")
-    if not args.dry_run:
-        print("Textures prepared locally only; Unity material/LOD/skin verification is still required.")
+        return
+    manifest = prepare_textures(args.output, args.max_edge)
+    for name, details in manifest["textures"].items():
+        print(f"OK: {name} {details['width']}x{details['height']}, "
+              f"{details['bytes']} bytes (verified upstream MIT source)")
+    print("Six textures and SHA-256 manifest prepared; Unity material/LOD QA still required.")
 
 
 if __name__ == "__main__":
