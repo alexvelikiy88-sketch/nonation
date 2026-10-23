@@ -7,6 +7,12 @@ namespace MIR
     // The prototype owns ONE local authoritative world. A shared online world needs a server transaction boundary.
     public sealed class MirEconomy
     {
+        // Keep all historical IDs for replay protection. Never evict receipts
+        // until a durable, migration-tested ledger archive is available.
+        // Fail closed before reaching unbounded world.json growth.
+        public const int MaxRecordedTransactions = 20000;
+        public const int MaxTransactionIdLength = 128;
+        public const int MaxTransactionReasonLength = 256;
         readonly MirWorldState s;
         readonly HashSet<string> seen = new HashSet<string>();
         float previousWorkPeriod = -1;
@@ -34,8 +40,13 @@ namespace MIR
         }
         public bool Transfer(string id,string from,string to,int amount,string reason)
         {
-            if(String.IsNullOrEmpty(id) || String.IsNullOrEmpty(to) || String.IsNullOrEmpty(from) || amount<=0)return false;
-            if(from==to || seen.Contains(id))return false;
+            if(String.IsNullOrEmpty(id) || String.IsNullOrEmpty(to) ||
+                String.IsNullOrEmpty(from) || amount<=0 ||
+                id.Length>MaxTransactionIdLength ||
+                from.Length>MaxTransactionIdLength ||
+                to.Length>MaxTransactionIdLength ||
+                (reason!=null && reason.Length>MaxTransactionReasonLength))return false;
+            if(from==to || seen.Contains(id) || s.transactions.Count>=MaxRecordedTransactions)return false;
             int source=Balance(from), recipient=Balance(to);
             if(source<amount || recipient<0 || (long)recipient+amount>int.MaxValue)return false;
             Credit(from,-amount);Credit(to,amount);
@@ -45,7 +56,8 @@ namespace MIR
         public bool BuyFood(MirCitizen buyer, MirBusiness store)
         {
             if(buyer==null || store==null || s.Citizen(buyer.id)!=buyer || s.Business(store.id)!=store ||
-                store.stock<1 || store.price<1 || buyer.inventoryFood==int.MaxValue)return false;
+                store.stock<1 || store.price<1 || buyer.inventoryFood==int.MaxValue ||
+                s.transactions.Count>=MaxRecordedTransactions)return false;
             string id=s.NewId("purchase");
             if(!Transfer(id,buyer.id,store.id,store.price,"purchased: "+store.productId))return false;
             store.stock--; buyer.inventoryFood++;
@@ -61,15 +73,19 @@ namespace MIR
         }
         public bool Work(MirCitizen worker)
         {
-            if(worker==null || s.Citizen(worker.id)!=worker || s.gameMinutes<worker.nextWorkMinute)return false;
+            if(worker==null || s.Citizen(worker.id)!=worker ||
+                s.gameMinutes<worker.nextWorkMinute ||
+                s.transactions.Count>=MaxRecordedTransactions)return false;
             var employer=s.Business(worker.workplaceId);
             if(employer==null || employer.cash<1200 || worker.energy<25)return false;
             string id=s.NewId("salary");
             if(!Transfer(id,employer.id,worker.id,1200,"completed shift"))return false;
             worker.nextWorkMinute=s.gameMinutes+360f;
-            worker.daysWorked++;worker.skill=Math.Min(999,worker.skill+1);
+            if(worker.daysWorked<int.MaxValue)worker.daysWorked++;
+            worker.skill=worker.skill>=999?999:Math.Min(999,worker.skill+1);
             worker.energy=Math.Max(0,worker.energy-9);
-            if(employer.kind=="farm" && employer.stock+4<=employer.capacity && employer.seed>0 && employer.water>0)
+            if(employer.kind=="farm" && (long)employer.stock+4<=employer.capacity &&
+               employer.seed>0 && employer.water>0)
             {
                 employer.stock+=4;employer.seed--;employer.water--;
             }
@@ -77,7 +93,16 @@ namespace MIR
         }
         public MirFreightOrder CreateRestock(string consumerId="market",string supplierId="warehouse",int qty=12)
         {
-            if(qty<1 || s.ActiveFreight()!=null)return null;
+            // Check ID availability before reserving goods or escrow.
+            // Saturating at Int32.MaxValue is safer than a wrapped freight ID.
+            if(qty<1 || s.jobSequence<=0 || s.jobSequence==int.MaxValue ||
+                s.ActiveFreight()!=null)return null;
+            // Existing terminal freight remains in the saved history. A restored
+            // or externally corrupted sequence must not reuse its order ID.
+            string nextOrderId = "freight-" + s.jobSequence;
+            foreach(var historic in s.freight)
+                if(historic!=null && String.Equals(historic.id,nextOrderId,StringComparison.Ordinal))
+                    return null;
             var from=s.Business(supplierId);var to=s.Business(consumerId);
             if(from==null || to==null || from==to || from.productId!=to.productId ||
                 from.stock<qty || from.stock<0 || to.stock<0 || (long)to.stock+qty>to.capacity)return null;
@@ -88,21 +113,50 @@ namespace MIR
             if(to.cash<cost+fee)return null;
             // Reserve goods and money now. Escrow is stored explicitly and paid only on physical completion.
             to.cash-=cost+fee;from.stock-=qty;
-            var order=new MirFreightOrder{id="freight-"+s.jobSequence++,supplierId=supplierId,consumerId=consumerId,
+            var order=new MirFreightOrder{id=nextOrderId,supplierId=supplierId,consumerId=consumerId,
                 productId=from.productId,quantity=qty,escrow=cost,freightFee=fee,stockReserved=true,status=MirOrderStatus.Created};
+            s.jobSequence++;
             s.freight.Add(order);Log("Заказан реальный груз: "+qty+" ед. "+from.productId);return order;
+        }
+        // Persisted orders and Unity references may contain inconsistent fields.
+        // Reject impossible states BEFORE any money, stock or stage mutation.
+        bool FreightMatchesState(MirFreightOrder o)
+        {
+            if(o==null || !s.freight.Contains(o) || o.quantity<=0 ||
+                String.IsNullOrEmpty(o.productId) || o.supplierId==o.consumerId)
+                return false;
+            var supplier=s.Business(o.supplierId);
+            var buyer=s.Business(o.consumerId);
+            if(supplier==null || buyer==null || supplier==buyer ||
+                supplier.productId!=o.productId || buyer.productId!=o.productId)
+                return false;
+
+            switch(o.status)
+            {
+                case MirOrderStatus.Created:
+                case MirOrderStatus.Loading:
+                case MirOrderStatus.Driving:
+                    return !o.paid && o.stockReserved && o.escrow>0 && o.freightFee>0;
+                case MirOrderStatus.Unloading:
+                case MirOrderStatus.Returning:
+                case MirOrderStatus.Completed:
+                    return o.paid && !o.stockReserved && o.escrow==0 && o.freightFee==0;
+                case MirOrderStatus.Cancelled:
+                    return !o.paid && !o.stockReserved && o.escrow==0 && o.freightFee==0;
+                default:
+                    return false;
+            }
         }
         public bool SetFreightStage(MirFreightOrder o,MirOrderStatus next)
         {
-            if(o==null || !s.freight.Contains(o) || o.status==next)return false;
-            if(o.status<=MirOrderStatus.Driving && (!o.stockReserved || o.quantity<=0))return false;
+            if(!FreightMatchesState(o) || o.status==next)return false;
             bool okay= (o.status==MirOrderStatus.Created && next==MirOrderStatus.Loading)
                 ||(o.status==MirOrderStatus.Loading && next==MirOrderStatus.Driving)
                 ||(o.status==MirOrderStatus.Driving && next==MirOrderStatus.Unloading)
                 ||(o.status==MirOrderStatus.Unloading && next==MirOrderStatus.Returning)
                 ||(o.status==MirOrderStatus.Returning && next==MirOrderStatus.Completed);
             if(!okay)return false;
-            if(next==MirOrderStatus.Unloading && !o.paid)
+            if(next==MirOrderStatus.Unloading)
             {
                 MirBusiness buyer=s.Business(o.consumerId),seller=s.Business(o.supplierId);
                 if(buyer==null||seller==null||!o.stockReserved || o.quantity<=0 ||
@@ -120,8 +174,9 @@ namespace MIR
         }
         public bool CancelFreight(MirFreightOrder o)
         {
-            if(o==null || !s.freight.Contains(o) || !o.stockReserved || o.paid ||
-                o.status==MirOrderStatus.Cancelled || o.status==MirOrderStatus.Completed)return false;
+            // A delivered/settled order must not be refunded, nor may a corrupt
+            // unpaid Returning/Unloading state create inventory via cancellation.
+            if(!FreightMatchesState(o) || o.status>MirOrderStatus.Driving)return false;
             MirBusiness supplier=s.Business(o.supplierId),buyer=s.Business(o.consumerId);
             if(supplier==null||buyer==null||o.quantity<=0||o.escrow<0||o.freightFee<0||
                 (long)supplier.stock+o.quantity>supplier.capacity ||
@@ -146,7 +201,7 @@ namespace MIR
                 previousWorkPeriod=period;
                 var farm=s.Business("farm");
                 var packing=s.Business("packing");
-                if(farm!=null&&packing!=null&&farm.stock>=10 && packing.stock+8<=packing.capacity)
+                if(farm!=null&&packing!=null&&farm.stock>=10 && (long)packing.stock+8<=packing.capacity)
                 {farm.stock-=10;packing.stock+=8;Log("Цех переработал 10 единиц сырья в 8 единиц продукции.");}
             }
         }
@@ -155,12 +210,13 @@ namespace MIR
             s.events.Add(new MirEvent{minute=s.gameMinutes,text=msg});
             if(s.events.Count>80)s.events.RemoveRange(0,s.events.Count-80);
         }
-        public int TotalKnownMoney()
+        public long TotalKnownMoney()
         {
-            int total=s.cityTreasury+s.externalMoney;
+            // Every account uses 32-bit credits, but the total of all accounts can exceed Int32.MaxValue.
+            long total=(long)s.cityTreasury+s.externalMoney;
             foreach(var p in s.citizens)total+=p.cash;
             foreach(var b in s.businesses)total+=b.cash;
-            foreach(var o in s.freight)total+=o.escrow+o.freightFee;
+            foreach(var o in s.freight)total+=(long)o.escrow+o.freightFee;
             return total;
         }
     }

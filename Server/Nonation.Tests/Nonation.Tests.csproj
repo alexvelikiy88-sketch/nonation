@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Compile Include="../Nonation.Server/WorldAuthority.cs" Link="Server/WorldAuthority.cs" />
     <Compile Include="../../Assets/MIR/Scripts/MirState.cs" Link="Core/MirState.cs" />
     <Compile Include="../../Assets/MIR/Scripts/MirEconomy.cs" Link="Core/MirEconomy.cs" />
     <Compile Include="../../Assets/MIR/Scripts/MirSimulationLoop.cs" Link="Core/MirSimulationLoop.cs" />

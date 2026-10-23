@@ -25,12 +25,18 @@ def run():
             time.sleep(.25)
 
     spectator = get_json("/api/v1/spectator/scene")
-    assert spectator["version"] == 1
+    assert spectator["version"] == 2
+    assert isinstance(spectator["sequence"], int) and spectator["sequence"] >= 1
     assert len(spectator["serverId"]) == 32
     assert len(spectator["citizens"]) == 39
     assert all(c["id"] != "player-001" for c in spectator["citizens"])
     assert all(set(c) == {"id", "x", "z"} for c in spectator["citizens"])
-    assert set(spectator) == {"version", "serverId", "gameMinutes", "citizens"}
+    assert set(spectator) == {"version", "serverId", "sequence", "gameMinutes", "citizens"}
+    assert len(spectator["citizens"]) <= 256
+    next_snapshot = get_json("/api/v1/spectator/scene")
+    assert next_snapshot["serverId"] == spectator["serverId"]
+    assert next_snapshot["sequence"] > spectator["sequence"]
+    assert next_snapshot["gameMinutes"] >= spectator["gameMinutes"]
     assert spectator["gameMinutes"] >= 480
 
     # Private economic state is not served even to a local caller by default.
@@ -76,6 +82,7 @@ def run():
             abs(resident["z"] - start_resident["z"]) > .04
         ):
             assert current["serverId"] == spectator["serverId"]
+            assert current["sequence"] > next_snapshot["sequence"]
             print("PASS: public spectator API, readonly security, CORS and moving server NPCs")
             return
     raise AssertionError("server NPCs or world clock did not advance")

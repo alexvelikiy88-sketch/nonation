@@ -12,6 +12,18 @@ cloud = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cloud)
 
 class CloudBuildTests(unittest.TestCase):
+    def test_immutable_preview_build_request(self):
+        sha = "c" * 40
+        self.assertEqual(
+            cloud.cloud_build_payload(sha, "agent/unity-webgl"),
+            {"clean": False, "delay": 0,
+             "branch": "agent/unity-webgl", "commit": sha},
+        )
+        with self.assertRaisesRegex(ValueError, "not approved"):
+            cloud.cloud_build_payload(sha, "feature/untrusted")
+        with self.assertRaisesRegex(ValueError, "immutable Git commit SHA"):
+            cloud.cloud_build_payload("main", "main")
+
     def test_single_build_number(self):
         self.assertEqual(cloud.build_number({"build": 42}), 42)
         self.assertEqual(cloud.build_number([{"build": 3}]), 3)
@@ -23,6 +35,23 @@ class CloudBuildTests(unittest.TestCase):
         self.assertTrue(cloud.matches_revision({"requestedRevision": sha}, sha))
         self.assertTrue(cloud.matches_revision({"changeset": [{"commitId": sha}]}, sha))
         self.assertFalse(cloud.matches_revision({"requestedRevision": "b" * 40}, sha))
+
+    def test_cloud_success_cannot_use_requested_sha_as_publication_proof(self):
+        from unittest.mock import patch
+        sha = "a" * 40
+        with patch.object(cloud, "api", return_value=(
+                200, {"buildStatus": "success", "requestedRevision": sha})), \
+                patch.object(cloud.time, "monotonic", side_effect=[0, 1]):
+            with self.assertRaisesRegex(RuntimeError, "lacks lastBuiltRevision"):
+                cloud.poll_build(12, sha)
+
+    def test_cloud_success_requires_exact_built_commit(self):
+        from unittest.mock import patch
+        sha = "a" * 40
+        with patch.object(cloud, "api", return_value=(
+                200, {"buildStatus": "success", "lastBuiltRevision": sha})), \
+                patch.object(cloud.time, "monotonic", side_effect=[0, 1]):
+            self.assertEqual(cloud.poll_build(12, sha)["lastBuiltRevision"], sha)
 
     def test_zip_unpack_and_validation(self):
         with tempfile.TemporaryDirectory() as work:
@@ -36,6 +65,74 @@ class CloudBuildTests(unittest.TestCase):
             cloud.unpack_webgl(archive, w / "out")
             self.assertTrue((w / "out" / "index.html").is_file())
             self.assertTrue((w / "out" / "Build" / "game.wasm").is_file())
+
+    def test_missing_individual_webgl_component(self):
+        for missing in ("wasm", "data", "js"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as work:
+                root = Path(work)
+                (root / "Build").mkdir()
+                (root / "index.html").write_text("<html>Unity</html>")
+                for ext in ("wasm", "data", "js"):
+                    if ext != missing:
+                        (root / "Build" / f"game.{ext}").write_bytes(b"test")
+                with self.assertRaisesRegex(ValueError, "Missing uncompressed"):
+                    cloud.check_webgl(root)
+
+    def test_compressed_artifact_is_not_pages_safe(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            (root / "Build").mkdir()
+            (root / "index.html").write_text("<html>Unity</html>")
+            for ext in ("wasm", "data", "js"):
+                (root / "Build" / f"game.{ext}").write_bytes(b"test")
+            (root / "Build" / "game.wasm.br").write_bytes(b"compressed")
+            with self.assertRaisesRegex(ValueError, "Brotli/Gzip"):
+                cloud.check_webgl(root)
+
+    def test_empty_html_is_rejected(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            (root / "Build").mkdir()
+            (root / "index.html").write_bytes(b"")
+            with self.assertRaisesRegex(ValueError, "nonempty index.html"):
+                cloud.check_webgl(root)
+
+    def test_hosted_verification_checks_all_files_without_browser_claim(self):
+        from unittest.mock import patch
+
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/octet-stream"}
+            def __init__(self, request):
+                self.request = request
+            def geturl(self):
+                return self.request.full_url
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            (root / "Build").mkdir()
+            (root / "index.html").write_bytes(b"<html>Unity</html>")
+            for ext in ("wasm", "data", "js"):
+                (root / "Build" / f"game.{ext}").write_bytes(b"test")
+            seen = []
+            def fake_urlopen(request, timeout=0):
+                seen.append(request.full_url)
+                self.assertEqual(request.get_method(), "HEAD")
+                return Response(request)
+            with patch.object(cloud, "urlopen", side_effect=fake_urlopen):
+                cloud.verify_hosted(root, "https://example.github.io/nonation/")
+            self.assertEqual(len(seen), 4)
+            self.assertIn("https://example.github.io/nonation/index.html", seen)
+            self.assertIn("https://example.github.io/nonation/Build/game.wasm", seen)
+
+    def test_hosted_verification_rejects_http(self):
+        with tempfile.TemporaryDirectory() as work:
+            with self.assertRaisesRegex(ValueError, "HTTPS URL"):
+                cloud.verify_hosted(Path(work), "http://example.github.io/nonation/")
 
     def test_no_empty_artifact(self):
         with tempfile.TemporaryDirectory() as work:
@@ -59,6 +156,208 @@ class CloudBuildTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 cloud.unpack_webgl(archive, w / "out")
             self.assertFalse((w / "outside.txt").exists())
+
+class LegacyInputContractTests(unittest.TestCase):
+    """Check real Unity 6 legacy InputManager axes even on a clean checkout."""
+
+    @staticmethod
+    def preflight_module():
+        source = SCRIPT.parent / "unity_source_preflight.py"
+        spec = importlib.util.spec_from_file_location("unity_source_preflight_test", source)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_committed_wasd_mouse_axes(self):
+        text = (SCRIPT.parents[1] / "ProjectSettings/InputManager.asset").read_text()
+        self.assertEqual(self.preflight_module().legacy_input_issues(text), [])
+
+    def test_missing_axis_fails(self):
+        text = (SCRIPT.parents[1] / "ProjectSettings/InputManager.asset").read_text()
+        broken = text.replace("m_Name: Mouse Y", "m_Name: Missing Y")
+        self.assertIn(
+            "Missing or mismapped legacy input axis: Mouse Y",
+            self.preflight_module().legacy_input_issues(broken),
+        )
+
+    def test_keyboard_mapping_regression_fails(self):
+        text = (SCRIPT.parents[1] / "ProjectSettings/InputManager.asset").read_text()
+        broken = text.replace("altPositiveButton: w", "altPositiveButton: x")
+        self.assertIn(
+            "Missing or mismapped legacy input axis: Vertical",
+            self.preflight_module().legacy_input_issues(broken),
+        )
+
+
+class CloudLogDiagnosisTests(unittest.TestCase):
+    def test_earliest_compile_error_excludes_terminal_export_failure(self):
+        log = "\n".join((
+            "Starting Unity Editor",
+            "Importing assets",
+            "Assets/MIR/Scripts/Test.cs(5,17): error CS0117: bad API",
+            "Some stack trace",
+            "Unity Player Export Failure",
+        ))
+        detected = cloud.primary_failure_lines(log)
+        self.assertEqual(len(detected), 1)
+        self.assertEqual(detected[0][0], 3)
+        self.assertIn("error CS0117", detected[0][1])
+        self.assertNotIn("Unity Player Export Failure", detected[0][1])
+
+    def test_no_invented_error_when_only_export_failure_exists(self):
+        self.assertEqual(cloud.primary_failure_lines("Unity Player Export Failure"), [])
+        self.assertEqual(cloud.primary_failure_lines(
+            "Unity Player Export Failure\nerror CS9999 after the summary"
+        ), [])
+
+    def test_log_redaction_removes_credentials_and_signed_url(self):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"UNITY_SA_SECRET_KEY": "secret-unit-test"}):
+            redacted = cloud.redact_log(
+                "Failed secret-unit-test https://storage.googleapis.com/test?token=123"
+            )
+        self.assertNotIn("secret-unit-test", redacted)
+        self.assertNotIn("token=123", redacted)
+        self.assertIn("[REDACTED]", redacted)
+
+
+
+class UnityCloudV2ContractTests(unittest.TestCase):
+    """The supported v2 log API responds with 200, 202 or 307 (not only 303)."""
+
+    def _response(self, status, body):
+        class Response:
+            def __init__(self):
+                self.status = status
+            def read(self, amount=-1):
+                return body[:amount] if amount >= 0 else body
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+        return Response()
+
+    def test_decodes_gzip_log_to_real_lines(self):
+        import gzip
+        log = "Assets/Test.cs(6): error CS0117: failed\nUnity Player Export Failure\n"
+        packed = gzip.compress(log.encode("utf-8"))
+        self.assertEqual(cloud.decode_cloud_log_bytes(packed), log)
+        self.assertEqual(cloud.primary_failure_lines(cloud.decode_cloud_log_bytes(packed))[0][0], 1)
+
+    def test_decodes_zip_log_entry(self):
+        import io
+        archive_bytes = io.BytesIO()
+        with zipfile.ZipFile(archive_bytes, "w") as archive:
+            archive.writestr("logs/Editor.log", "Build failed: check build input\n")
+        self.assertIn("Build failed", cloud.decode_cloud_log_bytes(archive_bytes.getvalue()))
+
+    def test_rejects_unknown_binary_log(self):
+        with self.assertRaisesRegex(ValueError, "appears binary"):
+            cloud.decode_cloud_log_bytes(b"\x01\x00\xff\x08" * 200)
+
+    def test_autobuild_uses_documented_pagination_and_follows_revision(self):
+        from unittest.mock import patch
+        sha = "c" * 40
+        with patch.object(cloud, "api", return_value=(
+            200, [{"build": 12, "requestedRevision": sha}]
+        )) as mocked:
+            self.assertEqual(cloud.wait_for_autobuild(sha), 12)
+        mocked.assert_called_once_with(
+            "GET", cloud.ROOT + "/builds?per_page=20&page=1"
+        )
+
+    def test_v2_inline_200_log_requires_no_signed_download(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        response = self._response(200, b"Assets/Test.cs(1): error CS0117")
+        opener = SimpleNamespace(open=Mock(return_value=response))
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
+                patch.object(cloud, "urlopen") as storage:
+            text = cloud.read_cloud_log(3)
+            self.assertIn("error CS0117", text)
+            storage.assert_not_called()
+        request = opener.open.call_args.args[0]
+        self.assertIn("/builds/3/log?redirect=auto", request.full_url)
+        self.assertEqual(request.get_header("Authorization"), "Basic test")
+
+    def test_v2_manual_202_signed_url_has_no_unity_auth(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        import json
+        signed = "https://storage.googleapis.com/log.txt?sig=fake"
+        response = self._response(202, json.dumps({"url": signed}).encode())
+        opener = SimpleNamespace(open=Mock(return_value=response))
+        storage = self._response(200, b"first real error\nother line\n")
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
+                patch.object(cloud, "urlopen", return_value=storage) as downloader:
+            self.assertIn("first real error", cloud.read_cloud_log(3))
+            downloader.assert_called_once_with(signed, timeout=60)
+
+    def test_v2_307_location_is_handled_without_credentials_redirect(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from urllib.error import HTTPError
+        from io import BytesIO
+        signed = "https://storage.googleapis.com/log.txt?sig=another"
+        redirect = HTTPError(
+            cloud.ROOT + "/builds/3/log", 307, "Temporary Redirect",
+            {"Location": signed}, BytesIO(b"")
+        )
+        opener = SimpleNamespace(open=Mock(side_effect=redirect))
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
+                patch.object(cloud, "urlopen", return_value=self._response(
+                    200, b"Unity Editor imported the scene"
+                )) as downloader:
+            self.assertIn("Unity Editor", cloud.read_cloud_log(3))
+            downloader.assert_called_once_with(signed, timeout=60)
+
+    def test_nested_signed_url_envelope(self):
+        signed = "https://storage.googleapis.com/log.txt?sig=redacted"
+        self.assertEqual(
+            cloud.log_redirect_url({"data": {"links": {"downloadUrl": signed}}}),
+            signed,
+        )
+        with self.assertRaisesRegex(ValueError, "safe fields:"):
+            cloud.log_redirect_url({"status": "queued", "attempt": 3})
+
+    def test_structured_build_steps_find_compiler_error_without_exposing_url(self):
+        from unittest.mock import patch
+        steps = [
+            {"name": "Compile scripts", "messages": [
+                {"typeCode": 3, "content":
+                 "Assets/MIR/Scripts/MirTest.cs(4,20): error CS0117: unsupported API"}
+            ]},
+            {"name": "Final summary", "messages": [
+                {"content": "Unity Player Export Failure"}
+            ]}
+        ]
+        with patch.object(cloud, "api", return_value=(200, steps)) as mocked:
+            hits = cloud.diagnostic_build_steps(3)
+        self.assertEqual(len(hits), 1)
+        self.assertIn("error CS0117", hits[0][2])
+        mocked.assert_called_once_with(
+            "GET", cloud.ROOT + "/builds/3/steps"
+        )
+
+    def test_log_redirect_cannot_loop_back_to_authenticated_api(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        import json
+        internal = f"{cloud.ROOT}/builds/3/log"
+        opener = SimpleNamespace(open=Mock(return_value=self._response(
+            202, json.dumps({"url": internal}).encode()
+        )))
+        with patch.object(cloud, "secret_header", return_value="Basic test"), \
+                patch.object(cloud, "build_opener", return_value=opener), \
+                patch.object(cloud, "urlopen") as downloader:
+            with self.assertRaisesRegex(RuntimeError, "authenticated API"):
+                cloud.read_cloud_log(3)
+            downloader.assert_not_called()
+
 
 class UnityDownloadLinkTests(unittest.TestCase):
     def test_project_scoped_v2_artifact(self):

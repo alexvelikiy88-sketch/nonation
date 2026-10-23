@@ -109,6 +109,40 @@ def check_source(path: pathlib.Path) -> None:
     if '/Scripts/' in rel and 'using UnityEditor;' in code:
         problems.append(f'{rel}: runtime assembly directly references UnityEditor')
 
+def legacy_input_issues(manager: str) -> list[str]:
+    """Validate legacy Input axes used by MirPlayer and MirFollowCamera.
+
+    Additional gamepad mappings are permitted. Require committed keyboard
+    WASD and mouse orbit axes rather than editor-generated defaults.
+    """
+    if "InputManager:" not in manager or "m_Axes:" not in manager:
+        return ["InputManager.asset has no Unity legacy m_Axes settings"]
+    blocks = re.split(r"(?m)^  - serializedVersion:\s*3\s*$", manager)
+    axes = {}
+    for block in blocks[1:]:
+        fields = dict(re.findall(r"(?m)^    (\w+):\s*([^\r\n]*)$", block))
+        name = fields.get("m_Name", "").strip()
+        if name:
+            axes.setdefault(name, []).append(fields)
+    required = {
+        "Horizontal": {"type": "0", "negativeButton": "left",
+                       "positiveButton": "right", "altNegativeButton": "a",
+                       "altPositiveButton": "d"},
+        "Vertical": {"type": "0", "negativeButton": "down",
+                     "positiveButton": "up", "altNegativeButton": "s",
+                     "altPositiveButton": "w"},
+        "Mouse X": {"type": "1", "axis": "0"},
+        "Mouse Y": {"type": "1", "axis": "1"},
+    }
+    return [
+        "Missing or mismapped legacy input axis: " + name
+        for name, expected in required.items()
+        if not any(all(axis.get(key, "").strip() == value
+                       for key, value in expected.items())
+                   for axis in axes.get(name, []))
+    ]
+
+
 def main() -> int:
     all_cs = sorted((ROOT / 'Assets').rglob('*.cs'))
     require(len(all_cs) >= 20, f'Incomplete Unity source: {len(all_cs)} C# files')
@@ -142,6 +176,22 @@ def main() -> int:
     manifest = json.loads((ROOT / 'Packages/manifest.json').read_text())
     require('com.unity.modules.unitywebrequest' in manifest.get('dependencies', {}),
             'WebGL networking requires com.unity.modules.unitywebrequest')
+    # Legacy Input axes must be committed for clean Unity Cloud checkouts.
+    input_manager = ROOT / 'ProjectSettings/InputManager.asset'
+    if not input_manager.is_file():
+        problems.append('Missing ProjectSettings/InputManager.asset: WASD and mouse axes are not reproducible')
+    else:
+        problems.extend(legacy_input_issues(input_manager.read_text(encoding='utf-8-sig')))
+    player_settings = ROOT / 'ProjectSettings/ProjectSettings.asset'
+    if player_settings.is_file():
+        input_mode = re.search(
+            r'(?m)^\s*activeInputHandler:\s*(\d+)\s*$',
+            player_settings.read_text(encoding='utf-8-sig'),
+        )
+        require(input_mode is not None and input_mode.group(1) in ('0', '2'),
+                'Unity PlayerSettings must enable legacy Input (activeInputHandler 0 or 2)')
+    else:
+        problems.append('Missing ProjectSettings/ProjectSettings.asset: cannot verify input backend')
     scene = ROOT / 'Assets/MIR/Scenes/MIR_PlayableDistrict.unity'
     scene_meta = ROOT / 'Assets/MIR/Scenes/MIR_PlayableDistrict.unity.meta'
     game_meta = ROOT / 'Assets/MIR/Scripts/MirGame.cs.meta'

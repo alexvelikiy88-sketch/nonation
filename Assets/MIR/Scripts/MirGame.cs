@@ -55,6 +55,14 @@ namespace MIR
             Freight=new GameObject("Supply Truck Controller").AddComponent<MirFreightDriver>();Freight.Init(this);
             Economy.Log("Открыт управляемый район nonation (Unity).");
             MirRemoteWorldSync.TryAttach(this);
+            // Browser smoke-test proof: emitted only after the real scene, player,
+            // residents, vehicles and HUD have been initialized.
+            Debug.Log("NONATION_RUNTIME_READY scene=" +
+                      UnityEngine.SceneManagement.SceneManager.GetActiveScene().name +
+                      " player=" + (Player != null && Player.Resident != null ? Player.Resident.id : "missing") +
+                      " npcs=" + NPCs.Count +
+                      " vehicles=" + City.Vehicles.Count +
+                      " citizens=" + World.citizens.Count);
         }
         void Update()
         {

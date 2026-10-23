@@ -1,0 +1,50 @@
+{
+  "license": "Microsoft Rocketbox MIT; retain LICENSE.md",
+  "max_edge": 1024,
+  "normal_map_filter": "box-average then unit-vector normalization",
+  "textures": {
+    "m007_body_color.tga": {
+      "bytes": 3145746,
+      "height": 1024,
+      "sha256": "e14e258e5b173f8e47f2cf3726191ae388b82daec2e4788c973793fd8f16e5b2",
+      "source_blob_sha1": "1757150789a5fdcf733394ff21a60512530b4f1a",
+      "width": 1024
+    },
+    "m007_body_normal.tga": {
+      "bytes": 3145746,
+      "height": 1024,
+      "sha256": "5bc98dd7d0590dd4b25efee6a62acb22e228c4097b65bf422cb24de31aea8487",
+      "source_blob_sha1": "5bc8f98e588d55964e2b6a2d0029778f4a9db9e6",
+      "width": 1024
+    },
+    "m007_body_specular.tga": {
+      "bytes": 3145746,
+      "height": 1024,
+      "sha256": "055523b34fd4927d6723bc2d79d7d13ec8ce4908024145cc943cb30af422620c",
+      "source_blob_sha1": "611bbd149179a52c6fbded07375904d462e49c19",
+      "width": 1024
+    },
+    "m007_head_color.tga": {
+      "bytes": 3145746,
+      "height": 1024,
+      "sha256": "84bcb874c815833bf0de6bdb85237ca46bd771750ba30ce84b6d526982ee70e0",
+      "source_blob_sha1": "e5b23c4f55e499893c2a92ec7e52d0252bee2ae3",
+      "width": 1024
+    },
+    "m007_head_normal.tga": {
+      "bytes": 3145746,
+      "height": 1024,
+      "sha256": "b0588b2294a993ea114ac029a55e6cd3c0e7315f803c6894344d732f1fb09810",
+      "source_blob_sha1": "0a99ce9aa6014e94c3385555f66a14da7599b757",
+      "width": 1024
+    },
+    "m007_head_specular.tga": {
+      "bytes": 3145746,
+      "height": 1024,
+      "sha256": "a68c568465d06b4cf151d361c3e1c8f4ed9c09eb47640d7350228207b2e445cd",
+      "source_blob_sha1": "81fe377939cf8eaedd5d14dfb5261650de86bf1e",
+      "width": 1024
+    }
+  },
+  "upstream_commit": "0943055db6ec570bcef9f2c8b41c9e5467c808f9"
+}

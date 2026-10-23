@@ -14,22 +14,97 @@ namespace MIR
             var c=new[]{new Color(.27f,.47f,.62f),new Color(.47f,.39f,.31f),new Color(.45f,.51f,.36f),new Color(.66f,.36f,.30f),new Color(.28f,.34f,.39f)};
             return MirRenderMaterials.Create(c[Mathf.Abs(variant)%c.Length]);
         }
+        // Runtime guard for optional character prefabs. This cannot certify skin
+        // weights, texture quality, LODs or actual animation transitions.
+        static readonly System.Collections.Generic.HashSet<string> ReportedRigFailures=
+            new System.Collections.Generic.HashSet<string>();
+        static void WarnOnce(string prefab,string reason)
+        {
+            string key=prefab+"|"+reason;
+            if(ReportedRigFailures.Add(key))
+                Debug.LogWarning("MIR character '"+prefab+"' unavailable: "+reason+
+                    ". Using diagnostic articulated proxy (NOT final game art).");
+        }
+
+        static bool HasPlayableRig(GameObject instance,Animator animator,out string reason)
+        {
+            reason=null;
+            if(animator==null){reason="Animator component missing";return false;}
+            if(animator.avatar==null || !animator.avatar.isValid || !animator.avatar.isHuman)
+            {reason="missing or invalid Humanoid Avatar";return false;}
+            if(animator.runtimeAnimatorController==null)
+            {reason="Animator Controller missing";return false;}
+
+            bool speedParameter=false;
+            foreach(var parameter in animator.parameters)
+            {
+                if(parameter.name=="Speed" && parameter.type==AnimatorControllerParameterType.Float)
+                {speedParameter=true;break;}
+            }
+            if(!speedParameter){reason="float Speed parameter missing";return false;}
+            if(!animator.HasState(0,Animator.StringToHash("Locomotion")))
+            {reason="Locomotion state missing";return false;}
+
+            bool idle=false,walk=false,run=false;
+            var clips=animator.runtimeAnimatorController.animationClips;
+            if(clips==null){reason="animation clips missing";return false;}
+            foreach(var clip in clips)
+            {
+                if(clip==null || clip.length<=.03f)continue;
+                string name=clip.name;
+                if(name.IndexOf("TPose",System.StringComparison.OrdinalIgnoreCase)>=0 ||
+                   name.IndexOf("T-Pose",System.StringComparison.OrdinalIgnoreCase)>=0)continue;
+                idle |= name.IndexOf("Idle",System.StringComparison.OrdinalIgnoreCase)>=0;
+                walk |= name.IndexOf("Walk",System.StringComparison.OrdinalIgnoreCase)>=0;
+                run |= name.IndexOf("Run",System.StringComparison.OrdinalIgnoreCase)>=0 ||
+                       name.IndexOf("Jog",System.StringComparison.OrdinalIgnoreCase)>=0 ||
+                       name.IndexOf("Sprint",System.StringComparison.OrdinalIgnoreCase)>=0;
+            }
+            if(!idle || !walk || !run)
+            {reason="Idle/Walk/Run animation clip set incomplete";return false;}
+            foreach(var renderer in instance.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if(!renderer.enabled || renderer.sharedMesh==null || renderer.sharedMesh.vertexCount<=0)
+                    continue;
+                // An empty SkinnedMeshRenderer may exist beside a valid Humanoid
+                // Avatar. Bones and bindposes must be coherent before accepting it.
+                var bones=renderer.bones;
+                var bindposes=renderer.sharedMesh.bindposes;
+                if(bones!=null && bones.Length>0 && bindposes!=null &&
+                   bindposes.Length==bones.Length)return true;
+            }
+            reason="active skinned mesh with valid bones/bindposes missing";
+            return false;
+        }
+        // Unlike string.GetHashCode(), this is stable across processes and IL2CPP.
+        // Keep the result nonnegative to avoid Math.Abs(int.MinValue) palette crashes.
+        static int StableVariant(string id)
+        {
+            unchecked
+            {
+                uint hash=2166136261u;
+                if(id!=null)foreach(char letter in id)
+                {hash^=letter;hash*=16777619u;}
+                return (int)(hash&0x7fffffffu);
+            }
+        }
         public static MirMotionDriver Attach(Transform holder,MirCitizen person)
         {
-            int variant=Mathf.Abs(person.id.GetHashCode());
-            var catalog=Resources.Load<MirAnimationCatalog>("MIR/QuaterniusCatalog");
-            bool hasWalk=catalog!=null && catalog.entries!=null &&
-                catalog.entries.Exists(x=>x!=null&&x.clip!=null&&x.name!=null&&
-                    x.name.IndexOf("Walk",System.StringComparison.OrdinalIgnoreCase)>=0);
-            GameObject source=hasWalk?Resources.Load<GameObject>("MIR/" +
-                (person.look=="default" || string.IsNullOrEmpty(person.look)?"PlayableHuman":person.look)):null;
-            if(source==null)source=Resources.Load<GameObject>("MIR/PlayableHuman");
+            int variant=StableVariant(person.id);
+            string requested=person.look=="default" || string.IsNullOrEmpty(person.look)?
+                "PlayableHuman":person.look;
+            // The rig/controller is checked below. A custom character must not
+            // depend on the existence of the Quaternius-only animation catalog.
+            GameObject source=Resources.Load<GameObject>("MIR/"+requested);
+            if(source==null && requested!="PlayableHuman")
+                source=Resources.Load<GameObject>("MIR/PlayableHuman");
             if(source!=null)
             {
-                var instance=Object.Instantiate(source,holder);instance.name="Humanoid · Quaternius";
+                var instance=Object.Instantiate(source,holder);instance.name="Humanoid · "+source.name;
                 instance.transform.localPosition=Vector3.zero;instance.transform.localRotation=Quaternion.identity;
                 var a=instance.GetComponentInChildren<Animator>();
-                if(a!=null && a.avatar!=null && a.avatar.isValid && a.avatar.isHuman)
+                string reason;
+                if(HasPlayableRig(instance,a,out reason))
                 {
                     // Match human height to ~1.72m while preserving authored proportions.
                     var rends=instance.GetComponentsInChildren<Renderer>();
@@ -39,8 +114,11 @@ namespace MIR
                     var driver=instance.AddComponent<MirMotionDriver>();driver.Configure(person.gaitSeed);
                     return driver;
                 }
+                WarnOnce(source.name,reason);
+                instance.SetActive(false); // rejected rig must not flash for one frame
                 Object.Destroy(instance);
             }
+            if(source==null)WarnOnce(requested,"no prefab available in Resources/MIR");
             // Fail safe: no invalid rig, no T-pose. This articulated proxy actually walks.
             var proxy=new GameObject("MIR · Articulated Humanoid Fallback");proxy.transform.SetParent(holder,false);
             var fallback=proxy.AddComponent<MirFallbackWalker>();fallback.Initialize(variant);
@@ -57,17 +135,35 @@ namespace MIR
     // Used only when a humanoid Avatar could not be validated; designed to avoid broken T-poses.
     public sealed class MirFallbackWalker : MonoBehaviour
     {
+        // Diagnostic proxy only, never counted as a finished character.
+        // Share a fixed palette instead of allocating three Materials per NPC.
+        static readonly Color SkinTone=new Color(.75f,.58f,.44f);
+        static readonly Color HairTone=new Color(.22f,.16f,.12f);
+        static readonly Color[] OutfitTones={
+            new Color(.24f,.38f,.49f),new Color(.62f,.43f,.32f),new Color(.37f,.52f,.41f)};
+        static Material sharedSkin,sharedHair;
+        static readonly Material[] sharedOutfits=new Material[3];
         Transform leftArm,rightArm,leftLeg,rightLeg,body;
         float seed;
+        static Material Shared(ref Material material,Color color)
+        {
+            if(material==null)
+            {
+                material=MirRenderMaterials.Create(color);
+                material.enableInstancing=true;
+            }
+            return material;
+        }
         public void Initialize(int variant)
         {
-            var skin=GetMaterial(new Color(.75f,.58f,.44f));var clothes=GetMaterial(new[]{
-                new Color(.24f,.38f,.49f),new Color(.62f,.43f,.32f),new Color(.37f,.52f,.41f)}[Mathf.Abs(variant)%3]);
+            int index=variant%OutfitTones.Length;
+            var skin=Shared(ref sharedSkin,SkinTone);
+            var clothes=Shared(ref sharedOutfits[index],OutfitTones[index]);
             seed=(variant%997)/997f;
             body=new GameObject("Body").transform;body.SetParent(transform,false);
             MirHumanFactory.Capsule("Torso",body,new Vector3(0,1.22f,0),new Vector3(.32f,.29f,.21f),clothes);
             MirHumanFactory.Capsule("Head",body,new Vector3(0,1.70f,0),new Vector3(.14f,.145f,.14f),skin);
-            MirHumanFactory.Capsule("Hair",body,new Vector3(0,1.85f,-.025f),new Vector3(.15f,.05f,.15f),GetMaterial(new Color(.22f,.16f,.12f)));
+            MirHumanFactory.Capsule("Hair",body,new Vector3(0,1.85f,-.025f),new Vector3(.15f,.05f,.15f),Shared(ref sharedHair,HairTone));
             leftArm=new GameObject("L arm pivot").transform;leftArm.SetParent(body,false);leftArm.localPosition=new Vector3(-.32f,1.48f,0);
             rightArm=new GameObject("R arm pivot").transform;rightArm.SetParent(body,false);rightArm.localPosition=new Vector3(.32f,1.48f,0);
             MirHumanFactory.Capsule("Left arm",leftArm,new Vector3(-.05f,-.29f,0),new Vector3(.09f,.32f,.09f),skin);
@@ -77,8 +173,6 @@ namespace MIR
             MirHumanFactory.Capsule("Left leg",leftLeg,new Vector3(0,-.43f,0),new Vector3(.12f,.46f,.12f),clothes);
             MirHumanFactory.Capsule("Right leg",rightLeg,new Vector3(0,-.43f,0),new Vector3(.12f,.46f,.12f),clothes);
         }
-        Material GetMaterial(Color c)
-        {return MirRenderMaterials.Create(c);}
         public void Pose(float normalizedSpeed,float t,MirActivity activity)
         {
             float speed=Mathf.Clamp01(normalizedSpeed);
