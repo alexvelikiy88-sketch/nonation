@@ -791,6 +791,77 @@ static void BoundedWorldLoadTests()
 }
 BoundedWorldLoadTests();
 
+static void BoundedTransactionHistoryTests()
+{
+    var world = MirWorldState.NewWorld();
+    var economy = new MirEconomy(world);
+    long initialTotal = economy.TotalKnownMoney();
+    int limit = MirEconomy.MaxRecordedTransactions;
+
+    // Every seeded receipt represents an actual transfer: the history and all
+    // balances remain consistent while approaching the fixed journal limit.
+    for (int i = 0; i < limit - 1; i++)
+    {
+        bool forward = i % 2 == 0;
+        if (!economy.Transfer("ledger-" + i,
+                forward ? "city" : "external",
+                forward ? "external" : "city", 1, "history"))
+            throw new Exception("FAIL: unable to seed valid ledger transaction " + i);
+    }
+    Check(world.transactions.Count == limit - 1 &&
+          economy.TotalKnownMoney() == initialTotal,
+        "journal can approach cap with money conserved and receipts retained");
+    Check(economy.Transfer("last-valid-ledger", "city", "external", 1, "history") &&
+          world.transactions.Count == limit,
+        "last available journal slot accepts one real transfer");
+
+    var hero = world.Citizen("player-001")!;
+    var shop = world.Business("market")!;
+    int playerCash = hero.cash, storeCash = shop.cash;
+    int storeStock = shop.stock, food = hero.inventoryFood;
+    int workCount = hero.daysWorked;
+    float nextShift = hero.nextWorkMinute;
+    int txSequence = world.transactionSequence;
+    long afterLimit = economy.TotalKnownMoney();
+
+    Check(!economy.Transfer("new-after-cap", "city", "external", 1, "blocked") &&
+          !economy.Transfer("ledger-0", "city", "external", 1, "replayed"),
+        "full journal rejects new transfers and any replay without erasing old IDs");
+    Check(!economy.BuyFood(hero, shop) && !economy.Work(hero),
+        "purchases and salaries fail closed when the ledger is full");
+    Check(world.transactions.Count == limit && world.transactionSequence == txSequence &&
+          hero.cash == playerCash && shop.cash == storeCash &&
+          shop.stock == storeStock && hero.inventoryFood == food &&
+          hero.daysWorked == workCount && hero.nextWorkMinute == nextShift &&
+          economy.TotalKnownMoney() == afterLimit,
+        "full ledger preserves credits, stock, work cooldown and generated ID sequence");
+
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+    string json = System.Text.Json.JsonSerializer.Serialize(world, jsonOptions);
+    var restored = System.Text.Json.JsonSerializer.Deserialize<MirWorldState>(json, jsonOptions)!;
+    var restarted = new MirEconomy(restored);
+    Check(restored.transactions.Count == limit &&
+          !restarted.Transfer("ledger-0", "city", "external", 1, "replay") &&
+          !restarted.Transfer("new-after-restart", "city", "external", 1, "blocked") &&
+          restarted.TotalKnownMoney() == afterLimit,
+        "after save/reload all original receipts remain and replay stays blocked");
+
+    // The input-size budget bounds each new row as well as row count.
+    var limitsWorld = MirWorldState.NewWorld();
+    var limitsEconomy = new MirEconomy(limitsWorld);
+    int initialCount = limitsWorld.transactions.Count;
+    long initialMoney = limitsEconomy.TotalKnownMoney();
+    Check(!limitsEconomy.Transfer(new string('X', MirEconomy.MaxTransactionIdLength + 1),
+            "city", "external", 1, "oversize") &&
+          !limitsEconomy.Transfer("valid-id", "city", "external", 1,
+            new string('X', MirEconomy.MaxTransactionReasonLength + 1)) &&
+          limitsWorld.transactions.Count == initialCount &&
+          limitsEconomy.TotalKnownMoney() == initialMoney,
+        "oversized receipt identifiers and reasons never change the ledger");
+}
+BoundedTransactionHistoryTests();
+
+
 
 
 

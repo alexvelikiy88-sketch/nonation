@@ -7,6 +7,12 @@ namespace MIR
     // The prototype owns ONE local authoritative world. A shared online world needs a server transaction boundary.
     public sealed class MirEconomy
     {
+        // Keep all historical IDs for replay protection. Never evict receipts
+        // until a durable, migration-tested ledger archive is available.
+        // Fail closed before reaching unbounded world.json growth.
+        public const int MaxRecordedTransactions = 20000;
+        public const int MaxTransactionIdLength = 128;
+        public const int MaxTransactionReasonLength = 256;
         readonly MirWorldState s;
         readonly HashSet<string> seen = new HashSet<string>();
         float previousWorkPeriod = -1;
@@ -34,8 +40,13 @@ namespace MIR
         }
         public bool Transfer(string id,string from,string to,int amount,string reason)
         {
-            if(String.IsNullOrEmpty(id) || String.IsNullOrEmpty(to) || String.IsNullOrEmpty(from) || amount<=0)return false;
-            if(from==to || seen.Contains(id))return false;
+            if(String.IsNullOrEmpty(id) || String.IsNullOrEmpty(to) ||
+                String.IsNullOrEmpty(from) || amount<=0 ||
+                id.Length>MaxTransactionIdLength ||
+                from.Length>MaxTransactionIdLength ||
+                to.Length>MaxTransactionIdLength ||
+                (reason!=null && reason.Length>MaxTransactionReasonLength))return false;
+            if(from==to || seen.Contains(id) || s.transactions.Count>=MaxRecordedTransactions)return false;
             int source=Balance(from), recipient=Balance(to);
             if(source<amount || recipient<0 || (long)recipient+amount>int.MaxValue)return false;
             Credit(from,-amount);Credit(to,amount);
@@ -45,7 +56,8 @@ namespace MIR
         public bool BuyFood(MirCitizen buyer, MirBusiness store)
         {
             if(buyer==null || store==null || s.Citizen(buyer.id)!=buyer || s.Business(store.id)!=store ||
-                store.stock<1 || store.price<1 || buyer.inventoryFood==int.MaxValue)return false;
+                store.stock<1 || store.price<1 || buyer.inventoryFood==int.MaxValue ||
+                s.transactions.Count>=MaxRecordedTransactions)return false;
             string id=s.NewId("purchase");
             if(!Transfer(id,buyer.id,store.id,store.price,"purchased: "+store.productId))return false;
             store.stock--; buyer.inventoryFood++;
@@ -61,7 +73,9 @@ namespace MIR
         }
         public bool Work(MirCitizen worker)
         {
-            if(worker==null || s.Citizen(worker.id)!=worker || s.gameMinutes<worker.nextWorkMinute)return false;
+            if(worker==null || s.Citizen(worker.id)!=worker ||
+                s.gameMinutes<worker.nextWorkMinute ||
+                s.transactions.Count>=MaxRecordedTransactions)return false;
             var employer=s.Business(worker.workplaceId);
             if(employer==null || employer.cash<1200 || worker.energy<25)return false;
             string id=s.NewId("salary");
