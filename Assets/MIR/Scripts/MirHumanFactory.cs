@@ -63,8 +63,17 @@ namespace MIR
             if(!idle || !walk || !run)
             {reason="Idle/Walk/Run animation clip set incomplete";return false;}
             foreach(var renderer in instance.GetComponentsInChildren<SkinnedMeshRenderer>())
-                if(renderer.enabled && renderer.sharedMesh!=null)return true;
-            reason="active skinned mesh missing";
+            {
+                if(!renderer.enabled || renderer.sharedMesh==null || renderer.sharedMesh.vertexCount<=0)
+                    continue;
+                // An empty SkinnedMeshRenderer may exist beside a valid Humanoid
+                // Avatar. Bones and bindposes must be coherent before accepting it.
+                var bones=renderer.bones;
+                var bindposes=renderer.sharedMesh.bindposes;
+                if(bones!=null && bones.Length>0 && bindposes!=null &&
+                   bindposes.Length==bones.Length)return true;
+            }
+            reason="active skinned mesh with valid bones/bindposes missing";
             return false;
         }
         // Unlike string.GetHashCode(), this is stable across processes and IL2CPP.
