@@ -1,0 +1,48 @@
+name: NONATION Pull Request Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Assets/**'
+      - 'Server/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - 'Tools/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-backend:
+    name: Source preflight and .NET 8
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout proposed code
+        uses: actions/checkout@v4
+      - name: Unity source and scene preflight (not a Unity build)
+        run: python3 Tools/unity_source_preflight.py
+      - name: Unit-test Unity Cloud API helper
+        run: python3 -m unittest discover -s Tools/tests -p 'test_*.py' -v
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test shared economy and simulation
+        run: dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release
+      - name: Build .NET backend
+        run: dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo
+      - name: HTTP and persistence smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          export NONATION_LISTEN_URL=http://127.0.0.1:5180
+          export NONATION_WORLD_FILE="${RUNNER_TEMP}/nonation-pr-smoke-world.json"
+          export NONATION_CORS_ORIGINS=https://alexvelikiy88-sketch.github.io
+          dotnet Server/Nonation.Server/bin/Release/net8.0/Nonation.Server.dll &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          python3 Tools/smoke_server.py
