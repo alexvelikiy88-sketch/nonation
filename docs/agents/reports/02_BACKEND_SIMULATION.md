@@ -8,8 +8,8 @@
 - **База до старта:** `f909e47ce764911281eee2b97f9b6568a83779d6`
 - **PR:** [#1 — Backend invariants and spectator contract (draft)](https://github.com/alexvelikiy88-sketch/nonation/pull/1)
 - **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests)
-- **Достоверные тесты по собственной работе:** написаны регрессионные сценарии для экономики, snapshots и реального WorldAuthority; исполнение новых тестов и HTTP smoke не подтверждено (нет .NET SDK)
-- **Блокеры:** отсутствует .NET SDK и доступ из контейнера к github.com; PR #1 содержит непроверенные компилятором изменения, не merge до CI
+- **Достоверные тесты по собственной работе:** [PR Validation #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005514411) SUCCESS на `981494a0`: .NET 8 domain tests, server build, HTTP/snapshot persistence smoke; Unity C#/WebGL не тестировались
+- **Блокеры:** нет локального .NET SDK; .NET CI успешен, но Unity Editor / WebGL / реальная браузерная загрузка не проверены; отдельный вопрос по локальным игровым часам в режиме spectator
 
 ## Журнал работы
 
@@ -20,16 +20,23 @@
 | 23.10.26 | Spectator DTO v2: серверная последовательность `sequence`, строгий порядок, UUID сессии, после рестарта новая сессия, запрет повторов/старого сервера, ограничение 256 NPC/256 KiB; добавлены тесты cursor и HTTP smoke assertions | `0d1f65968b21200e53be7ab8be6aad71e78303b3` / [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) | Проверено по исходникам, что клиент меняет только позиции NPC и время просмотра; HTTP smoke не выполнялся | .NET execution, Unity serialization, WebGL, CORS smoke |
 | 23.10.26 | Загрузка `WorldAuthority.Load`: явный отказ при null-списках и null-элементах; подключены real-authority tests: NPC координаты, деньги, Save/Load, ротация serverId, некорректный JSON | `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` / [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) | Проведён статический анализ вызовов и проектов `.csproj`; тесты записаны, но не запускались | .NET build/test, HTTP process restart, Unity C#, WebGL/browser |
 
+| 23.10.26 | Получено подтверждение фактического CI на PR head после кодовых правок: экономика и симуляция, версия/последовательность снимков, сохранение, startup в ASP.NET и read-only HTTP | [PR Validation #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005514411), head `981494a0` | **SUCCESS:** `dotnet run` консольных тестов; `dotnet build` ASP.NET backend; Python HTTP smoke; логи содержат PASS money invariants, NPC movement, restart, read-only, CORS. Сборка с nullable warnings | Unity C#, Editor, WebGL/IL2CPP, browser |
+
 ## Последнее проверенное состояние
 
-Работа ведётся только в ветке `agent/backend-simulation`, PR [#1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) оставлен draft. На момент входа `main` = `e3f91d34a7176cf453710ef1548c904ec7202be8` (относительно baseline изменился только `TASKS.md`), пересечений по изменённым файлам нет. Последний найденный CI [#54](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40001657334) относится к `f909e47`: source-validation success, WebGL/cloud/deploy skipped. Новые коммиты этим запуском **не проверены**.
+**CI:** [NONATION Pull Request Validation #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005514411) — `SUCCESS`, `head_sha=981494a0c429822418d25d47957a7f5be9f42d3e`. По логу `Source preflight and .NET 8` выполнено:
+- Unity source/scene **статическая** preflight — success (не Unity Editor).
+- `dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release` — success; реально напечатаны `PASS` для 64-bit ledger, грузового escrow, перемещения NPC, неприкосновенности игрока, покупки еды, spectator v2 replay/restart, `WorldAuthority.Save/Load` и инвариантов денег.
+- `dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release --nologo` — `Build succeeded` с nullable warnings (`CS8618/CS8603` и др.), без ошибок сборки.
+- Локальный HTTP smoke на запущенном `Nonation.Server.dll` — `PASS: public spectator API, readonly security, CORS and moving server NPCs`. Истинная публичная HTTPS-среда не проверялась.
 
-### Аудит тестов и найденные дефекты
+Работа ведётся в `agent/backend-simulation`; [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) остаётся draft для review и проверки Unity. `TASKS.md` и `main` не редактировались исполнителем. Результат CI относится к head `981494a0`; дальнейшие документальные коммиты не меняют тестируемые C# файлы.
 
-В `Server/Nonation.Tests/Program.cs` проверяются магазин, еда, зарплата/cooldown, движение NPC, реальные запасы/производственный tick, логистика и возврат escrow, запрет повторных транзакций, сериализация публичного снимка. Найдены и исправлены в отдельных коммитах:
-- `TotalKnownMoney()` суммировал счета в `int`, что переполнялось при корректных балансах; теперь `long` и регрессионный тест.
-- Клиент ранее допускал откат игрового времени до минуты и не отличал повторный ответ: `MirSceneSnapshot` версия 2 с `sequence`, `MirSceneSnapshotCursor` и bounded payload. Новый клиент **не совместим** со старым v1 endpoint, сервер и Unity-клиент должны быть обновлены согласованно.
-- `WorldAuthority.Load` допускал явные `null`-списки, поскольку `candidate.citizens?.Count < 1` не ловит `null`; добавлена проверка и сценарии сохранения/перезапуска на настоящем классе `WorldAuthority`.
+### Аудит и исправленные дефекты
+
+1. `TotalKnownMoney()` агрегировал общий баланс в `int`; переполнение при корректной сумме счетов устранено переходом на `long`. CI: PASS для суммы выше `Int32.MaxValue`, переводов и защиты от replay.
+2. `MirRemoteWorldSync` раньше допускал откат времени и не отличал повторный ответ. Теперь `MirSceneSnapshot` v2 с `sequence`, `MirSceneSnapshotCursor`, лимитом 256 NPC и отбрасыванием invalid/replay. Старый v1 endpoint несовместим: backend и Unity должны обновляться согласованно.
+3. `WorldAuthority.Load` допускал явные `null` в списках при использовании `?.Count < 1`; проверки исправлены. CI: PASS по загрузке после рестарта, координатам NPC, денежному инварианту и отклонению испорченных сохранений.
 
 ### Изменённые файлы (полный список PR)
 
@@ -42,19 +49,24 @@
 7. `Tools/smoke_server.py`
 8. `docs/agents/reports/02_BACKEND_SIMULATION.md`
 
-### Тесты и ограничения
+### Ограничения
 
-**Фактически сделано:** аудит исходников GitHub, сверка разрешённых путей, чтение тестов и CI, статическая проверка последовательности и контрактов. **Не запускалось:** `dotnet build`, `dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj`, настоящий HTTP smoke и серверный рестарт, Unity C# / Editor, IL2CPP, WebGL/browser. В среде нет .NET SDK, выход в GitHub из локального контейнера недоступен; нет оснований объявлять экономический инвариант и прогресс NPC доказанными на новой ветке до исполнения тестов.
-
-**Ограничение защиты payload:** сервер отдаёт не более 256 публичных NPC; Unity проверяет предел 256 KiB **после получения**, перед JSON-десериализацией. Это не ограничение сетевой памяти во время загрузки; на production ingress нужен отдельный предел ответа. Старые v1-клиенты несовместимы с v2. Экономический snapshot по-прежнему не доступен публично, API только GET.
+- Unity C# компилятор, WebGL/IL2CPP, сцена в браузере и реальный внешний HTTPS ingress не проверялись.
+- Размер JSON Unity проверяет **после загрузки**, перед десериализацией. Это не ограничение размера принимаемого сетевого буфера; для public ingress нужен отдельный лимит тела ответа.
+- `MirRemoteWorldSync` не меняет счета, товары, инвентарь, транзакции или локальный save (режим remote блокирует `Save`), **но пока присваивает `game.World.gameMinutes` для часов UI**. Это мутирует локальное игровое время в памяти, хотя не сохраняется. Полное разделение требует изменения других владельцев (см. запрос ниже).
+- В `main` идёт параллельная работа других агентов. Интегратор должен проверить PR diff/конфликты и протестировать клиент v2 перед merge.
 
 ## CROSS-OWNER REQUEST
 
-Нет. Если нужна правка чужого файла: `[путь] — [зачем] — [точный требуемый интерфейс] — [ссылка на ошибку]`.
+**Разделить часы серверного spectator и локальную экономику**:
+- `Assets/MIR/Scripts/MirGame.cs` — владелец AGENT 01: добавить read-only `public float RemoteGameMinutes { get; private set; }` и `public void SetRemoteGameMinutes(float minutes)` с проверкой `RemoteSpectator` и конечного неотрицательного значения; метод **не должен** менять `World.gameMinutes` / `Economy` / сохранение.
+- `Assets/MIR/Scripts/MirHUD.cs` — владелец AGENT 03: отображать время по `game.RemoteGameMinutes` при `game.RemoteSpectator`, иначе обычное `game.World.gameMinutes`; вычислять отображаемые день/час/минуту из выбранного значения.
+- После готовности интерфейса AGENT 02 в `MirRemoteWorldSync.Accept` заменит `game.World.gameMinutes = snapshot.gameMinutes` на `game.SetRemoteGameMinutes(snapshot.gameMinutes)`.
+- Причина: сейчас при просмотре удалённого мира меняется локальный часовой показатель, от которого рассчитываются offline-экономические тики; хотя save заблокирован, лучше не мутировать локальный world вообще.
 
 ## Следующее конкретное действие
 
-В доступной среде с .NET 8 выполнить `dotnet run --project Server/Nonation.Tests/Nonation.Tests.csproj --configuration Release`, `dotnet build Server/Nonation.Server/Nonation.Server.csproj --configuration Release`, запустить сервер на `127.0.0.1:5180` с разрешённым origin и `python3 Tools/smoke_server.py`. Проверить рестарт процесса с тем же `NONATION_WORLD_FILE`, затем дать интегратору результаты до merge PR #1. Следующий технический блокер — отсутствие реального CI на агентной ветке и Unity build.
+Перед merge PR #1 интегратор проверяет Unity C# + реальный WebGL/browser и согласованное обновление spectator v2; CI .NET уже SUCCESS (#15). После CROSS-OWNER REQUEST заменить мутацию `World.gameMinutes` на отдельные удалённые часы. Следующий технический блок AGENT 02 — аудит переполнения запасов и этапов грузового заказа с регрессионными тестами.
 
 ## Правила заполнения
 
