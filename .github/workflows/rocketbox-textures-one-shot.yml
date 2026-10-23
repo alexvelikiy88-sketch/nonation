@@ -1,6 +1,7 @@
 name: Rocketbox textures one-shot preparation
 
-# Temporary workflow on graphics branch only. Remove after verified assets land.
+# Temporary graphics-branch workflow. Corrected importer handles original 24-bit TGA.
+# Delete after verified textures are committed; no production build changes.
 on:
   push:
     branches: [agent/graphics-ui]
@@ -13,7 +14,7 @@ permissions:
 jobs:
   prepare-textures:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
