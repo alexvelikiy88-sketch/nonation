@@ -1,15 +1,15 @@
 # NONATION — проверенное состояние WebGL и публикации
 
-**Дата:** 24.10.26. **Unity WebGL export реально работает; публикация Pages пока не настроена.** Публичный интерактивный запуск не подтверждён.
+**Дата:** 24.10.26. **GitHub Pages теперь публикует Unity WebGL, но браузерная игра ещё не подтверждена как рабочая.** Ранняя версия содержит runtime shader error; исправление в main ожидает WebGL/Chromium проверки.
 
 ## Факт завершённой интеграции и Pages blocker
 
 - [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) принят в `main`, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`; исходные агенты #1/#2/#3 стали `merged` без перезаписывания отчётов.
 - [Cross-Branch #40020804529](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804529) — **SUCCESS** на совмещённом `main`.
-- На **старой** main-ревизии `47a6424...` реальная Unity Cloud WebGL job завершилась **SUCCESS**, но последующий [Publish Pages #40019259462](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462) завершился **FAILURE** на первом шаге `actions/configure-pages@v5` с `Get Pages site failed. Not Found`. Это проблема включения GitHub Pages, **не** ошибка Unity компиляции.
+- На старой main-ревизии `47a6424...` Unity Cloud WebGL **SUCCESS**; первый Pages deploy упал на конфигурации, но после выбора Source=`GitHub Actions` повторный **deployment job** [Actions #40019259462, attempt 3](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462) завершился **SUCCESS**, URL `https://alexvelikiy88-sketch.github.io/nonation/`. Опубликован **не новый** объединённый SHA.
 - [Интегрированная release-сборка #40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542) на SHA `a75602df...` запущена отдельно; результат Unity Cloud/Pages/браузера должен быть проверен по финальным jobs.
-- **Одно действие владельца:** [Settings → Pages](https://github.com/alexvelikiy88-sketch/nonation/settings/pages), Source = `GitHub Actions`, сохранить. Утилита `actions/configure-pages` не может включить Pages со стандартным `GITHUB_TOKEN` без повышенного токена. Не сохранять дополнительный PAT ради разового включения, если доступен штатный UI.
-- После включения Pages повторить **только** failed deployment job на собранном интегрированном SHA, при необходимости (не перезапускать платный Unity build без причины). После этого HTTPS и реальный Chromium smoke.
+- **Настройка Pages завершена:** владелец включил Source=`GitHub Actions`; GitHub Actions подтвердил `Confirm Pages configuration` и `Deploy to GitHub Pages` = success. Больше не требовать ручной настройки или нового PAT.
+- **Текущий релизный gate:** Unity WebGL build + artifact проверенного SHA `4366103dd439cfda4b65223608f84688084ba998` после shader fix, затем Pages deploy и Chromium smoke; ранний Pages success не достаточен.
 
 
 
@@ -41,7 +41,7 @@
 4. `actions/upload-pages-artifact` → `actions/deploy-pages`; проверить HTTPS и Content-Type всех файлов.
 5. `browser-smoke` (Chromium) проверяет `NONATION_RUNTIME_READY`, сцену, Canvas, NPC, `NONATION_PLAYER_MOVED`, `NONATION_SAVE_WRITTEN` и `NONATION_SAVE_RESTORED` после reload, а также критические ошибки Console.
 
-**Предполагаемый URL:** `https://alexvelikiy88-sketch.github.io/nonation/` — **не заявлять как работающую игру**, пока пункт 5 не прошёл на опубликованной версии.
+**Опубликованный URL:** `https://alexvelikiy88-sketch.github.io/nonation/` (GitHub Pages deployment SUCCESS на историческом SHA `47a6424...`). **Полноценная игра по нему не подтверждена:** реальный artifact Chromium smoke на другом раннем Unity SHA `cb46b496...` выявил `InvalidOperationException: Missing runtime shader` и отсутствие маркера `NONATION_RUNTIME_READY`.
 
 ## Доступ и ограничения
 
