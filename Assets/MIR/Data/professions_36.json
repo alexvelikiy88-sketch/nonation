@@ -1,0 +1,1086 @@
+{
+  "schema": "mir-professions-draft/0.1",
+  "status": "draft_not_integrated",
+  "professions": [
+    {
+      "id": "farmer",
+      "name": "Фермер",
+      "sector": "agriculture",
+      "facility": "farm",
+      "task_family": "crop_plan",
+      "useful_output": "Урожай по реальной партии семян, воды и времени",
+      "benefit": "Снабжение рынка и кухни",
+      "main_skill": "agriculture",
+      "base_hourly_gross_minor": 2800,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "cook",
+      "name": "Повар",
+      "sector": "food",
+      "facility": "kitchen",
+      "task_family": "meal_order",
+      "useful_output": "Готовая порция из списанных ингредиентов",
+      "benefit": "Питание жителей",
+      "main_skill": "cooking",
+      "base_hourly_gross_minor": 3000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "baker",
+      "name": "Пекарь",
+      "sector": "food",
+      "facility": "bakery",
+      "task_family": "bake_batch",
+      "useful_output": "Партия хлеба из ингредиентов",
+      "benefit": "Базовое доступное питание",
+      "main_skill": "baking",
+      "base_hourly_gross_minor": 3000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "barista",
+      "name": "Бариста",
+      "sector": "food",
+      "facility": "cafe",
+      "task_family": "beverage_order",
+      "useful_output": "Напиток для конкретного заказа",
+      "benefit": "Обслуживание кафе",
+      "main_skill": "beverages",
+      "base_hourly_gross_minor": 2800,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "clerk",
+      "name": "Продавец",
+      "sector": "retail",
+      "facility": "supermarket",
+      "task_family": "sale",
+      "useful_output": "Оплаченная выдача товара и пополнение полки",
+      "benefit": "Доступность запасов",
+      "main_skill": "retail",
+      "base_hourly_gross_minor": 2700,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "butcher",
+      "name": "Мясник",
+      "sector": "retail",
+      "facility": "supermarket",
+      "task_family": "portion_batch",
+      "useful_output": "Разделанная пищевая партия с выходом и отходами",
+      "benefit": "Сырьё кухни и домашней готовки",
+      "main_skill": "food_processing",
+      "base_hourly_gross_minor": 3000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "warehouse",
+      "name": "Кладовщик",
+      "sector": "logistics",
+      "facility": "depot",
+      "task_family": "warehouse_order",
+      "useful_output": "Принятый или собранный заказ без дублирования",
+      "benefit": "Работа склада",
+      "main_skill": "inventory",
+      "base_hourly_gross_minor": 2700,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "courier",
+      "name": "Курьер",
+      "sector": "logistics",
+      "facility": "depot",
+      "task_family": "delivery",
+      "useful_output": "Доставленная партия и подтверждение получателя",
+      "benefit": "Последняя миля снабжения",
+      "main_skill": "logistics",
+      "base_hourly_gross_minor": 2800,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "truck_driver",
+      "name": "Водитель грузовика",
+      "sector": "logistics",
+      "facility": "depot",
+      "task_family": "freight",
+      "useful_output": "Перемещение оптовой партии между складами",
+      "benefit": "Большие поставки",
+      "main_skill": "heavy_driving",
+      "base_hourly_gross_minor": 3200,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "bus_driver",
+      "name": "Водитель автобуса",
+      "sector": "transport",
+      "facility": "bus_depot",
+      "task_family": "scheduled_service",
+      "useful_output": "Оплаченная смена и выполненные рейсы с пассажирами",
+      "benefit": "Общественный транспорт",
+      "main_skill": "driving",
+      "base_hourly_gross_minor": 3200,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "taxi_driver",
+      "name": "Водитель такси",
+      "sector": "transport",
+      "facility": "taxi_depot",
+      "task_family": "ride",
+      "useful_output": "Завершённая поездка конкретного пассажира",
+      "benefit": "Срочные поездки",
+      "main_skill": "driving",
+      "base_hourly_gross_minor": 3000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "mechanic",
+      "name": "Автомеханик",
+      "sector": "maintenance",
+      "facility": "garage",
+      "task_family": "repair",
+      "useful_output": "Восстановление конкретного узла с расходом деталей",
+      "benefit": "Исправность транспорта",
+      "main_skill": "mechanics",
+      "base_hourly_gross_minor": 3400,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "electrician",
+      "name": "Электрик",
+      "sector": "utilities",
+      "facility": "grid_depot",
+      "task_family": "grid_repair",
+      "useful_output": "Исправный кабель/щит/фонарь, профилактический осмотр",
+      "benefit": "Надёжность электросети",
+      "main_skill": "electrical",
+      "base_hourly_gross_minor": 3400,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "power_operator",
+      "name": "Оператор электростанции",
+      "sector": "utilities",
+      "facility": "power_station",
+      "task_family": "power_shift",
+      "useful_output": "Энергия в пределах мощности, топлива и смены",
+      "benefit": "Электроснабжение",
+      "main_skill": "power_operations",
+      "base_hourly_gross_minor": 3500,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "plumber",
+      "name": "Сантехник",
+      "sector": "utilities",
+      "facility": "water_depot",
+      "task_family": "pipe_repair",
+      "useful_output": "Исправный участок трубы или сантехника",
+      "benefit": "Водопровод и канализация",
+      "main_skill": "plumbing",
+      "base_hourly_gross_minor": 3200,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "water_operator",
+      "name": "Оператор водоканала",
+      "sector": "utilities",
+      "facility": "water_plant",
+      "task_family": "water_shift",
+      "useful_output": "Обработанная и поданная вода с учётом расхода",
+      "benefit": "Вода и очистка стоков",
+      "main_skill": "water_operations",
+      "base_hourly_gross_minor": 3300,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "heating_operator",
+      "name": "Оператор котельной",
+      "sector": "utilities",
+      "facility": "boiler_plant",
+      "task_family": "heating_shift",
+      "useful_output": "Тепло в пределах ресурсов и пропускной способности",
+      "benefit": "Обогрев подключённых домов",
+      "main_skill": "heating",
+      "base_hourly_gross_minor": 3300,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "hvac_tech",
+      "name": "Мастер климатической техники",
+      "sector": "maintenance",
+      "facility": "hvac_workshop",
+      "task_family": "hvac_service",
+      "useful_output": "Установленный или обслуженный кондиционер/котёл",
+      "benefit": "Комфорт помещений",
+      "main_skill": "hvac",
+      "base_hourly_gross_minor": 3400,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "sanitation",
+      "name": "Работник санитарной службы",
+      "sector": "public",
+      "facility": "recycling",
+      "task_family": "waste_route",
+      "useful_output": "Собранный и переданный на обработку мусор",
+      "benefit": "Чистота и санитарное состояние",
+      "main_skill": "sanitation",
+      "base_hourly_gross_minor": 3000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "landscaper",
+      "name": "Садовник",
+      "sector": "public",
+      "facility": "park_depot",
+      "task_family": "landscape",
+      "useful_output": "Уход за конкретной посадкой и уборка территории",
+      "benefit": "Парки и качество среды",
+      "main_skill": "horticulture",
+      "base_hourly_gross_minor": 2800,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "builder",
+      "name": "Строитель",
+      "sector": "construction",
+      "facility": "construction_depot",
+      "task_family": "construction_stage",
+      "useful_output": "Проверенный этап строительства с расходом материалов",
+      "benefit": "Рост фонда жилья и рабочих мест",
+      "main_skill": "construction",
+      "base_hourly_gross_minor": 3400,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "carpenter",
+      "name": "Столяр",
+      "sector": "construction",
+      "facility": "carpentry",
+      "task_family": "furniture_order",
+      "useful_output": "Мебель из материала для заказчика",
+      "benefit": "Оснащение квартир и предприятий",
+      "main_skill": "carpentry",
+      "base_hourly_gross_minor": 3200,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "dispatcher",
+      "name": "Диспетчер служб",
+      "sector": "emergency",
+      "facility": "dispatch_center",
+      "task_family": "dispatch_shift",
+      "useful_output": "Принятый вызов, очередь и назначенный экипаж",
+      "benefit": "Согласованная экстренная помощь",
+      "main_skill": "dispatch",
+      "base_hourly_gross_minor": 3100,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "paramedic",
+      "name": "Фельдшер",
+      "sector": "emergency",
+      "facility": "ambulance_station",
+      "task_family": "medical_response",
+      "useful_output": "Помощь на месте и перевозка пациента",
+      "benefit": "Скорая помощь",
+      "main_skill": "first_aid",
+      "base_hourly_gross_minor": 3500,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "doctor",
+      "name": "Врач",
+      "sector": "emergency",
+      "facility": "hospital",
+      "task_family": "treatment",
+      "useful_output": "Стабилизация/лечение с местом, персоналом и расходниками",
+      "benefit": "Здоровье жителей",
+      "main_skill": "medicine",
+      "base_hourly_gross_minor": 4000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "firefighter",
+      "name": "Пожарный",
+      "sector": "emergency",
+      "facility": "fire_station",
+      "task_family": "fire_response",
+      "useful_output": "Эвакуация и локализация действительного очага",
+      "benefit": "Спасение людей и имущества",
+      "main_skill": "firefighting",
+      "base_hourly_gross_minor": 3600,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "police",
+      "name": "Полицейский",
+      "sector": "public",
+      "facility": "police_station",
+      "task_family": "incident_response",
+      "useful_output": "Патруль, реагирование и документированное происшествие",
+      "benefit": "Защита и расследование",
+      "main_skill": "public_safety",
+      "base_hourly_gross_minor": 3500,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "teacher",
+      "name": "Учитель",
+      "sector": "education",
+      "facility": "school",
+      "task_family": "lesson",
+      "useful_output": "Проведённое занятие с присутствующими учениками",
+      "benefit": "Образование",
+      "main_skill": "teaching",
+      "base_hourly_gross_minor": 3200,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "preschool",
+      "name": "Воспитатель",
+      "sector": "education",
+      "facility": "kindergarten",
+      "task_family": "childcare",
+      "useful_output": "Смена ухода за конкретной группой детей",
+      "benefit": "Уход и возможность работать родителям",
+      "main_skill": "childcare",
+      "base_hourly_gross_minor": 3200,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "trainer",
+      "name": "Тренер",
+      "sector": "services",
+      "facility": "gym",
+      "task_family": "training_session",
+      "useful_output": "Проведённое безопасное занятие с клиентом",
+      "benefit": "Физическая форма и досуг",
+      "main_skill": "coaching",
+      "base_hourly_gross_minor": 3000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "musician",
+      "name": "Музыкант",
+      "sector": "culture",
+      "facility": "venue",
+      "task_family": "performance",
+      "useful_output": "Оплаченное выступление с зрителями",
+      "benefit": "Культура и настроение",
+      "main_skill": "music",
+      "base_hourly_gross_minor": 3000,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "programmer",
+      "name": "Программист",
+      "sector": "digital",
+      "facility": "office",
+      "task_family": "external_contract",
+      "useful_output": "Принятый результат ограниченного контракта",
+      "benefit": "Цифровые услуги и внешняя выручка",
+      "main_skill": "programming",
+      "base_hourly_gross_minor": 3600,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "designer",
+      "name": "Дизайнер",
+      "sector": "digital",
+      "facility": "studio",
+      "task_family": "design_order",
+      "useful_output": "Принятый макет/оформление для заказчика",
+      "benefit": "Услуги предприятиям и внешним клиентам",
+      "main_skill": "design",
+      "base_hourly_gross_minor": 3400,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "telecom",
+      "name": "Техник связи",
+      "sector": "utilities",
+      "facility": "telecom_station",
+      "task_family": "telecom_service",
+      "useful_output": "Работающий узел связи и обслуживание",
+      "benefit": "Телефон, вызовы и сеть заказов",
+      "main_skill": "telecom",
+      "base_hourly_gross_minor": 3300,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "social_worker",
+      "name": "Социальный работник",
+      "sector": "public",
+      "facility": "support_center",
+      "task_family": "support_case",
+      "useful_output": "Адресная помощь, направление на обучение и жильё",
+      "benefit": "Предотвращение замкнутого круга нужды",
+      "main_skill": "social_support",
+      "base_hourly_gross_minor": 3100,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    },
+    {
+      "id": "fuel_operator",
+      "name": "Оператор АЗС",
+      "sector": "transport",
+      "facility": "fuel_station",
+      "task_family": "refuel",
+      "useful_output": "Оплаченный отпуск топлива из запасов",
+      "benefit": "Топливо транспорта и служб",
+      "main_skill": "fuel_handling",
+      "base_hourly_gross_minor": 2900,
+      "standard_shift_game_hours": 8,
+      "max_regular_week_hours": 40,
+      "levels": [
+        "trainee",
+        "worker",
+        "specialist",
+        "master",
+        "expert"
+      ],
+      "pay_multipliers": [
+        0.85,
+        1,
+        1.2,
+        1.45,
+        1.7
+      ],
+      "pay_rule": "Оплата смены либо заказа по договору; не обе сразу. Средства резервирует плательщик.",
+      "deployment_status": "proposed_not_implemented",
+      "availability_rule": "Действующее рабочее место, оплачиваемая вакансия, входные ресурсы и обученный сотрудник."
+    }
+  ]
+}
