@@ -1,13 +1,6 @@
 name: MIR Unity WebGL
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'Assets/**'
-      - 'Packages/**'
-      - 'ProjectSettings/**'
-      - '.github/workflows/unity-webgl.yml'
 
 permissions:
   contents: read
@@ -37,6 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch verified CC0 Quaternius clips
+        run: python3 Tools/fetch_quaternius.py
       - uses: actions/cache@v4
         with:
           path: Library
