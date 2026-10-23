@@ -1,4 +1,5 @@
 """Offline tests for LOD source provenance and safe failure; Blender is not required."""
+from contextlib import ExitStack
 import hashlib
 import json
 from pathlib import Path
@@ -32,7 +33,8 @@ class BlenderPipelineOfflineTests(unittest.TestCase):
             payload = bytes((index + 20,)) * 12
             (folder / "Textures" / name).write_bytes(payload)
             details[name] = {"sha256": hashlib.sha256(payload).hexdigest(),
-                             "bytes": len(payload), "width": 1024, "height": 1024}
+                             "bytes": len(payload), "width": 1024, "height": 1024,
+                             "source_blob_sha1": lod.UPSTREAM_TEXTURE_BLOBS[name]}
         meta = {"upstream_commit": "0943055db6ec570bcef9f2c8b41c9e5467c808f9",
                 "textures": details}
         (folder / "Textures" / "textures_manifest.json").write_text(json.dumps(meta))
@@ -40,11 +42,23 @@ class BlenderPipelineOfflineTests(unittest.TestCase):
         source.write_bytes(b"synthetic FBX fixture: no geometry, not a real FBX")
         return source
 
+
+    @staticmethod
+    def accept_synthetic_upstream(folder, source):
+        """Override source pinned hashes *only* for these deliberate fake fixtures."""
+        stack = ExitStack()
+        stack.enter_context(patch.object(
+            lod, "SOURCE_BLOB_SHA1", lod.git_blob_sha1(source.read_bytes())))
+        stack.enter_context(patch.object(
+            lod, "LICENSE_BLOB_SHA1",
+            lod.git_blob_sha1((folder / "LICENSE.md").read_bytes())))
+        return stack
+
     def test_pinned_source_and_six_textures(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
             source = self.sample_folder(folder)
-            with patch.object(lod, "SOURCE_BLOB_SHA1", lod.git_blob_sha1(source.read_bytes())):
+            with self.accept_synthetic_upstream(folder, source):
                 result = lod.verify_source(folder, source)
                 self.assertEqual(result["source_blob_sha1"],
                                  lod.git_blob_sha1(source.read_bytes()))
@@ -61,6 +75,19 @@ class BlenderPipelineOfflineTests(unittest.TestCase):
                     lod.verify_source(folder, source)
                 (folder / "Textures" / name).unlink()
                 with self.assertRaisesRegex(ValueError, "Missing texture"):
+                    lod.verify_source(folder, source)
+
+    def test_tampered_manifest_origin_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            source = self.sample_folder(folder)
+            with self.accept_synthetic_upstream(folder, source):
+                path = folder / "Textures" / "textures_manifest.json"
+                manifest = json.loads(path.read_text())
+                name = lod.TEXTURE_NAMES[0]
+                manifest["textures"][name]["source_blob_sha1"] = "0" * 40
+                path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, "pinned upstream"):
                     lod.verify_source(folder, source)
 
     def test_invalid_original_or_license_rejected(self):
