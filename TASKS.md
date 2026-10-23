@@ -53,6 +53,13 @@
 - **Не проверено:** Unity Editor C#, настоящий IL2CPP/WebGL export, GPU/анимации/FPS, HTTPS runtime и браузерная загрузка игры. Все три исполнительных PR остаются Draft до независимого ревью и подтверждения Unity.
 - **Следующие ворота:** CHAT 01 — законный Unity Cloud log/build/browser proof; CHAT 02 — .NET correctness и совместимость spectator v2 c Unity; CHAT 03 — реальные текстуры/Avatar/Animator/LOD и право распространения; CHAT 04 — интеграционные конфликт-тесты, PR review и выпуск.
 
+## P0 — подтверждённая причина Unity Cloud Build №3 (24.10.26)
+
+- Полный Unity Cloud GZIP log **7 929 строк**, [read-only CI №40014215651](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014215651): **строка 7845** — `ERROR: There were no scenes configured to build!`. Терминальный `Unity player export failed!` появляется позже, в строке 7897. Эта конфигурационная ошибка — доказанный непосредственный блокер Build №3.
+- Историческая фактически собранная ревизия `784a3b56b9d486f458b87cdaf0990920a7d02913`: независимый просмотр Git tree подтвердил **отсутствие всех** `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`, `.unity.meta`, `ProjectSettings/EditorBuildSettings.asset`. В актуальном `main`/ветке Unity перечисленные файлы присутствуют, `EditorBuildSettings.asset` содержит `enabled: 1` и GUID `d57a17afca7d4fdb9252ba1ea864e3df`. Проверены кодом и содержимым GitHub, но ещё не Unity Editor.
+- CHAT 01 работает в своей ветке [PR #3](https://github.com/alexvelikiy88-sketch/nonation/pull/3). Контрольный Cloud WebGL preview на SHA `cb46b4960dd8bcd255880f569254dfe9876ea14b` стартовал как [Actions №40015140424](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424): **при последней проверке выполнялся**, публикация Pages намеренно отключена. Нельзя называть билд успешным до результата UBA и проверки точного SHA.
+- Следующий gate: Build Automation result SUCCESS + WebGL wasm/data/js и index, затем проверенный Pages HTTPS deployment и Chromium smoke тест сцены, WASD и persistence. Дополнительные ошибки могут появиться после устранения отсутствующей сцены; никаких гарантий срока запуска.
+
 ## Приоритетные контрольные точки
 
 | ID | Критерий завершения | Состояние | Владелец |
@@ -66,7 +73,7 @@
 
 ## Текущие зависимости и риски
 
-- **Build №3 (обновлено 24.10.26):** авторизованная read-only диагностика [GitHub Actions #40013127244](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013127244) успешно получила лог (4 775 строк), но определение первичной ошибки завершилось `ROOT CAUSE UNKNOWN`; нельзя считать терминальное `Unity Player Export Failure` причиной. Новый Unity build не запускался.
+- **Build №3 (подтверждение 24.10.26):** после корректной декомпрессии полного GZIP лога (7 929 строк) установлена ошибка `There were no scenes configured to build!` (строка 7845); старая собранная ревизия не содержала зарегистрированной сцены. [CI диагностики](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014215651). Контрольный preview новой ветки запущен отдельно, результата ещё нет.
 - **Unity Cloud credentials:** job `Read existing Unity Cloud build failure log` на SHA `44c6357acbcb78013e14de6c921482b21db69b30` получил защищённые `UNITY_SA_KEY_ID`/`UNITY_SA_SECRET_KEY` из GitHub Actions (значения скрыты) и успешно прочитал Build #3; разрешение на запуск новых облачных сборок отдельно не проверялось. Ключи не печатать и не коммитить.
 - **Графика:** оригинальные пользовательские архивы в публичном GitHub отсутствуют; нельзя считать, что реалистичные FBX уже доступны.
 - **Параллельная работа:** общие файлы и `TASKS.md` принадлежат Manager; все пересечения фиксируются в личных отчётах.
@@ -93,5 +100,7 @@
 | 24.10.26 | Принят manager PR #13 / SHA `9e76840`: временная интеграция всех трёх веток без конфликтов; 48 Python, 6 графических тестов и .NET/HTTP PASS; Unity WebGL не проверен. | [PR #13](https://github.com/alexvelikiy88-sketch/nonation/pull/13) · [CI](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40012146794) |
 
 | 24.10.26 | Unity Cloud read-only диагностика Build #3 впервые SUCCESS: 4 775 строк, первичная ошибка всё ещё UNKNOWN; CHAT 01 исправляет анализ ответов API/выделение реального failure. Новую сборку не запускали. | [Actions #40013127244](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013127244) · [Unity PR #3](https://github.com/alexvelikiy88-sketch/nonation/pull/3) |
+
+| 24.10.26 | Дополнение к старому статусу: Unity read-only #40014215651 расшифровал полный GZIP лог на 7 929 строк; строка 7845 — сцены отсутствовали в Build Settings у SHA `784a3b56`. Новая конфигурация уже закоммичена, отдельная Cloud preview #40015140424 ещё выполняется, WebGL не подтверждён. | [CI](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014215651) · [preview](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424) |
 
 **Правило:** Manager после каждого принятого PR добавляет дату, PR, проверенный SHA, результат CI и изменённые контрольные точки. Никогда не ставить «готово» по словам исполнителя без проверок.

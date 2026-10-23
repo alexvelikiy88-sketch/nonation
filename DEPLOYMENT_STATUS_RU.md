@@ -6,7 +6,7 @@
 
 - Unity Cloud Build №1: `CS0103` в `MirCity.cs`; исправлено.
 - Unity Cloud Build №2: `CS0117` в `MirUnitySetup.cs`; исправлено.
-- Unity Cloud Build №3: **FAILED**, `Unity Player Export Failure` в конце журнала (строка 7897). Эта строка описывает итог, а не точную первопричину. Детальные предшествующие строки полного Unity-лога ещё не проанализированы.
+- Unity Cloud Build №3: **FAILED** на историческом SHA `784a3b56b9d486f458b87cdaf0990920a7d02913`. Полный GZIP лог на 7 929 строк удалось получить: **строка 7845** — `ERROR: There were no scenes configured to build!`. Это непосредственная причина старой ошибки. `Unity Player Export Failure` на строке 7897 — последствие.
 - [GitHub Actions №50](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/39994762908): **source-validation SUCCESS** — Python preflight, настоящая .NET 8-компиляция, тесты экономики, HTTP smoke-test запущенного сервера и сверка SHA-256 анимационных FBX. WebGL/Pages в этом запуске **SKIPPED** по причине отсутствия GameCI activation.
 - Unity-сцена теперь находится непосредственно в Git: `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`. Ссылки на `MirGame` и `EditorBuildSettings` зафиксированы GUID.
 - Unity Editor + IL2CPP + WebGL не проверены в текущей среде после архитектурных исправлений. Не считать статические тесты проверкой Unity.
@@ -39,7 +39,7 @@
 
 ### Не завершено
 
-- Авторизованный журнал Unity Cloud Build №3 получен, но первичная ошибка до сих пор не установлена; необходима проверка Build failureDetails/steps и строк с контекстом.
+- Проверить, что устранённая в Git ошибка отсутствия сцены действительно снята новой Unity Cloud WebGL-сборкой, и диагностировать возможные следующие ошибки компилятора/импорта.
 - Реальная компиляция Unity Editor, WebGL/IL2CPP и проверка производительности в браузере.
 - Профессиональные Humanoid-персонажи, визуал улиц/машин, адаптивный интерфейс.
 - Общее сервер-авторитетное онлайн-состояние: .NET-сервер пока только read-only prototype, Unity-клиент в локальном режиме.
@@ -57,4 +57,4 @@
 
 ### Диагностика существующей Unity Cloud сборки — 24.10.26
 
-[GitHub Actions #40013127244](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013127244) подтвердил корректную авторизацию Unity service-account secrets и read-only доступ к Build №3 (`status=failure`, исходный revision `784a3b56b9d486f458b87cdaf0990920a7d02913`). Извлечено **4 775 строк** журнала без вывода подписанных URL или секретов; автоматический поиск завершился `ROOT CAUSE UNKNOWN`. Этот run **не запускал** нового Unity build: `webgl`, `cloud-webgl`, `deploy` и `browser-smoke` были SKIPPED. Приоритет CHAT 01 — выделить первичную ошибку из существующих логов/failureDetails без повторного build; затем адресный фикс и одно контролируемое WebGL испытание.
+[GitHub Actions #40013127244](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013127244) подтвердил корректную авторизацию Unity service-account secrets и read-only доступ к Build №3 (`status=failure`, исходный revision `784a3b56b9d486f458b87cdaf0990920a7d02913`). Извлечено **4 775 строк** журнала без вывода подписанных URL или секретов; автоматический поиск завершился `ROOT CAUSE UNKNOWN`. Этот run **не запускал** нового Unity build: `webgl`, `cloud-webgl`, `deploy` и `browser-smoke` были SKIPPED. **Историческая запись:** последующий полноценный GZIP-разбор [CI #40014215651](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014215651) уже установил отсутствие сцен (строка 7845). Из Git tree сборки №3 отсутствуют .unity/.meta и EditorBuildSettings.asset. В текущем main и ветке Unity есть включённая сцена. Контрольный preview [CI #40015140424](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40015140424) при последней проверке выполнялся, **не** подтверждал ни успешную сборку, ни публичный запуск.
