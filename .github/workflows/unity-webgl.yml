@@ -13,6 +13,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      inspect_cloud_build:
+        description: 'Read an existing Unity Cloud build log without starting another build (for example, 3)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -156,6 +162,22 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           path: build/WebGL/
+
+  cloud-diagnostics:
+    name: Read existing Unity Cloud build failure log (no new build)
+    needs: source-validation
+    if: github.event_name == 'workflow_dispatch' && inputs.inspect_cloud_build != '' && needs.source-validation.outputs.cloud_credentials_present == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Diagnose Cloud build without retriggering Unity
+        shell: bash
+        env:
+          UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
+          UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
+          BUILD_NUMBER_TO_INSPECT: ${{ inputs.inspect_cloud_build }}
+        run: python3 Tools/unity_cloud_ci.py --diagnose-build "$BUILD_NUMBER_TO_INSPECT"
 
   cloud-webgl:
     name: Unity Cloud WebGL (optional service account)
