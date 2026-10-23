@@ -3,7 +3,7 @@
 
 This utility is NOT a Unity importer and does not modify a scene, Resources or build.
 Generate local reduced TGA files for an Editor-only pilot. Redistribute Microsoft MIT
-license alongside resulting assets. Only tested input: original uncompressed 32-bit TGA.
+license alongside resulting assets. Accept verified uncompressed 24/32-bit TGA.
 """
 from __future__ import annotations
 
@@ -39,16 +39,19 @@ def parse_tga_header(payload: bytes) -> tuple[int, int, int, int]:
         raise ValueError("TGA header missing")
     id_length, palette_type, image_type = payload[:3]
     width, height, bit_depth, descriptor = struct.unpack_from("<HHBB", payload, 12)
-    if palette_type or image_type != 2 or bit_depth != 32 or not width or not height:
-        raise ValueError("Only uncompressed 32-bit true-color TGA is supported")
+    if palette_type or image_type != 2 or bit_depth not in (24, 32) or not width or not height:
+        raise ValueError(
+            f"Only uncompressed 24/32-bit true-color TGA is supported; "
+            f"got type={image_type} palette={palette_type} depth={bit_depth} dimensions={width}x{height}"
+        )
     offset = 18 + id_length
-    if len(payload) < offset + width * height * 4:
+    if len(payload) < offset + width * height * (bit_depth // 8):
         raise ValueError("Truncated TGA pixels")
     return width, height, offset, descriptor
 
 
 def resize_tga_box(payload: bytes, max_edge: int, *, normal_map: bool = False) -> bytes:
-    """Power-of-two box filter for BGRA pixels while retaining TGA orientation.
+    """Power-of-two box filter for BGR/BGRA pixels while retaining TGA orientation.
 
     Tangent-space normals are renormalized after filtering, not treated as colors.
     Unity material import and tangent-space correctness still require visual QA.
@@ -64,25 +67,26 @@ def resize_tga_box(payload: bytes, max_edge: int, *, normal_map: bool = False) -
     if width % factor or height % factor:
         raise ValueError("Only exact power-of-two downscales are supported")
     out_width, out_height = width // factor, height // factor
-    dst = bytearray(out_width * out_height * 4)
-    view = memoryview(payload)[offset:offset + width * height * 4]
+    channels = payload[16] // 8  # 3=BGR, 4=BGRA
+    dst = bytearray(out_width * out_height * channels)
+    view = memoryview(payload)[offset:offset + width * height * channels]
     area = factor * factor
     for y in range(out_height):
-        first_row = y * factor * width * 4
+        first_row = y * factor * width * channels
         for x in range(out_width):
-            sums = [0, 0, 0, 0]
-            first = first_row + x * factor * 4
+            sums = [0] * channels
+            first = first_row + x * factor * channels
             for yy in range(factor):
-                pos = first + yy * width * 4
+                pos = first + yy * width * channels
                 for xx in range(factor):
-                    idx = pos + xx * 4
-                    for ch in range(4):
+                    idx = pos + xx * channels
+                    for ch in range(channels):
                         sums[ch] += view[idx + ch]
-            index = (y * out_width + x) * 4
-            for ch in range(4):
+            index = (y * out_width + x) * channels
+            for ch in range(channels):
                 dst[index + ch] = (sums[ch] + area // 2) // area
             if normal_map:
-                # TGA stores B,G,R,A; normalize the XYZ normal from RGB.
+                # TGA stores B,G,R[,A]; normalize the XYZ normal from RGB.
                 nx = (sums[2] / area - 127.5) / 127.5
                 ny = (sums[1] / area - 127.5) / 127.5
                 nz = (sums[0] / area - 127.5) / 127.5
