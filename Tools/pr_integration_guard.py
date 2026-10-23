@@ -205,6 +205,20 @@ def git(*args: str) -> bytes:
     return subprocess.check_output(["git", *args], stderr=subprocess.PIPE)
 
 
+
+def comparison_base_for(head: str) -> str:
+    """Use the actual merge-base with trusted checked-out main.
+
+    Old pull_request.base.sha stays stale when agent branches merge changes from
+    manager/main. Comparing against that SHA falsely attributes TASKS.md to
+    agents even when they merely synced main.
+    """
+    ancestor = git("merge-base", "HEAD", head).decode("ascii", "replace").strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", ancestor):
+        raise RuntimeError("git merge-base produced no valid SHA")
+    return ancestor
+
+
 def api_warnings(changes: list[Change], base: str, head: str) -> list[str]:
     warnings = []
     for change in changes:
@@ -262,14 +276,17 @@ def main() -> int:
     branch = pr["head"]["ref"]
     body = pr.get("body") or ""
     policy = parse_ownership(Path("AGENTS.md").read_text(encoding="utf-8"))
+    # The event base SHA is validated above but can be stale on long-lived PRs.
+    # Only agent-specific changes since common ancestry are subject to ownership.
+    comparison_base = comparison_base_for(head)
     changes = parse_name_status_zero(
-        git("diff", "--name-status", "-z", "--find-renames", base, head)
+        git("diff", "--name-status", "-z", "--find-renames",
+            comparison_base, head)
     )
-    patch = git("diff", "--no-ext-diff", "--unified=0", base, head).decode(
-        "utf-8", "replace"
-    )
+    patch = git("diff", "--no-ext-diff", "--unified=0",
+                comparison_base, head).decode("utf-8", "replace")
     errors, warnings = check_changes(changes, branch, body, policy, patch)
-    warnings.extend(api_warnings(changes, base, head))
+    warnings.extend(api_warnings(changes, comparison_base, head))
     return report(errors, list(dict.fromkeys(warnings)), len(changes))
 
 
