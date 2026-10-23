@@ -8,14 +8,16 @@ on:
       - 'Packages/**'
       - 'ProjectSettings/**'
       - '.github/workflows/unity-webgl.yml'
+
 permissions:
   contents: read
+
 jobs:
   source-validation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify Unity source
+      - name: Verify full Unity project and license-safe subset
         shell: bash
         run: |
           set -euo pipefail
@@ -23,19 +25,23 @@ jobs:
           test -f Assets/MIR/Editor/MirCloudBuild.cs
           test -f Packages/manifest.json
           test -f ProjectSettings/ProjectVersion.txt
+          if find Assets -type f | grep -Ei '/(Girl_HighPoly|Floral_Look|Casual_Confidence|maid_skinned|dressfor|gign_paranoia|Honda_Civic|Freya)' ; then
+            echo 'WARNING: Review redistribution rights for third-party assets.'
+            exit 1
+          fi
           python3 -m json.tool Packages/manifest.json >/dev/null
+          echo 'Source-only Unity project checks passed.'
+
   webgl:
     needs: source-validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
       - uses: actions/cache@v4
         with:
           path: Library
-          key: unity-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
-          restore-keys: unity-WebGL-
+          key: unity-Linux-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: unity-Linux-WebGL-
       - name: Build Unity 6 WebGL
         uses: game-ci/unity-builder@v4
         env:
@@ -47,7 +53,8 @@ jobs:
           unityVersion: 6000.0.30f1
           targetPlatform: WebGL
           buildMethod: MIR.Editor.MirCloudBuild.Build
-      - uses: actions/upload-artifact@v4
+      - name: Upload WebGL artifact
+        uses: actions/upload-artifact@v4
         with:
           name: MIR-WebGL
           path: build/WebGL
