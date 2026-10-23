@@ -1,3 +1,4 @@
+# Generated Unity content
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -5,12 +6,15 @@
 [Bb]uilds/
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
 .vs/
 .idea/
+.DS_Store
 *.csproj
 *.sln
 *.suo
-.DS_Store
-# Models with unverified rights must not be uploaded to this public repo.
+*.tmp
+# Assets with redistribution restrictions require separate rights review
 Assets/MIR/Art/Characters/
 Assets/MIR/Art/NonCommercial/
