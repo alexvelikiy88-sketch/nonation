@@ -8,8 +8,11 @@ Unity Cloud and GitHub source revisions must match before publishing.
 from __future__ import annotations
 
 import base64
+import gzip
+import io
 import json
 import os
+import zlib
 import re
 from pathlib import Path, PurePosixPath
 import shutil
@@ -283,6 +286,52 @@ def verify_hosted(root: Path, page_url: str):
     print("PASS: hosted WebGL files are reachable over HTTPS (runtime NOT verified)", flush=True)
 
 
+def decode_cloud_log_bytes(data: bytes) -> str:
+    """Decode Unity's compressed log objects without accepting binary as text.
+
+    Unity log links can resolve to a gzip/ZIP object rather than text/plain.
+    Limit decompressed bytes so a corrupt archive cannot exhaust the runner.
+    """
+    limit = 40 * 1024 * 1024
+    if data.startswith(b"\x1f\x8b"):
+        print("UNITY_CLOUD_LOG_ENCODING gzip", flush=True)
+        with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as stream:
+            data = stream.read(limit + 1)
+    elif data.startswith(b"PK\x03\x04"):
+        print("UNITY_CLOUD_LOG_ENCODING zip", flush=True)
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            options = [entry for entry in archive.infolist()
+                       if not entry.is_dir()
+                       and entry.filename.lower().endswith((".log", ".txt"))]
+            if not options:
+                raise ValueError("Unity Cloud ZIP has no .log/.txt entry")
+            selected = max(options, key=lambda item: item.file_size)
+            if selected.file_size > limit:
+                raise ValueError("Unity Cloud ZIP log exceeds decompressed size cap")
+            with archive.open(selected) as stream:
+                data = stream.read(limit + 1)
+    elif data[:2] in (b"\x78\x01", b"\x78\x9c", b"\x78\xda"):
+        print("UNITY_CLOUD_LOG_ENCODING zlib", flush=True)
+        inflater = zlib.decompressobj()
+        decompressed = inflater.decompress(data, limit + 1)
+        if not inflater.eof or inflater.unconsumed_tail:
+            raise ValueError("Unity Cloud zlib log is incomplete or too large")
+        data = decompressed
+    else:
+        print("UNITY_CLOUD_LOG_ENCODING text-or-unknown", flush=True)
+    if len(data) > limit:
+        raise ValueError("Unity Cloud decoded log exceeds 40 MiB")
+    if b"\x00" in data[:1024] and not data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        raise ValueError("Unity Cloud log appears binary; magic=" + data[:8].hex())
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise ValueError("Unity Cloud log has unknown binary encoding; magic=" +
+                         data[:8].hex()) from None
+
+
 def read_cloud_log(number: int) -> str:
     """Read a completed UBA v2 log without submitting a new build.
 
@@ -339,8 +388,8 @@ def read_cloud_log(number: int) -> str:
     if data is None:
         raise RuntimeError("Unity Cloud API returned neither log text nor download URL")
     if len(data) > maximum:
-        raise ValueError("Unity Cloud log exceeds 20 MiB diagnostic limit")
-    return data.decode("utf-8", errors="replace")
+        raise ValueError("Unity Cloud log exceeds 20 MiB compressed diagnostic limit")
+    return decode_cloud_log_bytes(data)
 
 
 def log_redirect_url(payload) -> str:

@@ -226,6 +226,24 @@ class UnityCloudV2ContractTests(unittest.TestCase):
                 return False
         return Response()
 
+    def test_decodes_gzip_log_to_real_lines(self):
+        import gzip
+        log = "Assets/Test.cs(6): error CS0117: failed\nUnity Player Export Failure\n"
+        packed = gzip.compress(log.encode("utf-8"))
+        self.assertEqual(cloud.decode_cloud_log_bytes(packed), log)
+        self.assertEqual(cloud.primary_failure_lines(cloud.decode_cloud_log_bytes(packed))[0][0], 1)
+
+    def test_decodes_zip_log_entry(self):
+        import io
+        archive_bytes = io.BytesIO()
+        with zipfile.ZipFile(archive_bytes, "w") as archive:
+            archive.writestr("logs/Editor.log", "Build failed: check build input\n")
+        self.assertIn("Build failed", cloud.decode_cloud_log_bytes(archive_bytes.getvalue()))
+
+    def test_rejects_unknown_binary_log(self):
+        with self.assertRaisesRegex(ValueError, "appears binary"):
+            cloud.decode_cloud_log_bytes(b"\x01\x00\xff\x08" * 200)
+
     def test_autobuild_uses_documented_pagination_and_follows_revision(self):
         from unittest.mock import patch
         sha = "c" * 40
