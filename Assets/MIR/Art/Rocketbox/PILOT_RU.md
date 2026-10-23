@@ -50,6 +50,14 @@ python3 Assets/MIR/Art/Rocketbox/fetch_textures.py --max-edge 1024
 
 **Локальные и GitHub Actions тесты 24.10.26:** 7 Python unittest PASS на синтетических TGA (известный Git SHA-1, BGRA/alpha, ориентация, box-average, normal vector renormalization, отказ при некорректном TGA и при сетевой ошибке на третьем файле без установки неполного набора). Git blob SHA обновлённых Python-файлов **совпадает с протестированными локальными байтами**. Это не Unity QA и не проверка всех реальных Microsoft TGA.
 
+## Генерация реальных skinned LOD — подготовлено 24.10.26, не выполнено
+
+- [`build_skinned_lods.py`](build_skinned_lods.py) — собственный Blender-script AGENT 03 для создания 3 отдельных FBX из одной исходной skinned Mesh, с сохранением armature, vertex groups, UV и material slots. Запланированы **целевые** ratios LOD1=0.72, LOD2=0.48, LOD3=0.28; **фактические** triangles не измерены, пока Blender не запускался. Скрипт должен выполнить FBX export **и re-import** с проверкой skeleton/skin и сохранить `GeneratedLODs/lod_manifest.json`.
+- [`test_build_skinned_lods.py`](test_build_skinned_lods.py) — offline tests на pinned source SHA, MIT notice, integrity 6 TGA, ratios и fail-closed при отсутствии Blender. **Результат тестов и Blender-процесса не заявляется**, пока нет подтверждённого запуска.
+- [`LOD_GENERATION_RU.md`](LOD_GENERATION_RU.md) — точная команда Blender 3.6+, условия воспроизводимости и стоп-факторы.
+- Вызов через manager-owned CI и Unity import/LODGroup — [CROSS-OWNER REQUEST issue #17](https://github.com/alexvelikiy88-sketch/nonation/issues/17), а не обход владения `.github/workflows/**` или `Assets/MIR/Editor/**`.
+- В настоящее время `GeneratedLODs/` и игровые `Resources/MIR/PilotHuman01.prefab` **отсутствуют в Git**, поэтому 4 LOD не считаются готовыми. Дополнительный скелет и интерполяция весов после decimation должны пройти визуальную проверку в Unity.
+
 ## Статус и этапы проверки
 
 1. [x] Права: Microsoft MIT, лицензия сохранена; оригинальный rigged FBX получен, совпадают Git blob SHA.
