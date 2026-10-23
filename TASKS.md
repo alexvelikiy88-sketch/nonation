@@ -28,6 +28,13 @@
 
 **Текущие промпты:** [01 UNITY](docs/agents/CHAT_01_UNITY_WEBGL.md) · [02 BACKEND](docs/agents/CHAT_02_BACKEND_SIMULATION.md) · [03 GRAPHICS](docs/agents/CHAT_03_GRAPHICS_UI.md).
 
+## Новый независимый контур CHAT 04 — Integration Guard
+
+- [PR #5](https://github.com/alexvelikiy88-sketch/nonation/pull/5) принят: Python `Tools/pr_integration_guard.py` и 14 unit-тестов `Tools/tests/test_pr_integration_guard.py`. SHA merge `bfd363e6efee01e14f6ac6e5985f8ff8c5790d20`. [CI #40006821605](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40006821605) **SUCCESS**: новые 14/14 тестов, Python, .NET, HTTP smoke.
+- [PR #6](https://github.com/alexvelikiy88-sketch/nonation/pull/6) принят: `.github/workflows/integration-guard.yml` запускает guard из **доверенной base-версии** при каждом PR в `main`, включая documentation-only. SHA merge `b902057a5dea510f470b024a0573f5961aed4e40`. [Integration Guard #40007063307](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007063307) **SUCCESS**; [PR-validation #40007063505](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007063505) **SUCCESS**.
+- Проверки: зоны владения файлами из `AGENTS.md`, чужие отчёты/TASKS, критические удаления и переносы, признаки секретов, подтверждение прав на добавляемые бинарные ассеты, исчезновение публичных C# API (warning). Это статический контроль изменений, **не** Unity/WebGL build и не полная проверка лицензий.
+- **Открытый блокер управленческой защиты:** GitHub `main` по API `protected=false` на 23.10.26. Нужно включить Branch Rules/Required checks (`Ownership and change integrity`, `Source preflight and .NET 8`), требование PR и запрет force-push. До этого CI может быть красным, но GitHub не запретит ручной merge.
+- Три агентских PR остаются на самостоятельном ревью по фактам GitHub; успешные source-validation не доказывают браузерный запуск. Публичная WebGL-игра не подтверждена.
 ## Приоритетные контрольные точки
 
 | ID | Критерий завершения | Состояние | Владелец |
@@ -57,5 +64,7 @@
 | 23.10.26 | PR #4: независимый pull_request CI прошёл тесты .NET 8, Python и HTTP smoke; принят merge SHA `9b02e406d4fc87acbcd0aff3811635fd41d5bb85`. Не Unity build. | [PR #4](https://github.com/alexvelikiy88-sketch/nonation/pull/4) |
 | 23.10.26 | Проверены обновления исполнителей: Unity PR #3 / SHA `0541a84` (source-validation success, WebGL jobs skipped); Graphics PR #2 / SHA `9bcb9b6` (только исходники, Unity не проверен). Обе PR Draft. | [PR #3](https://github.com/alexvelikiy88-sketch/nonation/pull/3) · [PR #2](https://github.com/alexvelikiy88-sketch/nonation/pull/2) |
 | 23.10.26 | Прочитаны отчёты всех трёх веток, сравнения main...agent, PR и Actions; WebGL по-прежнему не подтверждён. | [Ветки](https://github.com/alexvelikiy88-sketch/nonation/branches) · [Actions](https://github.com/alexvelikiy88-sketch/nonation/actions) |
+
+| 23.10.26 | Manager создал и влил PR #5 (`bfd363e`): 14/14 Guard тестов и .NET/HTTP CI SUCCESS; PR #6 (`b902057`) включает Guard для всех PR, два workflow SUCCESS. Остаётся блокер Branch Rules (main unprotected). | [PR #5](https://github.com/alexvelikiy88-sketch/nonation/pull/5) · [PR #6](https://github.com/alexvelikiy88-sketch/nonation/pull/6) |
 
 **Правило:** Manager после каждого принятого PR добавляет дату, PR, проверенный SHA, результат CI и изменённые контрольные точки. Никогда не ставить «готово» по словам исполнителя без проверок.
