@@ -6,7 +6,7 @@ Repo: https://github.com/alexvelikiy88-sketch/nonation (публичный).
 Модели с непроверенными лицензиями в него НЕ загружайте: Maid, Floral, Casual, Girl, GIGN,
 Pinkdress, Freya. Honda Civic BTCC 2023 по CC BY-NC-SA несовместима с коммерческим релизом.
 
-На GitHub Actions подготовлена ручная и автоматическая WebGL-сборка
+На GitHub Actions подготовлена ручная облачная WebGL-сборка
 `.github/workflows/unity-webgl.yml` через game-ci/unity-builder@v4.
 При отсутствии лицензии сборка не будет завершена: настройте GitHub Actions secrets
 в Settings > Secrets and variables > Actions, по документации https://game.ci/docs/github/activation/.
@@ -14,6 +14,8 @@ Pinkdress, Freya. Honda Civic BTCC 2023 по CC BY-NC-SA несовместим�
 
 После успешной сборки zip с WebGL будет доступен в GitHub Actions > Run > Artifacts.
 Публикация на веб-хостинге/Unity Play ещё НЕ настроена.
+В сборке через GitHub Actions клипы Quaternius CC0 автоматически загружаются и проходят SHA256.
+
 Для Unity Cloud Build Automation подключите GitHub repo `alexvelikiy88-sketch/nonation`, ветку `main`,
 редактор `6000.0.30f1`, целевую платформу WebGL и prebuild/scene generation через `MIR.Editor.MirCloudBuild`.
 
