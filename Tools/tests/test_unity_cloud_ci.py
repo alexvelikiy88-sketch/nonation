@@ -128,6 +128,36 @@ class CloudBuildTests(unittest.TestCase):
                 cloud.unpack_webgl(archive, w / "out")
             self.assertFalse((w / "outside.txt").exists())
 
+class CloudLogDiagnosisTests(unittest.TestCase):
+    def test_earliest_compile_error_excludes_terminal_export_failure(self):
+        log = "\\n".join((
+            "Starting Unity Editor",
+            "Importing assets",
+            "Assets/MIR/Scripts/Test.cs(5,17): error CS0117: bad API",
+            "Some stack trace",
+            "Unity Player Export Failure",
+        ))
+        detected = cloud.primary_failure_lines(log)
+        self.assertEqual(len(detected), 1)
+        self.assertEqual(detected[0][0], 3)
+        self.assertIn("error CS0117", detected[0][1])
+        self.assertNotIn("Unity Player Export Failure", detected[0][1])
+
+    def test_no_invented_error_when_only_export_failure_exists(self):
+        self.assertEqual(cloud.primary_failure_lines("Unity Player Export Failure"), [])
+
+    def test_log_redaction_removes_credentials_and_signed_url(self):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"UNITY_SA_SECRET_KEY": "secret-unit-test"}):
+            redacted = cloud.redact_log(
+                "Failed secret-unit-test https://storage.googleapis.com/test?token=123"
+            )
+        self.assertNotIn("secret-unit-test", redacted)
+        self.assertNotIn("token=123", redacted)
+        self.assertIn("[REDACTED]", redacted)
+
+
 class UnityDownloadLinkTests(unittest.TestCase):
     def test_project_scoped_v2_artifact(self):
         url, internal = cloud.artifact_link(
