@@ -14,14 +14,26 @@ namespace MIR
             var c=new[]{new Color(.27f,.47f,.62f),new Color(.47f,.39f,.31f),new Color(.45f,.51f,.36f),new Color(.66f,.36f,.30f),new Color(.28f,.34f,.39f)};
             return MirRenderMaterials.Create(c[Mathf.Abs(variant)%c.Length]);
         }
-        // A valid Humanoid Avatar by itself is not sufficient: an empty controller
-        // or a static mesh can leave a crowd character frozen in a bind/T-pose.
-        // This is a runtime safety gate, NOT a substitute for Unity rig/weight/LOD QA.
-        static bool HasPlayableRig(GameObject instance, Animator animator)
+        // Runtime guard for optional character prefabs. This cannot certify skin
+        // weights, texture quality, LODs or actual animation transitions.
+        static readonly System.Collections.Generic.HashSet<string> ReportedRigFailures=
+            new System.Collections.Generic.HashSet<string>();
+        static void WarnOnce(string prefab,string reason)
         {
-            if(animator==null || animator.avatar==null || !animator.avatar.isValid ||
-               !animator.avatar.isHuman || animator.runtimeAnimatorController==null)
-                return false;
+            string key=prefab+"|"+reason;
+            if(ReportedRigFailures.Add(key))
+                Debug.LogWarning("MIR character '"+prefab+"' unavailable: "+reason+
+                    ". Using diagnostic articulated proxy (NOT final game art).");
+        }
+
+        static bool HasPlayableRig(GameObject instance,Animator animator,out string reason)
+        {
+            reason=null;
+            if(animator==null){reason="Animator component missing";return false;}
+            if(animator.avatar==null || !animator.avatar.isValid || !animator.avatar.isHuman)
+            {reason="missing or invalid Humanoid Avatar";return false;}
+            if(animator.runtimeAnimatorController==null)
+            {reason="Animator Controller missing";return false;}
 
             bool speedParameter=false;
             foreach(var parameter in animator.parameters)
@@ -29,12 +41,13 @@ namespace MIR
                 if(parameter.name=="Speed" && parameter.type==AnimatorControllerParameterType.Float)
                 {speedParameter=true;break;}
             }
-            if(!speedParameter || !animator.HasState(0,Animator.StringToHash("Locomotion")))
-                return false;
+            if(!speedParameter){reason="float Speed parameter missing";return false;}
+            if(!animator.HasState(0,Animator.StringToHash("Locomotion")))
+            {reason="Locomotion state missing";return false;}
 
             bool idle=false,walk=false,run=false;
             var clips=animator.runtimeAnimatorController.animationClips;
-            if(clips==null)return false;
+            if(clips==null){reason="animation clips missing";return false;}
             foreach(var clip in clips)
             {
                 if(clip==null || clip.length<=.03f)continue;
@@ -47,9 +60,11 @@ namespace MIR
                        name.IndexOf("Jog",System.StringComparison.OrdinalIgnoreCase)>=0 ||
                        name.IndexOf("Sprint",System.StringComparison.OrdinalIgnoreCase)>=0;
             }
-            if(!idle || !walk || !run)return false;
+            if(!idle || !walk || !run)
+            {reason="Idle/Walk/Run animation clip set incomplete";return false;}
             foreach(var renderer in instance.GetComponentsInChildren<SkinnedMeshRenderer>())
                 if(renderer.enabled && renderer.sharedMesh!=null)return true;
+            reason="active skinned mesh missing";
             return false;
         }
         // Unlike string.GetHashCode(), this is stable across processes and IL2CPP.
@@ -79,7 +94,8 @@ namespace MIR
                 var instance=Object.Instantiate(source,holder);instance.name="Humanoid · "+source.name;
                 instance.transform.localPosition=Vector3.zero;instance.transform.localRotation=Quaternion.identity;
                 var a=instance.GetComponentInChildren<Animator>();
-                if(HasPlayableRig(instance,a))
+                string reason;
+                if(HasPlayableRig(instance,a,out reason))
                 {
                     // Match human height to ~1.72m while preserving authored proportions.
                     var rends=instance.GetComponentsInChildren<Renderer>();
@@ -89,9 +105,11 @@ namespace MIR
                     var driver=instance.AddComponent<MirMotionDriver>();driver.Configure(person.gaitSeed);
                     return driver;
                 }
+                WarnOnce(source.name,reason);
                 instance.SetActive(false); // rejected rig must not flash for one frame
                 Object.Destroy(instance);
             }
+            if(source==null)WarnOnce(requested,"no prefab available in Resources/MIR");
             // Fail safe: no invalid rig, no T-pose. This articulated proxy actually walks.
             var proxy=new GameObject("MIR · Articulated Humanoid Fallback");proxy.transform.SetParent(holder,false);
             var fallback=proxy.AddComponent<MirFallbackWalker>();fallback.Initialize(variant);
