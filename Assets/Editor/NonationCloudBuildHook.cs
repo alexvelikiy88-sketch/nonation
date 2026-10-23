@@ -1,14 +1,16 @@
 #if UNITY_EDITOR
+using UnityEditor;
 using UnityEngine;
 
-// Unity Cloud Build Automation's pre-export method.
-// This is called after scripts compile, before Unity exports the Web build.
+// Unity Build Automation pre-export callback. Generates the playable scene
+// after scripts have compiled, and selects a format supported by static hosting.
 public static class NonationCloudBuildHook
 {
     public static void PreExport()
     {
         MIR.Editor.MirUnitySetup.PrepareForCloud();
-        Debug.Log("nonation: generated MIR playable district for cloud export.");
+        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+        Debug.Log("nonation: scene prepared and WebGL compression disabled for static hosting.");
     }
 }
 #endif
