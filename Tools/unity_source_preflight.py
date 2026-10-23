@@ -110,17 +110,17 @@ def check_source(path: pathlib.Path) -> None:
         problems.append(f'{rel}: runtime assembly directly references UnityEditor')
 
 def legacy_input_issues(manager: str) -> list[str]:
-    """Validate the four Input axes read by MirPlayer/MirFollowCamera.
+    """Validate legacy Input axes used by MirPlayer and MirFollowCamera.
 
-    Parse Unity's own serialized InputManager format without PyYAML.
-    Additional gamepad axes are allowed; keyboard mappings must be deterministic.
+    Additional gamepad mappings are permitted. Require committed keyboard
+    WASD and mouse orbit axes rather than editor-generated defaults.
     """
     if "InputManager:" not in manager or "m_Axes:" not in manager:
         return ["InputManager.asset has no Unity legacy m_Axes settings"]
-    blocks = re.split(r"(?m)^  - serializedVersion:\\s*3\\s*$", manager)
+    blocks = re.split(r"(?m)^  - serializedVersion:\s*3\s*$", manager)
     axes = {}
     for block in blocks[1:]:
-        fields = dict(re.findall(r"(?m)^    (\\w+):\\s*([^\\r\\n]*)$", block))
+        fields = dict(re.findall(r"(?m)^    (\w+):\s*([^\r\n]*)$", block))
         name = fields.get("m_Name", "").strip()
         if name:
             axes.setdefault(name, []).append(fields)
@@ -132,14 +132,15 @@ def legacy_input_issues(manager: str) -> list[str]:
                      "positiveButton": "up", "altNegativeButton": "s",
                      "altPositiveButton": "w"},
         "Mouse X": {"type": "1", "axis": "0"},
-        "Mouse Y": {"type": "1", "axis": "1"}
+        "Mouse Y": {"type": "1", "axis": "1"},
     }
-    missing = []
-    for name, fields in required.items():
-        if not any(all(axis.get(k, "").strip() == v for k, v in fields.items())
-                   for axis in axes.get(name, [])):
-            missing.append("Missing or mismapped legacy input axis: " + name)
-    return missing
+    return [
+        "Missing or mismapped legacy input axis: " + name
+        for name, expected in required.items()
+        if not any(all(axis.get(key, "").strip() == value
+                       for key, value in expected.items())
+                   for axis in axes.get(name, []))
+    ]
 
 
 def main() -> int:
@@ -175,67 +176,18 @@ def main() -> int:
     manifest = json.loads((ROOT / 'Packages/manifest.json').read_text())
     require('com.unity.modules.unitywebrequest' in manifest.get('dependencies', {}),
             'WebGL networking requires com.unity.modules.unitywebrequest')
-    # Fresh CI/Cloud checkouts must not depend on locally regenerated
-    # InputManager defaults. Legacy Input.GetAxisRaw and mouse orbit need
-    # explicit tracked Horizontal, Vertical, Mouse X and Mouse Y axes.
+    # Legacy Input axes must be committed for clean Unity Cloud checkouts.
     input_manager = ROOT / 'ProjectSettings/InputManager.asset'
     if not input_manager.is_file():
-        problems.append('Missing ProjectSettings/InputManager.asset: WASD/mouse axes are not reproducible')
+        problems.append('Missing ProjectSettings/InputManager.asset: WASD and mouse axes are not reproducible')
     else:
         problems.extend(legacy_input_issues(input_manager.read_text(encoding='utf-8-sig')))
     player_settings = ROOT / 'ProjectSettings/ProjectSettings.asset'
     if player_settings.is_file():
-        input_mode = re.search(r'(?m)^\\s*activeInputHandler:\\s*(\\d+)\\s*
-    scene_meta = ROOT / 'Assets/MIR/Scenes/MIR_PlayableDistrict.unity.meta'
-    game_meta = ROOT / 'Assets/MIR/Scripts/MirGame.cs.meta'
-    build_settings = ROOT / 'ProjectSettings/EditorBuildSettings.asset'
-    for artifact in (scene, scene_meta, game_meta, build_settings):
-        require(artifact.is_file(), f'Missing committed Unity asset: {artifact.relative_to(ROOT)}')
-    if all(x.is_file() for x in (scene, scene_meta, game_meta, build_settings)):
-        scene_guid = scene_meta.read_text().split('guid: ')[1].splitlines()[0].strip()
-        game_guid = game_meta.read_text().split('guid: ')[1].splitlines()[0].strip()
-        require(len(scene_guid) == 32 and len(game_guid) == 32, 'Malformed scene/bootstrap GUID')
-        require(scene_guid in build_settings.read_text(), 'Build Settings scene GUID mismatch')
-        require(game_guid in scene.read_text(), 'Bootstrap script GUID mismatch')
-    for shared in ('MirState.cs', 'MirEconomy.cs', 'MirSimulationLoop.cs',
-                   'MirWorldGeometry.cs', 'MirCitizenDecision.cs', 'MirHeadlessPopulation.cs',
-                   'MirSceneSnapshot.cs'):
-        content = (ROOT / 'Assets/MIR/Scripts' / shared).read_text()
-        require('using UnityEngine' not in content and 'Mathf.' not in content,
-                f'{shared}: shared domain must not reference UnityEngine')
-    config_path = ROOT / 'Assets/MIR/Resources/MIR/NetworkConfig.json'
-    if not config_path.is_file():
-        problems.append('NetworkConfig.json missing: required for explicit offline default')
-    else:
-        try:
-            network = json.loads(config_path.read_text(encoding='utf-8'))
-            require(isinstance(network, dict) and isinstance(network.get('snapshotUrl'), str),
-                    'NetworkConfig.json must define snapshotUrl as a string')
-            require(not network.get('snapshotUrl', '').lower().startswith('http://'),
-                    'Release network config must not contain an insecure HTTP endpoint')
-        except (json.JSONDecodeError, UnicodeError) as err:
-            problems.append(f'NetworkConfig.json is malformed: {err}')
-    for unit in ('MirRemoteWorldSync.cs', 'MirSceneSnapshot.cs'):
-        require((ROOT / 'Assets/MIR/Scripts' / unit).is_file(),
-                'Missing WebGL spectator transport component: ' + unit)
-    assets = ROOT / 'Assets/MIR/Art/Quaternius'
-    if not all((assets / name).exists() for name in (
-        'Mannequin_F.fbx', 'UAL1_Standard_Unity.fbx', 'UAL2_Standard_Unity.fbx')):
-        notes.append('Quaternius FBX not committed: use the Unity Cloud pre-build download hook')
-    print(f'MIR preflight: {len(all_cs)} C# files, {len(problems)} errors, {len(notes)} notes')
-    for note in notes:
-        print('NOTE:', note)
-    for item in problems:
-        print('ERROR:', item, file=sys.stderr)
-    if problems:
-        print('Static preflight failed; real Unity compilation has NOT been run.', file=sys.stderr)
-        return 1
-    print('PASS: structural and known Unity API regression checks; NOT a Unity build')
-    return 0
-
-if __name__ == '__main__':
-    raise SystemExit(main())
-, player_settings.read_text(encoding='utf-8-sig'))
+        input_mode = re.search(
+            r'(?m)^\s*activeInputHandler:\s*(\d+)\s*$',
+            player_settings.read_text(encoding='utf-8-sig'),
+        )
         require(input_mode is not None and input_mode.group(1) in ('0', '2'),
                 'Unity PlayerSettings must enable legacy Input (activeInputHandler 0 or 2)')
     else:
