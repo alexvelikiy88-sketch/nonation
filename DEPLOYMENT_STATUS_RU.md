@@ -13,6 +13,13 @@
 
 
 
+## Последняя релизная проверка — 24.10.26
+
+- Ранняя публикация файлов GitHub Pages: **SUCCESS**, [GitHub Actions #40019259462, attempt 3](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462), URL `https://alexvelikiy88-sketch.github.io/nonation/`, source SHA `47a6424...`.
+- Ранний Unity #4 **компилируется**, но реальный [Chromium smoke #40022712096](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40022712096) **FAIL**: `Missing runtime shader`, `NONATION_RUNTIME_READY` отсутствует, хотя `NONATION_SAVE_WRITTEN citizens=40` был. [PR #22](https://github.com/alexvelikiy88-sketch/nonation/pull/22) добавил фактический Shader asset в `Resources` и безопасную проверку `Shader.isSupported`, squash SHA `4366103dd439cfda4b65223608f84688084ba998`. Его Python/.NET/guard CI PASS, WebGL runtime нового SHA отдельно не проверен.
+- Интегрированный Unity Cloud Build **№6** в [run #40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542) **FAILED** на редакторском `CS0266` — `MirIntegrityAudit.cs(39,24)` присваивал `long TotalKnownMoney()` переменной `int`. [PR #24](https://github.com/alexvelikiy88-sketch/nonation/pull/24) исправил на `long` и добавил тесты, merge `55051008dee22e3a44d867a6191e7ab3ba6e83b4`. Предыдущая компиляционная ошибка подтверждена лентой логов, а не предположением.
+- [Свежий Unity Cloud/Pages run #40024399013](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40024399013) проверяет объединённый `main@55051008` уже с shader и CS0266 patch. Итог WebGL export, Pages deployment и Browser smoke пока **не подтверждён**. Не заявлять, что игра готова, пока маркеры сцены/NPC/движения/сохранения не пройдут на реальном артефакте.
+
 ## Сборки Unity Cloud
 
 | Build | Статус | Доказательства |
