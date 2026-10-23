@@ -1,0 +1,54 @@
+name: MIR Unity WebGL
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - '.github/workflows/unity-webgl.yml'
+permissions:
+  contents: read
+jobs:
+  source-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Unity source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Assets/MIR/Scripts/MirGame.cs
+          test -f Assets/MIR/Editor/MirCloudBuild.cs
+          test -f Packages/manifest.json
+          test -f ProjectSettings/ProjectVersion.txt
+          python3 -m json.tool Packages/manifest.json >/dev/null
+  webgl:
+    needs: source-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: unity-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: unity-WebGL-
+      - name: Build Unity 6 WebGL
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          unityVersion: 6000.0.30f1
+          targetPlatform: WebGL
+          buildMethod: MIR.Editor.MirCloudBuild.Build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MIR-WebGL
+          path: build/WebGL
+          if-no-files-found: error
