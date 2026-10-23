@@ -199,3 +199,19 @@
 ## Следующее конкретное действие
 
 Один лицензированный FBX **и 6 проверенных уменьшенных TGA уже получены и закоммичены**. AGENT 03 подготовил скрипт для настоящих LOD1–LOD3 и тесты, но Blender не запускался. Следующий факт — [issue #17](https://github.com/alexvelikiy88-sketch/nonation/issues/17): Manager запускает проверенный Blender job и публикует только успешно экспортированные FBX/manifest в графической ветке; AGENT 01 проверяет Unity Editor material/skin/boneWeights/Avatar/Idle-Walk-Run и реальные LOD meshes, затем первый WebGL export/браузерные FPS и draw calls. Не смешивать с Cloud Build; проектный статус `TASKS.md` редактирует только Manager.
+
+## INTEGRATION HANDOFF - CHAT 04 / Manager
+Author: CHAT 04 / Manager
+
+**Дата:** 24.10.26. **Источник отчёта агента:** `agent/graphics-ui@a6b38f6e53f45d92f9480a2899a360d87ab6f778`, Git blob `38b6e7bb58c99ac27d7b62c8b929a89e4f6c70c3`.
+
+Это **прозрачное дополнение технического руководителя при разовой интеграции**, а не сообщение от лица исполнителя. Весь исходный текст отчёта выше сохранён без правок.
+
+**Сверка результатов руководителем:**
+- Исходные графические C# и материалы импортированы с атрибуцией автора; исходный Microsoft Rocketbox FBX, лицензия MIT и 6 TGA 1024 сохранены в Art, но не объявлены готовой игровой моделью.
+- `build_skinned_lods.py` — подготовленный pipeline; Blender не запускался, отдельные LOD1–3 и игровой Prefab/Avatar пока не подтверждены.
+- Совместный Python/.NET/HTTP CI на PR #19 SUCCESS, но не проверяет skinned weights, импорт в Unity, анимацию, качество материалов и FPS.
+- Первое успешное Unity Cloud WebGL свидетельство #4 относится только к Unity-ветке, не доказывает, что Rocketbox персонаж отображается в игре.
+- После возобновления CHAT 03: сверить финальный `main`, сделать один реально импортированный Humanoid+Animator/LOD и измерить WebGL FPS, не подменять procedural fallback AAA-графикой.
+
+**Контроль:** [интеграционный PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19); главный статус и критерии выпуска — `TASKS.md` и `DEPLOYMENT_STATUS_RU.md`. Не считать этот раздел подтверждением ещё не пройденных Unity/browser проверок.
