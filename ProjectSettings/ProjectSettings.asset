@@ -1,0 +1,13 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  companyName: MIR Dockside
+  productName: MIR Dockside Unity Prototype
+  bundleVersion: 0.1.0
+  activeInputHandler: 2
+  colorSpace: 1
+  defaultScreenWidth: 1280
+  defaultScreenHeight: 720
+  runInBackground: 1
