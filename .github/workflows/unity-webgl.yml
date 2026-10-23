@@ -190,6 +190,29 @@ jobs:
           BUILD_NUMBER_TO_INSPECT: ${{ inputs.inspect_cloud_build || '3' }}
         run: python3 Tools/unity_cloud_ci.py --diagnose-build "$BUILD_NUMBER_TO_INSPECT"
 
+  cloud-preview-once:
+    name: One pinned agent-branch Cloud WebGL preview (no deployment)
+    needs: source-validation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/unity-webgl' && contains(github.event.head_commit.message, '[cloud-preview-once]') && needs.source-validation.outputs.cloud_credentials_present == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Request exactly one pinned Cloud Build and verify its WebGL files
+        id: preview
+        env:
+          UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
+          UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
+          NONATION_ONE_SHOT_PREVIEW: '1'
+        run: python3 Tools/unity_cloud_ci.py --preview-build
+      - name: Upload verified WebGL preview without deploying to Pages
+        if: steps.preview.outputs.webgl_ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonation-agent01-preview
+          path: build/WebGL/
+          if-no-files-found: error
+
   cloud-webgl:
     name: Unity Cloud WebGL (optional service account)
     needs: source-validation

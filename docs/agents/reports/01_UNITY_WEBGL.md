@@ -184,3 +184,22 @@ CROSS-OWNER REQUEST для прежнего сбоя Guard закрыт испр
 ### CROSS-OWNER REQUEST — этап 4
 
 Нет новых ошибок, для исправления которых пришлось бы изменять файлы AGENT 02/03/MANAGER.
+
+## Этап 5 — первопричина Unity Cloud Build №3 и контрольная WebGL-сборка (24.10.26)
+
+**Факты из авторизованного Unity Cloud API (ключи не выводятся):**
+
+- Service account с ролью Automation Developer успешно авторизован: `GET /v2/orgs/18968527430273/projects/97c90bad-fafd-4410-8e4f-0ea68deb4232/buildtargets/default-webgl/builds/3` вернул `buildStatus=failure`, фактический SHA `784a3b56b9d486f458b87cdaf0990920a7d02913`.
+- [GitHub Actions №129](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40013897969): скачан бинарный GZIP-журнал, распакован корректно: **7 929 строк**. Прежний анализ бинарного файла как UTF-8 был ошибочным и исправлен поддержкой ограниченной декомпрессии GZIP/ZIP/zlib.
+- [GitHub Actions №131](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40014215651): точная первичная ошибка — **строка 7845:** `ERROR: There were no scenes configured to build! Please add a scene to the build using the Build Settings window of the Unity Editor.` Только после неё — `Unity player export failed!` (строка 7897).
+- Проверен исходный commit [`784a3b56`](https://github.com/alexvelikiy88-sketch/nonation/commit/784a3b56b9d486f458b87cdaf0990920a7d02913): в его дереве **отсутствовали** `Assets/MIR/Scenes/MIR_PlayableDistrict.unity`, `.unity.meta` и `ProjectSettings/EditorBuildSettings.asset`. Это независимое подтверждение причины. В текущей рабочей ветке они закоммичены и GUID совпадают.
+- В журнале также есть предупреждения AssemblyUpdater и URP shader fallback, но они не заменяют подтверждённую конкретную причину `no scenes configured`. Возможность дополнительных ошибок после исправления сцены ещё не исключена.
+
+**Действия AGENT 01:**
+
+- На своей ветке подготовлена **ровно одна** Unity Cloud preview сборка текущего pinned `GITHUB_SHA`. Никаких прямых коммитов в `main`, публикации Pages либо обхода лицензирования.
+- `Tools/unity_cloud_ci.py`: разрешён отдельный `--preview-build` только для `push` `agent/unity-webgl` с `NONATION_ONE_SHOT_PREVIEW=1`, API POST передаёт `branch=agent/unity-webgl` и полный `commit`, проверяет фактический `lastBuiltRevision`, ищет готовую сборку того же SHA перед созданием новой.
+- `.github/workflows/unity-webgl.yml`: одноразовое исполнение preview-job только при наличии точного маркера `[cloud-preview-once]` в commit message; PR или следующие обычные push не создают новых облачных билдов. Сборка не публикуется без review.
+- `Tools/tests/test_unity_cloud_ci.py`: регрессия безопасного разрешённого payload с точным SHA.
+
+**Ограничения проверки:** успех preview будет подтверждён только после реального `BuildReport=success`, WebGL artifact и проверки SHA; браузерный HTTPS runtime пока не проверен. Если Cloud отклонит `branch`/commit или вернёт новую CS-/Unity-ошибку, это не успешный билд. Итоговый CI и новый Build number см. по следующему commit с `[cloud-preview-once]`.

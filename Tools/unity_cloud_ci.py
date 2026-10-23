@@ -587,23 +587,57 @@ def diagnose_build(number: int):
     return hits
 
 
-def run():
+def cloud_build_payload(revision: str, branch: str) -> dict:
+    """Pin a single UBA build to an exact Git SHA and authorized source branch."""
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError("Unity Cloud request needs a full immutable Git commit SHA")
+    if branch not in ("main", "agent/unity-webgl"):
+        raise ValueError("Unity Cloud build branch is not approved for NONATION")
+    return {"clean": False, "delay": 0, "branch": branch, "commit": revision}
+
+
+def run(preview: bool = False):
     revision = os.environ.get("GITHUB_SHA", "")
-    if len(revision) != 40 or not all(c in "0123456789abcdef" for c in revision):
-        raise ValueError("GITHUB_SHA must be the full verified source revision")
+    branch = "agent/unity-webgl" if preview else "main"
+    payload = cloud_build_payload(revision, branch)
+    if preview and (
+        os.environ.get("GITHUB_REF") != "refs/heads/agent/unity-webgl"
+        or os.environ.get("GITHUB_EVENT_NAME") != "push"
+        or os.environ.get("NONATION_ONE_SHOT_PREVIEW") != "1"
+    ):
+        raise ValueError("Agent preview requires explicitly gated branch push")
     status, target = api("GET", ROOT)
     if status != 200 or not isinstance(target, dict):
         raise RuntimeError("Could not inspect Unity build target")
     if not target.get("enabled", True):
         raise RuntimeError("Unity build target 'default-webgl' is disabled")
-    if (target.get("settings") or {}).get("autoBuild"):
+    settings = target.get("settings") or {}
+    scm = settings.get("scm") if isinstance(settings.get("scm"), dict) else {}
+    print("UNITY_CLOUD_TARGET enabled=True branch=" + str(scm.get("branch") or "unknown") +
+          " autoBuild=" + str(bool(settings.get("autoBuild"))) +
+          " preview=" + str(preview), flush=True)
+    if not preview and settings.get("autoBuild"):
         number = wait_for_autobuild(revision)
     else:
-        status, created = api("POST", ROOT + "/builds", {"clean": False, "delay": 0, "branch": "main"})
-        if status != 202:
-            raise RuntimeError(f"Unity Cloud did not accept build request: HTTP {status}")
-        number = build_number(created)
-        print(f"Triggered Unity Cloud WebGL #{number}")
+        number = None
+        if preview:
+            # Keep the preview idempotent if an action is re-run. One source
+            # revision means at most one new Cloud build request.
+            _, existing = api("GET", ROOT + "/builds?per_page=20&page=1")
+            if isinstance(existing, dict):
+                existing = existing.get("builds", existing.get("items", []))
+            if isinstance(existing, list):
+                for item in existing:
+                    if isinstance(item, dict) and matches_revision(item, revision):
+                        number = build_number(item)
+                        print("Reusing existing Unity Cloud preview #" + str(number), flush=True)
+                        break
+        if number is None:
+            status, created = api("POST", ROOT + "/builds", payload)
+            if status != 202:
+                raise RuntimeError(f"Unity Cloud did not accept build request: HTTP {status}")
+            number = build_number(created)
+            print(f"Triggered ONE Unity Cloud WebGL #{number} branch={branch} sha={revision}")
     result = poll_build(number, revision)
     primary = (result.get("links") or {}).get("download_primary")
     link = signed_url(primary)
@@ -634,11 +668,13 @@ if __name__ == "__main__":
             if not sys.argv[2].isdigit() or int(sys.argv[2]) < 1:
                 raise ValueError("Cloud build number must be a positive integer")
             diagnose_build(int(sys.argv[2]))
+        elif len(sys.argv) == 2 and sys.argv[1] == "--preview-build":
+            run(preview=True)
         elif len(sys.argv) == 1:
             run()
         else:
             raise ValueError(
-                "Usage: unity_cloud_ci.py [--verify-dir DIR | --verify-hosted DIR HTTPS_URL | --diagnose-build NUMBER]"
+                "Usage: unity_cloud_ci.py [--verify-dir DIR | --verify-hosted DIR HTTPS_URL | --diagnose-build NUMBER | --preview-build]"
             )
     except (ValueError, RuntimeError, TimeoutError, URLError, OSError, zipfile.BadZipFile) as error:
         print("ERROR:", str(error), file=sys.stderr)

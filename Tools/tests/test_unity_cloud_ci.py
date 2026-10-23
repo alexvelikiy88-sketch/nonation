@@ -12,6 +12,18 @@ cloud = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cloud)
 
 class CloudBuildTests(unittest.TestCase):
+    def test_immutable_preview_build_request(self):
+        sha = "c" * 40
+        self.assertEqual(
+            cloud.cloud_build_payload(sha, "agent/unity-webgl"),
+            {"clean": False, "delay": 0,
+             "branch": "agent/unity-webgl", "commit": sha},
+        )
+        with self.assertRaisesRegex(ValueError, "not approved"):
+            cloud.cloud_build_payload(sha, "feature/untrusted")
+        with self.assertRaisesRegex(ValueError, "immutable Git commit SHA"):
+            cloud.cloud_build_payload("main", "main")
+
     def test_single_build_number(self):
         self.assertEqual(cloud.build_number({"build": 42}), 42)
         self.assertEqual(cloud.build_number([{"build": 3}]), 3)
