@@ -117,7 +117,12 @@ def poll_build(number: int, revision: str) -> dict:
             raise RuntimeError(f"Unity Cloud WebGL build #{number} failed ({status})")
         if status in TERMINAL_GOOD:
             actual = result.get("lastBuiltRevision") or result.get("requestedRevision")
-            if actual and str(actual) != revision:
+            if not actual:
+                raise RuntimeError(
+                    f"Unity Cloud build #{number} succeeded but provided no source revision; "
+                    "refusing to publish an artifact with unverified provenance"
+                )
+            if str(actual) != revision:
                 raise RuntimeError(f"Unity built the wrong revision: expected {revision}, got {actual}")
             return result
         if result.get("finished"):
@@ -222,13 +227,21 @@ def unpack_webgl(archive: Path, destination: Path):
     check_webgl(destination)
 
 def check_webgl(root: Path):
+    """Check every mandatory uncompressed file; structure is NOT a browser smoke test."""
     folder = root / "Build"
-    if not (root / "index.html").is_file() or not folder.is_dir():
-        raise ValueError("Cloud artifact has no playable WebGL structure")
-    resources = [p.name.lower() for p in folder.iterdir() if p.is_file() and p.stat().st_size > 0]
+    index = root / "index.html"
+    if not index.is_file() or index.stat().st_size == 0 or not folder.is_dir():
+        raise ValueError("WebGL artifact has no nonempty index.html and Build/ directory")
+    files = [p for p in folder.iterdir() if p.is_file()]
+    if any(p.name.lower().endswith((".br", ".gz")) for p in files):
+        raise ValueError(
+            "WebGL artifact uses Brotli/Gzip files; GitHub Pages cannot set the required Content-Encoding header"
+        )
+    resources = [p.name.lower() for p in files if p.stat().st_size > 0]
     for extension in (".wasm", ".data", ".js"):
         if not any(name.endswith(extension) for name in resources):
             raise ValueError(f"Missing uncompressed Unity {extension} asset; check WebGL compression settings")
+    print("PASS: nonempty index.html + uncompressed .wasm/.data/.js (not browser-verified)", flush=True)
 
 def run():
     revision = os.environ.get("GITHUB_SHA", "")
@@ -257,7 +270,7 @@ def run():
         with urlopen(link, timeout=120) as response, archive.open("wb") as sink:
             shutil.copyfileobj(response, sink)
         unpack_webgl(archive, destination)
-    print("Verified Unity WebGL artifact:", destination.resolve())
+    print("Verified Unity WebGL artifact:", destination.resolve(), "source_sha:", revision)
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
         out.write("webgl_ready=true\n")
         out.write(f"cloud_build_number={number}\n")
@@ -269,7 +282,12 @@ def run():
 
 if __name__ == "__main__":
     try:
-        run()
+        if len(sys.argv) == 3 and sys.argv[1] == "--verify-dir":
+            check_webgl(Path(sys.argv[2]))
+        elif len(sys.argv) == 1:
+            run()
+        else:
+            raise ValueError("Usage: unity_cloud_ci.py [--verify-dir build/WebGL]")
     except (ValueError, RuntimeError, TimeoutError, URLError, OSError, zipfile.BadZipFile) as error:
         print("ERROR:", str(error), file=sys.stderr)
         sys.exit(1)
