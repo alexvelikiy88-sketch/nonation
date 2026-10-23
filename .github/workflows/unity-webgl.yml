@@ -39,6 +39,13 @@ jobs:
           echo 'Unity project and public asset checks passed'
       - name: C# source, build scene and manifest preflight
         run: python3 Tools/unity_source_preflight.py
+      - name: Cache verified CC0 humanoid animation packs
+        uses: actions/cache@v4
+        with:
+          path: Assets/MIR/Art/Quaternius/*.fbx
+          key: mir-quaternius-cc0-${{ hashFiles('Tools/fetch_quaternius.py') }}
+      - name: Verify Quaternius CC0 archives and SHA-256 before any Unity build
+        run: python3 Tools/fetch_quaternius.py
 
   webgl:
     needs: source-validation
