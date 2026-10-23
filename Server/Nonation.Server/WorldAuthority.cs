@@ -40,16 +40,7 @@ public sealed class WorldAuthority
             var candidate = JsonSerializer.Deserialize<MirWorldState>(File.ReadAllText(savePath), Json);
             // Nullable '?.Count < 1' is false when the list is null: explicitly
             // reject missing collections before any simulation or ledger can run.
-            if (candidate is null || candidate.version != 1 ||
-                candidate.citizens == null || candidate.citizens.Count < 1 ||
-                candidate.businesses == null || candidate.businesses.Count < 1 ||
-                candidate.transactions == null || candidate.freight == null ||
-                candidate.events == null ||
-                candidate.citizens.Any(c => c == null) ||
-                candidate.businesses.Any(b => b == null) ||
-                candidate.transactions.Any(t => t == null) ||
-                candidate.freight.Any(o => o == null) ||
-                candidate.events.Any(e => e == null))
+            if (candidate is null || !ValidSavedWorld(candidate))
                 throw new InvalidDataException("Invalid world state or unsupported version");
             return candidate;
         }
@@ -58,6 +49,124 @@ public sealed class WorldAuthority
             // Never overwrite corrupted saves silently.
             throw new InvalidDataException("Cannot load saved world: " + savePath, ex);
         }
+    }
+
+    // Saved JSON is outside the trusted transaction boundary: it may be
+    // truncated, edited or from a buggy older runtime. Never resume a world
+    // whose accounts or in-flight freight can mint credits or duplicate goods.
+    private static bool ValidSavedWorld(MirWorldState state)
+    {
+        if (state.version != 1 || state.transactionSequence < 1 ||
+            state.jobSequence < 1 || !float.IsFinite(state.gameMinutes) ||
+            state.gameMinutes < 0f || state.cityTreasury < 0 ||
+            state.externalMoney < 0 || state.citizens == null ||
+            state.citizens.Count < 1 || state.businesses == null ||
+            state.businesses.Count < 1 || state.transactions == null ||
+            state.freight == null || state.events == null)
+            return false;
+
+        // Both kinds share one transfer namespace; city/external are reserved.
+        var accountIds = new HashSet<string>(StringComparer.Ordinal) { "city", "external" };
+        var businesses = new Dictionary<string, MirBusiness>(StringComparer.Ordinal);
+        foreach (var business in state.businesses)
+        {
+            if (business == null || string.IsNullOrWhiteSpace(business.id) ||
+                string.IsNullOrWhiteSpace(business.productId) ||
+                !accountIds.Add(business.id) ||
+                business.cash < 0 || business.capacity < 0 ||
+                business.stock < 0 || business.stock > business.capacity ||
+                business.price < 0 || business.water < 0 || business.seed < 0 ||
+                !float.IsFinite(business.x) || !float.IsFinite(business.z))
+                return false;
+            businesses.Add(business.id, business);
+        }
+
+        foreach (var citizen in state.citizens)
+        {
+            if (citizen == null || string.IsNullOrWhiteSpace(citizen.id) ||
+                string.IsNullOrWhiteSpace(citizen.homeId) ||
+                !accountIds.Add(citizen.id) || citizen.cash < 0 ||
+                citizen.inventoryFood < 0 || citizen.daysWorked < 0 ||
+                citizen.skill < 0 || !float.IsFinite(citizen.x) ||
+                !float.IsFinite(citizen.z) ||
+                !float.IsFinite(citizen.gaitSeed) ||
+                !float.IsFinite(citizen.nextWorkMinute) ||
+                citizen.nextWorkMinute < 0f ||
+                !float.IsFinite(citizen.energy) ||
+                !float.IsFinite(citizen.satiety) ||
+                !float.IsFinite(citizen.hydration) ||
+                !float.IsFinite(citizen.mood))
+                return false;
+        }
+
+        var transactions = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var transaction in state.transactions)
+        {
+            if (transaction == null || string.IsNullOrWhiteSpace(transaction.id) ||
+                !transactions.Add(transaction.id) ||
+                string.IsNullOrWhiteSpace(transaction.from) ||
+                string.IsNullOrWhiteSpace(transaction.to) ||
+                transaction.from == transaction.to ||
+                !accountIds.Contains(transaction.from) ||
+                !accountIds.Contains(transaction.to) ||
+                transaction.amount <= 0 || !float.IsFinite(transaction.minute) ||
+                transaction.minute < 0f)
+                return false;
+        }
+
+        var freightIds = new HashSet<string>(StringComparer.Ordinal);
+        int activeOrders = 0;
+        foreach (var order in state.freight)
+        {
+            if (order == null || string.IsNullOrWhiteSpace(order.id) ||
+                !freightIds.Add(order.id) || order.quantity <= 0 ||
+                order.escrow < 0 || order.freightFee < 0 ||
+                !float.IsFinite(order.progress) ||
+                string.IsNullOrWhiteSpace(order.productId) ||
+                string.IsNullOrWhiteSpace(order.supplierId) ||
+                string.IsNullOrWhiteSpace(order.consumerId) ||
+                order.supplierId == order.consumerId ||
+                !businesses.TryGetValue(order.supplierId, out var supplier) ||
+                !businesses.TryGetValue(order.consumerId, out var consumer) ||
+                supplier.productId != order.productId ||
+                consumer.productId != order.productId)
+                return false;
+            switch (order.status)
+            {
+                case MirOrderStatus.Created:
+                case MirOrderStatus.Loading:
+                case MirOrderStatus.Driving:
+                    if (order.paid || !order.stockReserved ||
+                        order.escrow <= 0 || order.freightFee <= 0)
+                        return false;
+                    if (++activeOrders > 1) return false;
+                    break;
+                case MirOrderStatus.Unloading:
+                case MirOrderStatus.Returning:
+                    if (!order.paid || order.stockReserved ||
+                        order.escrow != 0 || order.freightFee != 0)
+                        return false;
+                    if (++activeOrders > 1) return false;
+                    break;
+                case MirOrderStatus.Completed:
+                    if (!order.paid || order.stockReserved ||
+                        order.escrow != 0 || order.freightFee != 0)
+                        return false;
+                    break;
+                case MirOrderStatus.Cancelled:
+                    if (order.paid || order.stockReserved ||
+                        order.escrow != 0 || order.freightFee != 0)
+                        return false;
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        foreach (var entry in state.events)
+            if (entry == null || !float.IsFinite(entry.minute))
+                return false;
+        return true;
     }
 
     public void Advance(float elapsedSeconds)

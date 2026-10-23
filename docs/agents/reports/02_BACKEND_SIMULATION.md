@@ -1,7 +1,7 @@
 # NONATION / отчёт 02 — Backend/Simulation
 
-- **Последнее обновление:** 23.10.26
-- **Статус:** IN PROGRESS — подтверждены .NET-тесты грузовых заказов и конкурентных сохранений; ожидается интеграционный Unity/WebGL review
+- **Последнее обновление:** 24.10.26
+- **Статус:** IN PROGRESS — проверка загрузки финансово некорректных сохранений; предыдущие .NET-тесты подтверждены, текущий SHA ожидает CI
 - **Ветка:** `agent/backend-simulation`
 - **Промпт:** [Инструкция исполнителя](../CHAT_02_BACKEND_SIMULATION.md)
 - **Задача P0:** Проверить серверные и финансовые инварианты, read-only API и синхронизацию NPC.
@@ -28,6 +28,8 @@
 | 23.10.26 | Защищена операция `WorldAuthority.Save()`: `saveGate` охватывает сериализацию и запись/rename, flush-to-disk временного файла, очистка временного файла при сбое; тесты fail-before-replace, orphan .tmp, 24 параллельных сохранений и NPC/денежного состояния | [`6a396a61f3`](https://github.com/alexvelikiy88-sketch/nonation/commit/6a396a61f38b74b78c30ac1202f264a75d6b577a) | [PR Validation #43](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40007776559) **SUCCESS**: все новые `PASS`, .NET build и HTTP smoke | Реальный сбой питания, multi-process locks, Unity, WebGL |
 
 | 23.10.26 | Интеграционный Guard на обновлённом PR #1 обнаружил `TASKS.md` из-за сравнительного диапазона base…head, хотя в собственных коммитах AGENT 02 этот файл не изменялся | [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153) | `14/14` тестов самого Guard прошли; итог **FAIL** в шаге проверки владельца из-за stale base. В `Tools/pr_integration_guard.py` используется `git diff base head`, нужно сравнивать с merge-base. Менеджерский блокер | Unity/WebGL; Guard PASS после фикса Manager |
+
+| 24.10.26 | Добавлена строгая проверка сохранённого доменного мира в `WorldAuthority.Load`: неотрицательные счета и товары, уникальность счётных идентификаторов, транзакций и заказов, корректный escrow/state по freight, не более одного активного заказа. При нарушении сервер не запускает неконсистентную экономику и не перезаписывает JSON. 14 сценариев `SavedWorldIntegrityTests`, включая успешное возобновление нормальной поставки | Код и тесты в текущем PR #1, SHA этого коммита см. историю ветки | Статический аудит, CI для нового SHA ожидается | Unity/WebGL, внешняя HTTPS-среда, power loss |
 
 ## Последнее проверенное состояние
 
@@ -77,6 +79,10 @@
 - Причина: сейчас при просмотре удалённого мира меняется локальный часовой показатель, от которого рассчитываются offline-экономические тики; хотя save заблокирован, лучше не мутировать локальный world вообще.
 
 **Исправить ложную блокировку Integration Guard (MANAGER):** `Tools/pr_integration_guard.py` и при необходимости `.github/workflows/integration-guard.yml` — в `main` код читает `base, head` из PR-event и вызывает `git diff base head`; для давно открытого PR #1 сюда попадает `TASKS.md`, изменённый менеджером в `main` **после** ветвления агента. Требуется определять фактический merge-base и проверять изменения **только** `merge-base → PR head`, добавить регрессионный тест для stale-base PR. AGENT 02 эти файлы не изменяет. Лог: [Guard #12](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40008195153), строка `TASKS.md: owner is manager, not agent/backend-simulation`.
+
+## Следующий блок AGENT 02 — 24.10.26
+
+Завершить проверку [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) в обновлённом менеджерском Integration Guard (использует merge-base), сверить реальные логи нового .NET CI: тесты загрузки, движение NPC, сохранение денег, server build, HTTP smoke. Новая валидация сохранений действует только при старте `WorldAuthority` и не меняет формат JSON (`MirWorldState.version=1`). Неконсистентные или вручную модифицированные сохранения теперь отклоняются без исправления на лету; требуется review на совместимость с историческими мирами. После CI — обновить отчёт SHA/результатами и отдельно проверить будущую защиту `transactionSequence` / `jobSequence` от исчерпания и ограничения сетевого ответа до буферизации.
 
 ## Следующее конкретное действие
 

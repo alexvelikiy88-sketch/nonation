@@ -494,5 +494,109 @@ static void AtomicAuthoritySaveTests()
 }
 AtomicAuthoritySaveTests();
 
+static void SavedWorldIntegrityTests()
+{
+    var saveFile = Path.Combine(Path.GetTempPath(),
+        "nonation-integrity-" + Guid.NewGuid().ToString("N") + ".json");
+    string? previousPath = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+    var json = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", saveFile);
+
+        void MustReject(Action<MirWorldState> corrupt, string description)
+        {
+            var world = MirWorldState.NewWorld();
+            corrupt(world);
+            string persisted = System.Text.Json.JsonSerializer.Serialize(world, json);
+            File.WriteAllText(saveFile, persisted);
+            bool rejected = false;
+            try { _ = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+            catch (InvalidDataException) { rejected = true; }
+            Check(rejected && File.ReadAllText(saveFile) == persisted,
+                description + " and original save remains intact");
+        }
+
+        MustReject(w => w.Citizen("player-001")!.cash = -1,
+            "negative citizen balance is rejected on restart");
+        MustReject(w => w.cityTreasury = -1,
+            "negative city treasury is rejected on restart");
+        MustReject(w => w.Business("market")!.stock = -1,
+            "negative business inventory is rejected on restart");
+        MustReject(w => w.Business("market")!.stock = w.Business("market")!.capacity + 1,
+            "stock above capacity is rejected on restart");
+        MustReject(w => w.citizens[1].id = w.citizens[0].id,
+            "duplicate citizen transfer IDs are rejected");
+        MustReject(w => w.Business("market")!.id = "player-001",
+            "citizen and business cannot share a ledger account");
+        MustReject(w => w.Business("market")!.id = "city",
+            "reserved treasury account cannot be shadowed");
+        MustReject(w => w.gameMinutes = -1f,
+            "negative simulation clock is rejected");
+        MustReject(w => w.transactionSequence = 0,
+            "invalid transaction sequence is rejected");
+        MustReject(w =>
+        {
+            var e = new MirEconomy(w);
+            e.Transfer("saved-tx", "player-001", "market", 1, "test");
+            w.transactions.Add(new MirTransaction
+            {
+                id = "saved-tx", from = "player-001", to = "market",
+                amount = 1, minute = w.gameMinutes
+            });
+        }, "duplicate transaction IDs are rejected");
+        MustReject(w =>
+        {
+            var o = new MirEconomy(w).CreateRestock(qty: 3)!;
+            o.status = MirOrderStatus.Returning;
+        }, "unpaid returning freight cannot be reloaded");
+        MustReject(w =>
+        {
+            var o = new MirEconomy(w).CreateRestock(qty: 3)!;
+            o.escrow = 0;
+        }, "missing escrow for reserved freight cannot be reloaded");
+        MustReject(w =>
+        {
+            var o = new MirEconomy(w).CreateRestock(qty: 3)!;
+            w.freight.Add(new MirFreightOrder
+            {
+                id = "extra-order", supplierId = o.supplierId,
+                consumerId = o.consumerId, productId = o.productId,
+                quantity = o.quantity, escrow = o.escrow,
+                freightFee = o.freightFee, stockReserved = true,
+                status = MirOrderStatus.Created
+            });
+        }, "two simultaneous freight reservations cannot be reloaded");
+
+        // A legitimate mid-delivery save still resumes and settles once.
+        var valid = MirWorldState.NewWorld();
+        var before = new MirEconomy(valid);
+        var pending = before.CreateRestock(qty: 3)!;
+        Check(pending != null && before.SetFreightStage(pending, MirOrderStatus.Loading),
+            "legitimate freight is ready for restart");
+        long money = before.TotalKnownMoney();
+        File.WriteAllText(saveFile, System.Text.Json.JsonSerializer.Serialize(valid, json));
+        var loaded = new WorldAuthority(NullLogger<WorldAuthority>.Instance);
+        var restored = loaded.Snapshot();
+        Check(restored.freight.Count == 1 &&
+              restored.freight[0].status == MirOrderStatus.Loading &&
+              new MirEconomy(restored).TotalKnownMoney() == money,
+            "valid reserved shipment and escrow survive strict load validation");
+        var resumedEconomy = new MirEconomy(restored);
+        Check(resumedEconomy.SetFreightStage(restored.freight[0], MirOrderStatus.Driving) &&
+              resumedEconomy.SetFreightStage(restored.freight[0], MirOrderStatus.Unloading) &&
+              resumedEconomy.TotalKnownMoney() == money,
+            "restored validated shipment settles once without changing total money");
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", previousPath);
+        if (File.Exists(saveFile)) File.Delete(saveFile);
+        if (File.Exists(saveFile + ".tmp")) File.Delete(saveFile + ".tmp");
+    }
+}
+SavedWorldIntegrityTests();
+
+
 
 
