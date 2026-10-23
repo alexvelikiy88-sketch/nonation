@@ -1,6 +1,6 @@
 # NONATION / отчёт 03 — Graphics/UI
 
-- **Последнее обновление:** 23.10.26
+- **Последнее обновление:** 24.10.26
 - **Статус:** IN PROGRESS — исходный реалистичный Rocketbox MIT FBX получен и проверен по Git blob; готовые prefab, текстуры и WebGL пока отсутствуют
 - **Ветка:** `agent/graphics-ui`
 - **Промпт:** [Инструкция исполнителя](../CHAT_03_GRAPHICS_UI.md)
@@ -86,6 +86,8 @@
 
 **Бинарная предварительная проверка FBX:** заголовок `Kaydara FBX Binary`, внутри найдены `Deformer`, `Skin`, `Cluster`, 2 именованных материала и четыре LOD-подобных именования: `m007_hipoly_81_bones`, `m007_midpoly_42_bones`, `m007_lowpoly_33_bones`, `m007_ultralowpoly_23_bones`. Это **не** сертификация скелета, весов, числа полигонов, настройки LODGroup или анимации: Unity Editor не запускался.
 
+**Позднее уточнение 24.10.26:** найден ровно **один** Geometry Mesh; остальные три LOD-имени не соответствуют отдельным Mesh. См. аудит ниже.
+
 **Текстуры ещё отсутствуют в GitHub:** оригинальный FBX ссылается на 6 TGA Microsoft `m007_body/head_{color,normal,specular}.tga`, исходные размеры по GitHub tree — по 12 582 956 байт, ~72 МиБ вместе. Не добавляем тяжёлые TGA в git без WebGL оптимизации.
 
 Коммиты [`77fdec16`](https://github.com/alexvelikiy88-sketch/nonation/commit/77fdec1675108b0dce4a2157059e0f72bf95d762) и [`1a36c4d4`](https://github.com/alexvelikiy88-sketch/nonation/commit/1a36c4d455fb42623c6def9e1cd7ce57268fbfa9) добавили `fetch_textures.py` (immutable HTTPS URL, upstream Git SHA-1 и проверка размера, 32-bit TGA downsample, сохранение локально) и `test_fetch_textures.py`.
@@ -105,6 +107,29 @@
 - **AGENT 01 — `Assets/MIR/Editor/MirAssetImport.cs`, `MirUnitySetup.cs` и при необходимости собственный новый Editor script:** для `Assets/MIR/Art/Rocketbox/Male_Adult_12.fbx` настроить ModelImporter Humanoid с проверкой `Avatar.isValid`/`isHuman`, `SkinnedMeshRenderer`/boneWeights/bindposes, материалы и шесть локально полученных TGA с проверкой альфа/normal map, использовать Quaternius CC0 для Idle/Walk/Run через retarget, создать `Resources/MIR/PilotHuman01.prefab` только после Editor QA; выделить 4 реальные LOD меша и настроить `LODGroup`. Пока текстур нет и реальные clip links не проверены, не подключать prefab к release WebGL.
 - **AGENT 02 / Manager — `Assets/MIR/Scripts/MirState.cs` и world default look:** лишь **после** принятого Unity prefab и проходящего WebGL smoke-test согласовать opt-in отображение `PilotHuman01` (например `MirCitizen.look`), не менять данные мира в этом PR.
 
+## Инженерная проверка FBX и текстур — 24.10.26
+
+### Новые подтверждённые факты о `Male_Adult_12.fbx`
+
+В отличие от первоначальной проверки текстовых маркеров, бинарный FBX `15d4f8501d5703600cb3d8a94765a3de1029aaf6` реально разобран по узлам FBX **7400**. Прочитаны 3 301 узел без ошибок смещений; в файле **1 Geometry Mesh**, **1 Mesh Model**, **80 LimbNode**, **1 Skin Deformer**, **80 Cluster**, **2 Material** и **6 Texture**. Координатный массив `Vertices` имеет длину **10 149 (3 383 вершины)**; `PolygonVertexIndex` имеет длину **20 166 индексов углов полигонов**, не измеренных triangle count. Это метаданные по бинарному оригиналу, **не Unity-import/LOD/runtime proof**.
+
+**Существенное исправление:** только `m007_hipoly_81_bones` соответствует настоящему `Model Mesh`. Имена `midpoly/lowpoly/ultralowpoly` есть в строках бинарника, **но отдельных Geometry Mesh в этом FBX нет**. Прежнее предположение, что он содержит четыре LOD, **не подтверждено и не должно использоваться в планировании**. Реальные LOD1–LOD3 придётся получить или сгенерировать по отдельной проверяемой процедуре, а затем измерить. Обновлены `Assets/MIR/Art/Rocketbox/PILOT_RU.md` и `Assets/MIR/Art/CHARACTER_PILOT_RU.md`.
+
+### Улучшена надёжность подготовки текстур (AGENT 03)
+
+- [`b5339300`](https://github.com/alexvelikiy88-sketch/nonation/commit/b53393007b60c76a22f9cbc99b56bfdc380893fd) — `fetch_textures.py`: скачивание и SHA-1 проверка исходников остаются привязаны к immutable Microsoft Rocketbox revision. Теперь все 6 TGA **сначала полностью проходят подготовку в staging**, после чего устанавливаются в папку `Textures`. Ошибка скачивания/хеша третьей текстуры не оставляет частично добавленных файлов; ошибка диска во время финального перемещения *не* может гарантировать атомарность всего набора. Дополнительно записывается `textures_manifest.json` с upstream commit, размерами, SHA-256 выходных TGA и настройкой. Box-average для normal maps завершается **нормализацией** вектора, alpha сохранена.
+- [`93557f2d`](https://github.com/alexvelikiy88-sketch/nonation/commit/93557f2da01cbf936dd9cd3485950f460c95a57c) — `test_fetch_textures.py`: **6/6 локальных unittest PASS** на синтетических TGA, включая нормализацию normals, отказ при битом TGA и отказ от частичного набора при падении третьего download.
+- Контроль Git blob исходников `fetch_textures.py`=`05cf4a55ba5a932fb5d09e6ae43a4522543103df`, `test_fetch_textures.py`=`c8db65d02dd856be8e6e5f3828886ca3351dbdf0`: **совпадают** с байтами локально прошедших 6 тестов. Команды локальной проверки: `cd /mnt/data/rocketbox_work && python -m unittest discover -s . -p 'test_*.py' -v`, `python fetch_textures.py --dry-run`.
+- **НЕ проверено:** загрузка *реальных* 6 upstream TGA из текущей среды (DNS `raw.githubusercontent.com` недоступен); нет реальных уменьшенных текстур в GitHub, назначения материалов, Unity импортера, Animator, Humanoid Avatar или WebGL QA.
+
+### Runtime проверка SkinnedMeshRenderer
+
+[`2bd9f049`](https://github.com/alexvelikiy88-sketch/nonation/commit/2bd9f0493bbd20b548f4e7a7c9bc0fd86a011ddb) в `MirHumanFactory.cs` дополняет `HasPlayableRig`: одной `SkinnedMeshRenderer` недостаточно — нужны непустые bones и равное количество bindposes, mesh с вершинами. При отсутствии используется прежний **диагностический** fallback и однократное предупреждение. Runtime API и фактическую совместимость с Unity **ещё не компилировали / не проверяли**; нужен Play Mode тест AGENT 01.
+
+### Незавершённая зависимость
+
+**CROSS-OWNER REQUEST для AGENT 01:** `Assets/MIR/Editor/MirAssetImport.cs`, `MirUnitySetup.cs` и свой Editor QA: на реально импортируемом `Male_Adult_12.fbx` проверить `Avatar.isValid/isHuman`, 80 skin clusters/weights/bindpose mapping, 6 TGA+материалы, `Quaternius` retarget Idle/Walk/Run и absence of T-pose; **не создавать LODGroup из четырёх фиктивных записей**, сначала получить настоящие LOD-меши. Стадия WebGL release остаётся P0 блокером AGENT 01 и Manager. Никаких чужих файлов мы не меняли.
+
 ## Журнал
 
 | Дата | Работа | Коммит / PR | Проверки / ограничения |
@@ -113,6 +138,7 @@
 | 23.10.26 | Инвентаризация GitHub и safety gate персонажа | [3f2e733d](https://github.com/alexvelikiy88-sketch/nonation/commit/3f2e733d1c9c1dc178d3e9a1660355c06ee931b6) | Анализ исходников; Unity/WebGL не проверены |
 | 23.10.26 | Перенастройка locomotion, caching материала, runtime-диагностика, официальный аудит лицензии, контракт пилота | `60937d8`, `fa4a64f`, `b5f510d`, `a3d508b` / PR #2 | Статический анализ; Unity/WebGL, FPS, импорт модели НЕ проверены |
 | 23.10.26 | MIT Microsoft Rocketbox исходный FBX/PNG, license provenance, проверяемый fetch текстур и 4 синтетических offline теста | `269d77e`, `77fdec1`, `1a36c4d`, `c51e6c3`, `c29e1ca`, merge `063a26d`; PR #2 Draft | FBX blob идентичен upstream, 4/4 Python unittest PASS; текстуры/Unity/WebGL не проверены |
+| 24.10.26 | Установлено фактическое количество FBX Mesh/Skins; staging текстур и SHA-256 manifest, нормализация normal maps; проверка bones/bindposes | `b5339300`, `93557f2d`, `2bd9f049` / PR #2 Draft | 6/6 синтетических unittest PASS и анализ бинарника; Unity, реальные TGA, LOD, FPS не проверены |
 
 **CI-контроль 23.10.26:** PR #2 HEAD `91888444` — [run 40005479208](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005479208), source/.NET success; Unity WebGL remains unverified.
 
@@ -123,8 +149,8 @@
 1. **AGENT 01:** `Assets/MIR/Editor/MirUnitySetup.cs` — текущий `Get(all,"Idle_Loop",...,"A_TPose")` может использовать T-pose как idle; убрать T-pose в качестве fallback и отказывать в создании locomotion при неполных Idle/Walk/Run. Также необходим Editor audit созданных Avatar/skin/weights/материалов/LOD и связь с фактическим WebGL билдом; меняет AGENT 01 или Manager.
 2. **AGENT 01:** `Assets/MIR/Editor/MirAssetImport.cs` и `MirHumanoidFromGltf.cs` — при появлении лицензированного реалистичного ассета определить повторяемый importer/Avatar/prefab/LOD pipeline с явными проверками. Не импортировать непроверенные модели в `Resources`.
 
-3. **AGENT 01:** `Assets/MIR/Editor/MirUnitySetup.cs`, `Assets/MIR/Editor/MirAssetImport.cs` — по `Assets/MIR/Art/Rocketbox/PILOT_RU.md` подготовить Editor validation для реально полученного **MIT Rocketbox `Male_Adult_12.fbx`** (Avatar/weights/materials/4 LOD/clip assignment). Не подменять CC0 MakeHuman альтернативой текущий пилот без отдельной задачи.
+3. **AGENT 01:** `Assets/MIR/Editor/MirUnitySetup.cs`, `Assets/MIR/Editor/MirAssetImport.cs` — по `Assets/MIR/Art/Rocketbox/PILOT_RU.md` подготовить Editor validation для реально полученного **MIT Rocketbox `Male_Adult_12.fbx`** (Avatar/weights/materials/1 исходный Mesh, отдельное получение действительных LOD и clip assignment). Не подменять CC0 MakeHuman альтернативой текущий пилот без отдельной задачи.
 
 ## Следующее конкретное действие
 
-После успешной Unity WebGL базовой сборки: выбрать один документированно лицензируемый humanoid asset, сохранить исходник/скан лицензии и контрольную сумму, проверить в Unity Editor valid Avatar, skinned weights, Idle/Walk/Run и transitions, отсутствие T-pose и missing textures; затем замерить WebGL FPS/draw calls/полигоны на конкретной платформе. Отдельным PR заняться городом и UI, не смешивая с исправлением Cloud Build.
+Один лицензированный FBX уже получен. Следующие необходимые факты: реальные 6 TGA из фиксированного Microsoft source (Git SHA/манифест), Unity Editor import с правильным boneWeights/Avatar/Idle-Walk-Run, **действительные** LOD-меши (только один Mesh поставлен), первый WebGL export и браузерные FPS/draw calls на названной платформе. Только после этого — отдельный PR по разнообразию города/UI; не смешивать с Cloud Build.
