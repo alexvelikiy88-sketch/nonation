@@ -126,7 +126,7 @@ def main() -> int:
             problems.append(f'Invalid JSON {name}: {err}')
     required = {
         'Assets/MIR/Editor/MirUnitySetup.cs': ['EnsureBuildScene', 'EditorBuildSettings.scenes', 'PrepareForCloud'],
-        'Assets/Editor/NonationCloudBuildHook.cs': ['IPreprocessBuildWithReport', 'EnsureBuildScene', 'PreExport'],
+        'Assets/Editor/NonationCloudBuildHook.cs': ['IPreprocessBuildWithReport', 'PreExport', 'VerifyPublicAssets'],
         'Assets/MIR/Editor/MirCloudBuild.cs': ['BuildPipeline.BuildPlayer', 'BuildResult.Succeeded'],
         'Assets/MIR/Scripts/MirGame.cs': ['RuntimeInitializeOnLoadMethod', 'MirCity'],
         'Tools/fetch_quaternius.py': ['checksum(', 'hashlib.sha256', 'Quaternius']
