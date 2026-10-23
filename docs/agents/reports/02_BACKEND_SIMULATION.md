@@ -7,8 +7,8 @@
 - **Задача P0:** Проверить серверные и финансовые инварианты, read-only API и синхронизацию NPC.
 - **База до старта:** `f909e47ce764911281eee2b97f9b6568a83779d6`
 - **PR:** [#1 — Backend invariants and spectator contract (draft)](https://github.com/alexvelikiy88-sketch/nonation/pull/1)
-- **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests)
-- **Достоверные тесты по собственной работе:** [PR Validation #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005514411) SUCCESS на `981494a0`: .NET 8 domain tests, server build, HTTP/snapshot persistence smoke; Unity C#/WebGL не тестировались
+- **Собственные коммиты:** `99d6a2471ae556cbc0bbd360ef52bd3ea669e0e1` (широкий ledger), `0d1f65968b21200e53be7ab8be6aad71e78303b3` (spectator v2), `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` (загрузка/authority tests), `5b9182a428e0d748cf0abfb961f15524dd8d82bb` (stock/counter overflow)
+- **Достоверные тесты по собственной работе:** [PR Validation #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005514411) SUCCESS на `981494a0`: domain tests, build, HTTP smoke. Новый тест stock/counter в `5b9182a4` добавлен позднее и отдельно ждёт CI; Unity C#/WebGL не тестировались
 - **Блокеры:** нет локального .NET SDK; .NET CI успешен, но Unity Editor / WebGL / реальная браузерная загрузка не проверены; отдельный вопрос по локальным игровым часам в режиме spectator
 
 ## Журнал работы
@@ -21,6 +21,8 @@
 | 23.10.26 | Загрузка `WorldAuthority.Load`: явный отказ при null-списках и null-элементах; подключены real-authority tests: NPC координаты, деньги, Save/Load, ротация serverId, некорректный JSON | `ddad0b1979b3c135f86244ad9f16d3ad912a8ea6` / [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) | Проведён статический анализ вызовов и проектов `.csproj`; тесты записаны, но не запускались | .NET build/test, HTTP process restart, Unity C#, WebGL/browser |
 
 | 23.10.26 | Получено подтверждение фактического CI на PR head после кодовых правок: экономика и симуляция, версия/последовательность снимков, сохранение, startup в ASP.NET и read-only HTTP | [PR Validation #15](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40005514411), head `981494a0` | **SUCCESS:** `dotnet run` консольных тестов; `dotnet build` ASP.NET backend; Python HTTP smoke; логи содержат PASS money invariants, NPC movement, restart, read-only, CORS. Сборка с nullable warnings | Unity C#, Editor, WebGL/IL2CPP, browser |
+
+| 23.10.26 | Исправлено переполнение запасов фермы/перерабатывающего цеха (сравнение в `long`) и счётчиков `daysWorked`/`skill` при max-int; добавлены граничные `ProductStockOverflowTests` | `5b9182a428e0d748cf0abfb961f15524dd8d82bb` / [PR #1](https://github.com/alexvelikiy88-sketch/nonation/pull/1) | Статический аудит и написание тестов; запуск тестов для нового SHA пока не подтверждён | .NET CI на новом SHA; Unity/WebGL |
 
 ## Последнее проверенное состояние
 
@@ -37,6 +39,7 @@
 1. `TotalKnownMoney()` агрегировал общий баланс в `int`; переполнение при корректной сумме счетов устранено переходом на `long`. CI: PASS для суммы выше `Int32.MaxValue`, переводов и защиты от replay.
 2. `MirRemoteWorldSync` раньше допускал откат времени и не отличал повторный ответ. Теперь `MirSceneSnapshot` v2 с `sequence`, `MirSceneSnapshotCursor`, лимитом 256 NPC и отбрасыванием invalid/replay. Старый v1 endpoint несовместим: backend и Unity должны обновляться согласованно.
 3. `WorldAuthority.Load` допускал явные `null` в списках при использовании `?.Count < 1`; проверки исправлены. CI: PASS по загрузке после рестарта, координатам NPC, денежному инварианту и отклонению испорченных сохранений.
+4. `MirEconomy.Work` и производство в `Tick` складывали товары в `int`, что позволяло переполнять stock даже при `capacity=int.MaxValue`; `skill` и `daysWorked` тоже могли перейти в отрицательные значения. Добавлен `ProductStockOverflowTests` (тесты нового SHA ещё не подтверждены).
 
 ### Изменённые файлы (полный список PR)
 
@@ -66,7 +69,7 @@
 
 ## Следующее конкретное действие
 
-Перед merge PR #1 интегратор проверяет Unity C# + реальный WebGL/browser и согласованное обновление spectator v2; CI .NET уже SUCCESS (#15). После CROSS-OWNER REQUEST заменить мутацию `World.gameMinutes` на отдельные удалённые часы. Следующий технический блок AGENT 02 — аудит переполнения запасов и этапов грузового заказа с регрессионными тестами.
+Перед merge PR #1 интегратор проверяет Unity C# + реальный WebGL/browser и согласованное обновление spectator v2; CI .NET уже SUCCESS (#15). После CROSS-OWNER REQUEST заменить мутацию `World.gameMinutes` на отдельные удалённые часы. Следующий технический блок AGENT 02 — проверить новый CI на `5b9182a4`, затем исследовать невалидные переходы грузового заказа и атомарность сохранения.
 
 ## Правила заполнения
 
