@@ -742,6 +742,77 @@ static void FreightSequenceReuseTests()
 }
 FreightSequenceReuseTests();
 
+static void SavedReceiptSequenceTests()
+{
+    var saveFile = Path.Combine(Path.GetTempPath(),
+        "nonation-receipt-sequence-" + Guid.NewGuid().ToString("N") + ".json");
+    string? previous = Environment.GetEnvironmentVariable("NONATION_WORLD_FILE");
+    var options = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+    try
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", saveFile);
+        void RejectOutdatedCounter(MirWorldState state, string label)
+        {
+            string json = System.Text.Json.JsonSerializer.Serialize(state, options);
+            File.WriteAllText(saveFile, json);
+            bool refused = false;
+            try { using var invalid = new WorldAuthority(NullLogger<WorldAuthority>.Instance); }
+            catch (InvalidDataException) { refused = true; }
+            Check(refused && File.ReadAllText(saveFile) == json,
+                label + " is rejected without touching saved receipts or accounts");
+        }
+
+        var purchaseWorld = MirWorldState.NewWorld();
+        var purchaseEconomy = new MirEconomy(purchaseWorld);
+        var hero = purchaseWorld.Citizen("player-001")!;
+        var market = purchaseWorld.Business("market")!;
+        long initialMoney = purchaseEconomy.TotalKnownMoney();
+        Check(purchaseEconomy.BuyFood(hero, market) &&
+              purchaseWorld.transactions[0].id == "purchase-1" &&
+              purchaseWorld.transactionSequence == 2,
+            "genuine purchase receipt advances the shared sequence");
+        purchaseWorld.transactionSequence = 1;
+        RejectOutdatedCounter(purchaseWorld, "rolled-back purchase sequence");
+
+        var salaryWorld = MirWorldState.NewWorld();
+        var salaryEconomy = new MirEconomy(salaryWorld);
+        var employee = salaryWorld.Citizen("player-001")!;
+        Check(salaryEconomy.Work(employee) &&
+              salaryWorld.transactions[0].id == "salary-1" &&
+              salaryWorld.transactionSequence == 2,
+            "genuine salary receipt advances the shared sequence");
+        salaryWorld.transactionSequence = 1;
+        RejectOutdatedCounter(salaryWorld, "rolled-back salary sequence");
+
+        purchaseWorld.transactionSequence = 2;
+        File.WriteAllText(saveFile,
+            System.Text.Json.JsonSerializer.Serialize(purchaseWorld, options));
+        using (var restoredAuthority = new WorldAuthority(NullLogger<WorldAuthority>.Instance))
+        {
+            var restored = restoredAuthority.Snapshot();
+            var economy = new MirEconomy(restored);
+            Check(restored.transactions.Count == 1 &&
+                  economy.BuyFood(restored.Citizen("player-001")!,
+                      restored.Business("market")!) &&
+                  restored.transactions[1].id == "purchase-2" &&
+                  restored.transactionSequence == 3,
+                "repaired receipt sequence permits a distinct new purchase");
+            Check(economy.TotalKnownMoney() == initialMoney &&
+                  restored.transactions[0].id != restored.transactions[1].id,
+                "restored purchases conserve credits and never reuse a receipt ID");
+        }
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("NONATION_WORLD_FILE", previous);
+        if (File.Exists(saveFile)) File.Delete(saveFile);
+        if (File.Exists(saveFile + ".tmp")) File.Delete(saveFile + ".tmp");
+        if (File.Exists(saveFile + ".lock")) File.Delete(saveFile + ".lock");
+    }
+}
+SavedReceiptSequenceTests();
+
+
 
 static void WorldLeaseTests()
 {
