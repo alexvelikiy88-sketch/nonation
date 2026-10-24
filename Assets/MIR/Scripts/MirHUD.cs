@@ -7,7 +7,12 @@ namespace MIR
         MirGame game;
         GUIStyle title,body,small,button,box,eventStyle;
         Texture2D background;
+        bool fullPanel=true;
         public void Init(MirGame g){game=g;}
+        void Update()
+        {
+            if(Input.GetKeyDown(KeyCode.H))fullPanel=!fullPanel;
+        }
         void MakeStyles()
         {
             if(title!=null)return;
@@ -24,6 +29,17 @@ namespace MIR
         {
             if(game==null||game.World==null)return;
             MakeStyles();float w=Mathf.Min(Screen.width-24f,330f);
+            if(!fullPanel)
+            {
+                // Small, unobtrusive top-left status while the live 3D view
+                // remains interactive; this isn't a fake screenshot mode.
+                GUI.Box(new Rect(12,12,w,70),GUIContent.none,box);
+                GUI.Label(new Rect(22,17,Mathf.Max(70,w-125),25),"NONATION",title);
+                GUI.Label(new Rect(22,47,Mathf.Max(70,w-120),21),
+                    "День "+game.World.Day+" · "+game.World.citizens.Count+" жителей",small);
+                if(GUI.Button(new Rect(12+w-102,28,89,32),"Панель",button))fullPanel=true;
+                return;
+            }
             var left=new Rect(12,12,w,Screen.height-24);
             GUI.Box(new Rect(left.x,left.y,w,390),GUIContent.none,box);
             GUILayout.BeginArea(new Rect(left.x+13,left.y+10,w-26,375));
@@ -61,7 +77,7 @@ namespace MIR
             GUILayout.Label("WASD — идти / вести авто   Shift — бег",small);
             GUILayout.Label("Tab — вид   V — квартал   ПКМ/колесо — ракурс",small);
             GUILayout.Label("E — действовать   F — авто   R — поесть",small);
-            GUILayout.Label("Смена реального времени не зависит от камеры.",small);
+            GUILayout.Label("H — компактный HUD, V — обзор квартала",small);
             GUILayout.EndArea();
             float rw=Mathf.Min(Screen.width-24,325f);
             if(Screen.width>700)
