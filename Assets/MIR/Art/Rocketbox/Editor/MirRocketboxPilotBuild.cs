@@ -80,6 +80,23 @@ namespace MIR.Rocketbox.Editor
         const string SourceModelGitBlob="15d4f8501d5703600cb3d8a94765a3de1029aaf6";
         const string SourceLicenseGitBlob="9bcfb3ece5301a55d3a41bbd00a029ab27d61d13";
 
+        static bool editorAttempted;
+        [InitializeOnLoadMethod]
+        static void ScheduleEditorPilot()
+        {
+            // Play Mode should use the real person after assets load, not wait
+            // until an explicit WebGL export. Missing CC0 clips are a normal
+            // non-fatal state on a checkout before the fetch script runs.
+            EditorApplication.delayCall+=()=>
+            {
+                if(editorAttempted || EditorApplication.isPlayingOrWillChangePlaymode)
+                    return;
+                editorAttempted=true;
+                if(!File.Exists(SourceA)||!File.Exists(SourceB))return;
+                Prepare(false);
+            };
+        }
+
         static readonly Dictionary<string,string> TextureHashes=
             new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase)
             {
