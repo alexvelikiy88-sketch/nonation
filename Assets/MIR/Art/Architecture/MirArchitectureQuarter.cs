@@ -389,28 +389,28 @@ namespace MIR
         {
             switch(char.ToUpperInvariant(c))
             {
-                case 'A': return "012345";
-                case 'B': return "0123456";
-                case 'C': return "0146";
-                case 'D': return "012456";
-                case 'E': return "01346";
-                case 'F': return "0134";
-                case 'G': return "01456";
-                case 'H': return "12345";
-                case 'I': return "061112";
-                case 'K': return "1479";
-                case 'L': return "146";
-                case 'M': return "124578";
-                case 'N': return "124579";
-                case 'O': return "012456";
-                case 'P': return "01234";
-                case 'R': return "0123410";
-                case 'S': return "01356";
-                case 'T': return "01112";
-                case 'U': return "12456";
-                case 'V': return "12910";
-                case 'Y': return "12356";
-                case 'Z': return "0689";
+                case 'A': return "0,1,2,3,4,5";
+                case 'B': return "0,1,3,4,5,6,2";
+                case 'C': return "0,1,4,6";
+                case 'D': return "0,1,2,4,5,6";
+                case 'E': return "0,1,3,4,6";
+                case 'F': return "0,1,3,4";
+                case 'G': return "0,1,4,5,6";
+                case 'H': return "1,2,3,4,5";
+                case 'I': return "0,6,11,12";
+                case 'K': return "1,4,7,10";
+                case 'L': return "1,4,6";
+                case 'M': return "1,2,4,5,7,8";
+                case 'N': return "1,2,4,5,7,9";
+                case 'O': return "0,1,2,4,5,6";
+                case 'P': return "0,1,2,3,4";
+                case 'R': return "0,1,2,3,4,10";
+                case 'S': return "0,1,3,5,6";
+                case 'T': return "0,11,12";
+                case 'U': return "1,2,4,5,6";
+                case 'V': return "1,2,9,10";
+                case 'Y': return "1,2,3,5,6";
+                case 'Z': return "0,6,8,9";
                 default: return "";
             }
         }
@@ -423,12 +423,12 @@ namespace MIR
             for(int i=0;i<text.Length;i++)
             {
                 var strokes=Letter(text[i]);
-                for(int n=0;n<strokes.Length;n++)
+                string[] tokens=strokes.Split(',');
+                for(int n=0;n<tokens.Length;n++)
                 {
-                    int segment=strokes[n]-'0';
-                    // Two-digit segment references are not used in textual
-                    // glyph tokens; special centre strokes below.
-                    if(segment<0||segment>=7)continue;
+                    int segment;
+                    if(!int.TryParse(tokens[n],out segment)||
+                       segment<0||segment>=GlyphFrom.Length)continue;
                     Vector2 a=GlyphFrom[segment],b=GlyphTo[segment];
                     Tube(material,new Vector3(first+i*step+a.x*unit,y+(a.y-.5f)*unit,z),
                         new Vector3(first+i*step+b.x*unit,y+(b.y-.5f)*unit,z),
