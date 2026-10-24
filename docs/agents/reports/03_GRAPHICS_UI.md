@@ -278,3 +278,45 @@ Author: CHAT 04 / Manager
 - [MIR Unity WebGL #40050785811](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40050785811) — общий workflow **SUCCESS только в source-validation**; `webgl`, Cloud preview, deployment и Chromium browser QA **SKIPPED**. **Unity C# компиляция и WebGL rendering этим не доказаны**.
 
 **Сверка с закреплённым визуальным референсом из Источников NONATION** — актуального side-by-side WebGL capture для коммита `3d70ad27` нет, итог **ВИЗУАЛЬНОЕ СООТВЕТСТВИЕ НЕ ПРОВЕРЕНО**. Следующий необходимый артефакт: сравнительный дневной+вечерний Unity screenshot, где реально можно оценить плотность объектов, витрины, дома, waterfront, людей и свет относительно **`Солнечный городской квартал у набережной.png`**.
+
+
+## AGENT 03 / Quality pass 02 — реальная геометрия набережной / 24.10.26
+
+**Источник истины:** заново открыт прикреплённый в Источниках NONATION исходный `Солнечный городской квартал у набережной.png` **1672×941, SHA-256 `aa761600852a53231ef4fee15fda43ced35dfe40f614bed569811307bc7151a8`** — соответствует `Documentation/VISUAL_CANON_RU.md`. Эталон — нижняя художественная планка для **живого Unity/WebGL кадра**, а не декоративное изображение внутри игры.
+
+### Фактически изменённые AGENT 03 файлы
+
+1. [`Assets/MIR/Art/Waterfront/MirWaterfrontQuarter.cs`](../../../Assets/MIR/Art/Waterfront/MirWaterfrontQuarter.cs), коммиты [`e718f3fa`](https://github.com/alexvelikiy88-sketch/nonation/commit/e718f3fad1b5f5118a38f57bb68010c98d901dd8), [`111486d4`](https://github.com/alexvelikiy88-sketch/nonation/commit/111486d4bc4f7d3805fc728e13c20c70a7df666b), [`77b8207f`](https://github.com/alexvelikiy88-sketch/nonation/commit/77b8207f9432c2d61036a1259785bb35b45b1eb6) — новый **runtime 3D** геометрический модуль набережной. Включает сухой общедоступный настил 188×20 м `z=-108..-128`, воду за границей исходного `ground` `z=-130..-181`, волну как небольшую статичную деформацию водной сетки, наглядную береговую стенку, трубчатые металлические ограждения, велополосу, деревья с объёмными кронами, кустарники/кашпо, деревянные скамьи и два настоящих геометрических кафе-зонта. Ровно **12 групп Renderer по материалам** вместо тысячи отдельных Tile GameObjects; один длинный физический барьер у воды + два walkable BoxCollider. **4 локальных shadowless светильника** привязаны к существующему `MirCity.UpdateLighting` (выкл. днём; вкл. ночью). Сохранены действующие gameplay POI.
+2. [`Assets/MIR/Scripts/MirCity.cs`](../../../Assets/MIR/Scripts/MirCity.cs), коммиты [`76364272`](https://github.com/alexvelikiy88-sketch/nonation/commit/76364272c0c53bd536206b7f26e9e3ef7b958f25), [`f975053a`](https://github.com/alexvelikiy88-sketch/nonation/commit/f975053a79aec54e6457e6aeb7f27a3afb75eed6) — один интеграционный вызов `MirWaterfrontQuarter.Build(root,Mat,lamps.Add)`, без изменений API BusinessEntry/HomeEntry, маршрутов NPC и физики транспорта.
+3. [`Assets/MIR/Scripts/MirFollowCamera.cs`](../../../Assets/MIR/Scripts/MirFollowCamera.cs), [`2908b8a9`](https://github.com/alexvelikiy88-sketch/nonation/commit/2908b8a94b994f4bcf1eb6e66b1b3798b5cc5b2a) — `V` включит повторяемый фиксированный `DistrictShowcase` без монтажа `focus=(20,1.8,-48)`, `pitch=51`, `yaw=40`, `distance=175`, `FOV=52`; **Tab** вернёт текущие игровые виды. Статическая геометрическая проверка проекции показала plaza, cafe, market и восточную береговую линию в кадре 16:9, **но не доказывает реального Unity рендера**.
+4. [`Assets/MIR/Scripts/MirHUD.cs`](../../../Assets/MIR/Scripts/MirHUD.cs), [`d064c31b`](https://github.com/alexvelikiy88-sketch/nonation/commit/d064c31b27a8691563a7a6250c01888d7a7b037c) — подсказка клавиши `V` в существующем GUI, без смены экономических кнопок.
+5. [`Assets/MIR/Art/Waterfront/VISUAL_SLICE_RU.md`](../../../Assets/MIR/Art/Waterfront/VISUAL_SLICE_RU.md), [`8b53cfd5`](https://github.com/alexvelikiy88-sketch/nonation/commit/8b53cfd5caa85328c0f835f0baf474899466d22c) — технологическая карта, координаты и обязательный side-by-side со **свежим чтением файла из Источников**, условия WebGL QA.
+
+**Фактические неигровые зависимости не добавлены:** нет новых DLL, сторонних 3D-ассетов с неизвестной лицензией, UnityEditor в runtime, чужих сцен, `Packages`, `MirGame.cs`, изменений `TASKS.md` или Backend. Вода/растительность/патио — новая реальная `Mesh`-геометрия и коллайдеры, не вставленная картинка, но без качественных PBR карт и авторских зданий **это ещё не визуальная приёмка**.
+
+### Сверка с закреплённым визуальным референсом из Источников NONATION
+
+| Категория | Факт исходников / прогресс | Художественный критерий | Итог |
+|---|---|---|---|
+| Перекрёстки и площадь | Существующая road grid и фонтан остаются | Точность пропорций/плотности относительно PNG | **ЧАСТИЧНО, скрин не получен** |
+| Реальная набережная | Добавлены 3D вода, настил, стенка, ограждение, скамейки, деревья | Богатая набережная на переднем плане, реалистичная вода и узнаваемые малые формы | **PARTIAL** |
+| Кафе и фасады | Существующие витрины + новое патио с двумя зонтами | Настоящие интерьеры, премиальные фасады, 3–5 архитектурных семейств | **НЕ ДОСТИГНУТО** |
+| Персонажи | Rocketbox FBX и TGA в Art, но Unity Avatar/skin/Animator/LOD не подтверждены | Не менее одного проверенного skinned Humanoid и живые NPC без капсул | **НЕ ДОСТИГНУТО** |
+| Свет | 4 ночных shadowless светильника + старый ambient/fog/sun | Качественные реалистичные день/вечер тени/материалы | **НЕ ПРОВЕРЕНО** |
+| UI | Подсказка V + прежний IMGUI HUD | Современный UI без технодемки | **НЕ ДОСТИГНУТО** |
+| Производительность | Поверхности сгруппированы по 12 материалам; нет runtime wave update | Реальный WebGL p50/p95 FPS, draw calls, VRAM | **НЕ ИЗМЕРЕНО** |
+
+**ВИЗУАЛЬНОЕ СООТВЕТСТВИЕ НЕ ПРОВЕРЕНО**: после изменений нет неприкосновенного `Unity WebGL/Chromium` снимка с тем же ракурсом и SHA. Геометрический проверочный код — не визуальная приёмка. Прежние здания ещё примитивны. Финальный `VISUAL GATE` из `VISUAL_CANON_RU.md` остаётся **FAIL/BLOCKING**.
+
+### Верификация и ограничения
+
+- **Статический технический аудит четырёх изменённых/новых C#**: все фигурные скобки уравновешены (с учётом строк и комментариев), сохранены `MirCity.Build/SidewalkRoute/UpdateLighting`, не изменены business ID/POI, фасадные объекты/люди не подменены, нет API `UnityEditor`; корректное winding основных горизонтальных поверхностей и зонтов проверено геометрически; новые светильники регистрируются в ночном переключателе. Это **не** полноценный компилятор Unity и не Unity Play Mode.
+- [PR #26 / source-/.NET на SHA `8b53cfd5`](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40051669059) — **SUCCESS**, [Cross-Branch Integration #40051669068](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40051669068) — **SUCCESS**, [Ownership Guard #40051669062](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40051669062) — **SUCCESS**.
+- [MIR Unity WebGL #40051669058](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40051669058) — только source-validation SUCCESS; **webgl/Cloud/Pages/Chromium jobs SKIPPED**. Нет Unity C# compilation, реальной сцены, GPU FPS, QA коллайдеров.
+- После этих CI тестов был обновлён только отчёт, не production-код. Никаких измеренных frame time, draw calls, triangles, памяти или качества шейдеров не заявляется.
+
+### Cross-owner — запрошено и доступно
+
+[**Issue #28**](https://github.com/alexvelikiy88-sketch/nonation/issues/28) просит AGENT 01/Manager снять настоящий дневной+вечерний 1920×1080 Chromium V-кадр без редактирования с WebGL SHA/URL/GPU/FPS и проверить player/NPC/cafe/market/сохранения, границу воды и viewport. Художественный PASS требует открывать исходный PNG из Источников перед *каждой* проверкой.
+
+**Следующая собственная задача:** заменить оставшиеся примитивные `BlockBuilding` архитектурными фасадами/текстурами, не касаясь POI/Backend; затем отдельный качественный NPC/Animator и HUD pass. Нельзя масштабировать город до художественного утверждения одного квартала.
