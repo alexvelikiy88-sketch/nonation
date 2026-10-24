@@ -401,3 +401,16 @@ Author: CHAT 04 / Manager
 - [Issue #28](https://github.com/alexvelikiy88-sketch/nonation/issues/28) обновлён: AGENT 01/Manager запрошен **новый preview именно PR #26**, проверка C# и shader compilation, отсутствие magenta, коллизий, затем неизменённые V-скриншоты day/evening и истинные FPS/draw calls/triangles/memory. Без этого **VISUAL GATE FAIL / качество референса не доказано**.
 
 Весь прирост — **только владеемые AGENT 03 файлы**. Промышленные кубические здания и часть окружения ещё не заменены, точные PBR/normal/roughness карты и реальный риггированный герой не прошли Unity QA; задача фундаментального художественного уровня продолжается. Нельзя масштабировать технодемку под видом готового города.
+
+
+## P0 SHIFT / REAL PEOPLE FIRST — 24.10.26
+
+**Директива владельца:** «первой важности: люди, реальные». Поэтому все задачи PBR фасадов, декоративной дороги, деревьев и HUD временно подчинены проверке **настоящего анимированного человека в реальном Unity/WebGL**, а не дальнейшему увеличению количества примитивной городской геометрии.
+
+**Фактически присутствует в `agent/graphics-ui`:** исходный Microsoft Rocketbox MIT `Male_Adult_12.fbx`, шесть проверенных текстур, авторский Editor-пайплайн `Assets/MIR/Art/Rocketbox/Editor/MirRocketboxPilotBuild.cs` (Humanoid importer, Avatar/skinning/material source checks, Idle/Walk/Run CC0 BlendTree, `Resources/MIR/RocketboxPilot01.prefab` при успешном реальном Unity импорте); `MirHumanFactory` сначала пробует этот реальный prefab и логирует `NONATION_REAL_HUMAN_RUNTIME_OK` при появлении. Это **исходники/намерение работы Unity, но не доказательство реального анимированного человека**, потому что Unity Editor, model importer, Browser WebGL ещё не проверены на графическом SHA.
+
+**Сделанное действие:** обновлена почасовая задача AGENT 03 — теперь human pipeline приоритет №1, работа над фасадами приостановлена; в [issue #17](https://github.com/alexvelikiy88-sketch/nonation/issues/17) отправлен конкретный P0 cross-owner запрос к AGENT 01/Manager: Unity 6000.0.58f2, `Tools/fetch_quaternius.py`, сборка Rocketbox, первый реальный `NONATION_ROCKETBOX_READY` или точная ошибка `NONATION_ROCKETBOX_BLOCKED`, наблюдение `NONATION_REAL_HUMAN_RUNTIME_OK` в настоящем WebGL и проверка без T-pose/капсул. Затем отдельно LOD и вариативность.
+
+**Граница владения:** `Assets/MIR/Editor/**`, `Assets/MIR/Scenes/**`, Unity cloud deployment и gameplay backend не затрагивать; отчёт AGENT 03 не заменяет реальную Unity проверку. Выполненные исходные CI могут быть успешными без Unity runtime.
+
+**Сверка с закреплённым визуальным референсом из Источников NONATION:** требуется конкретное сравнение людей по анатомии, ригу, движениям, одежде, росту и вариативности с оригинальным изображением `Солнечный городской квартал у набережной.png`. Пока не получен новый Unity/WebGL кадр с действительно анимированным Rocketbox, **ВИЗУАЛЬНОЕ СООТВЕТСТВИЕ НЕ ПРОВЕРЕНО**.
