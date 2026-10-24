@@ -62,7 +62,10 @@ class RealHumanoidPipelineTests(unittest.TestCase):
         self.assertIn('EditorApplication.delayCall',self.editor)
         self.assertIn('Prepare(false);',self.editor)
         self.assertIn('PrefabUtility.SaveAsPrefabAsset(instance,Output)',self.editor)
-        self.assertIn('Resources.Load<GameObject>("MIR/RocketboxPilot01")',self.factory)
+        self.assertIn('"MIR/RocketboxPilot01"',self.factory)
+        self.assertIn('Resources.Load<GameObject>(candidate)',self.factory)
+        self.assertLess(self.factory.index('"MIR/RocketboxPilot01"'),
+                        self.factory.index('"MIR/PlayableHuman"',self.factory.index('string[] candidates=')))
 
     def test_failed_avatar_or_controller_not_accepted_as_real_person(self):
         self.assertIn('AssetDatabase.DeleteAsset(Output)',self.editor)
