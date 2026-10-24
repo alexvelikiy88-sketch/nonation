@@ -195,6 +195,9 @@ namespace MIR
             for(int a=-2;a<=2;a++)for(int b=-2;b<=2;b++)
             {
                 Vector3 p=new Vector3(a*40,0,b*40);
+                // VIS-02 focal junctions use their own batched, correct-scale paint.
+                // Preserve legacy zebra markings on all the other intersections.
+                if(a>=0&&a<=1&&b>=0&&b<=1)continue;
                 for(int k=-3;k<=3;k++)
                 {
                     Cube("Zebra N",p+new Vector3(k*1.05f,.11f,7f),new Vector3(.67f,.02f,2.4f),white);
@@ -272,7 +275,10 @@ namespace MIR
             }
             for(int i=-2;i<=2;i++)for(int j=-2;j<=2;j++)
             {
-                if((i+j)%2==0)Tree(new Vector3(i*40+13,.2f,j*40+13),.8f);
+                // Two hero-quarter trees are replaced by detailed clustered
+                // crowns in MirQuarterStreetLife, not drawn twice in one spot.
+                if((i+j)%2==0 && !(i==0&&j==0) && !(i==1&&j==1))
+                    Tree(new Vector3(i*40+13,.2f,j*40+13),.8f);
                 if((i+j)%3==0)Lamp(new Vector3(i*40+8,0,j*40+8),i==-1&&j==1);
             }
             // Keep an explicit index: the first parked vehicle may use the optional
@@ -283,6 +289,9 @@ namespace MIR
             // ART-ONLY P0: coherent public promenade outside the southern map edge.
             // Stays off NPC POIs/sidewalk routes; no scene or Editor pipeline edits.
             MirWaterfrontQuarter.Build(root,Mat,lamps.Add);
+            // VIS-02: high-detail foliage, bikes, true street cafe furnishings
+            // and 4 correctly marked junctions. Decorative geometry, no POI edits.
+            MirQuarterStreetLife.Build(root,Mat);
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
