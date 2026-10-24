@@ -18,6 +18,7 @@ namespace MIR
         // weights, texture quality, LODs or actual animation transitions.
         static readonly System.Collections.Generic.HashSet<string> ReportedRigFailures=
             new System.Collections.Generic.HashSet<string>();
+        static bool reportedVerifiedPilotInRuntime;
         static void WarnOnce(string prefab,string reason)
         {
             string key=prefab+"|"+reason;
@@ -131,6 +132,24 @@ namespace MIR
                             1.72f/bounds.size.y,.05f,10f);
                     var driver=instance.AddComponent<MirMotionDriver>();
                     driver.Configure(person.gaitSeed);
+                    if(candidate=="MIR/RocketboxPilot01" && !reportedVerifiedPilotInRuntime)
+                    {
+                        reportedVerifiedPilotInRuntime=true;
+                        var skins=instance.GetComponentsInChildren<SkinnedMeshRenderer>();
+                        int realVertices=0,realBones=0;
+                        foreach(var skinned in skins)
+                        {
+                            if(skinned.sharedMesh!=null)realVertices+=skinned.sharedMesh.vertexCount;
+                            if(skinned.bones!=null)realBones+=skinned.bones.Length;
+                        }
+                        // Browser smoke can now distinguish real skinned people
+                        // from a passing generic gameplay/capsule smoke test.
+                        Debug.Log("NONATION_REAL_HUMAN_RUNTIME_OK asset=RocketboxPilot01"+
+                            " humanAvatar="+animator.avatar.isHuman+
+                            " skinnedVertices="+realVertices+
+                            " bones="+realBones+
+                            " controller="+animator.runtimeAnimatorController.name);
+                    }
                     return driver;
                 }
                 WarnOnce(source.name,reason);
