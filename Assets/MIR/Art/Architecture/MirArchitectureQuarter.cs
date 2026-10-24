@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 
 namespace MIR
 {
@@ -108,7 +109,10 @@ namespace MIR
                 if(points.Count>65535)mesh.indexFormat=IndexFormat.UInt32;
                 mesh.SetVertices(points);mesh.SetUVs(0,uv);
                 mesh.SetTriangles(indices,0);
-                mesh.RecalculateNormals();mesh.RecalculateBounds();
+                mesh.RecalculateNormals();
+                // Normal-map tangent frames are generated once from real UVs.
+                mesh.RecalculateTangents();
+                mesh.RecalculateBounds();
                 var go=new GameObject("MESH / "+material.name);
                 go.layer=layer;go.transform.SetParent(group,false);
                 go.AddComponent<MeshFilter>().sharedMesh=mesh;
@@ -254,6 +258,36 @@ namespace MIR
                 if(found.HasProperty("_MainTex"))found.SetTexture("_MainTex",tex);
                 if(found.HasProperty("_BaseMap"))found.SetTextureScale("_BaseMap",new Vector2(.62f,.62f));
                 if(found.HasProperty("_MainTex"))found.SetTextureScale("_MainTex",new Vector2(.62f,.62f));
+
+                // Verified ambientCG scans bring actual OpenGL tangent normals
+                // and roughness into the custom URP material. They remain inert
+                // on the existing untextured emergency fallback shader.
+                string prefix=pattern=="brick"?"Bricks097_":
+                    pattern=="plaster"?"Plaster007_":
+                    pattern=="wood"?"Planks023A_":null;
+                if(prefix!=null && found.HasProperty("_NormalMap"))
+                {
+                    Texture2D normal=pattern=="plaster"?
+                        Scan("Plaster007_NormalSmoothGL"):pattern=="brick"?
+                        Scan("Bricks097_NormalGL"):null;
+                    Texture2D rough=Scan(prefix+"Roughness");
+                    if(normal!=null)
+                    {
+                        normal.wrapMode=TextureWrapMode.Repeat;
+                        found.SetTexture("_NormalMap",normal);
+                        found.SetFloat("_UseNormal",1f);
+                        found.SetFloat("_NormalSRGB",
+                            GraphicsFormatUtility.IsSRGBFormat(normal.graphicsFormat)?1f:0f);
+                    }
+                    if(rough!=null)
+                    {
+                        rough.wrapMode=TextureWrapMode.Repeat;
+                        found.SetTexture("_RoughnessMap",rough);
+                        found.SetFloat("_UseRoughness",1f);
+                        found.SetFloat("_RoughnessSRGB",
+                            GraphicsFormatUtility.IsSRGBFormat(rough.graphicsFormat)?1f:0f);
+                    }
+                }
             }
             materials.Add(name,found);
             return found;
