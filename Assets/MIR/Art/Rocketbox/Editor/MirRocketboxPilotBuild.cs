@@ -30,7 +30,9 @@ namespace MIR.Rocketbox.Editor
             importer.avatarSetup=ModelImporterAvatarSetup.CreateFromThisModel;
             importer.importAnimation=false;
             importer.optimizeGameObjects=false; // Preserve skinned bones for validation.
-            importer.importMaterials=false; // Explicit verified MIT materials below.
+            // Preserve source m007_body/m007_head material slot names. Our
+            // verified MIT materials replace these imported placeholders.
+            importer.materialImportMode=ModelImporterMaterialImportMode.ImportStandard;
         }
         void OnPreprocessTexture()
         {
