@@ -339,3 +339,52 @@ Author: CHAT 04 / Manager
 - [MIR Unity WebGL #40052081958](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40052081958) — только **source-validation SUCCESS**, настоящий `webgl`, `Cloud`, `deploy`, `browser smoke` отмечены **SKIPPED**.
 
 Это доказывает владельческие границы и статический/source/.NET контур, **но НЕ доказывает Unity C# compilation, отражения/качества воды, анимаций, действительных draw calls, FPS и соответствия закреплённому в Источниках PNG**. [Issue #28](https://github.com/alexvelikiy88-sketch/nonation/issues/28) — точный запрос на браузерные кадры/метрики AGENT 01/Manager. Следующий результат AGENT 03 должен содержать реальное сравнение, иначе **VISUAL GATE всё ещё не принят**.
+
+
+## VIS-02 / Architecture Rebuild — фундаментальная замена графики квартала, 24.10.26
+
+### Сверка с закреплённым визуальным референсом из Источников NONATION
+
+Официальный файл `Солнечный городской квартал у набережной.png` из Источников NONATION прочитан непосредственно. Разрешение **1672×941**, канонический **SHA-256 `aa761600852a53231ef4fee15fda43ced35dfe40f614bed569811307bc7151a8`** подтверждён расчётом по оригинальному PNG. Временная копия `(1).png` имеет такие же RGB-пиксели, но иной PNG-хеш из-за RGBA-формата; нормативный источник — оригинал без суффикса. Сравнивать нужно каждый новый **настоящий** Unity WebGL кадр с оригинальным изображением. **Сейчас ВИЗУАЛЬНОЕ СООТВЕТСТВИЕ НЕ ПРОВЕРЕНО**: пригодного Chromium WebGL-кадра на новом SHA нет.
+
+**Почему фундаментальная замена:** старый `MirCity.Build()` создавал 12 зданий через `BlockBuilding` (кубические монолиты с наложенными одинаковыми окнами) и `MarketSquare` (плита + примитивные цилиндры). Эти вызовы в работающем `Build` заменены двумя новыми архитектурными модулями. Старые методы оставлены вне runtime-вызова для безопасного rollback, но новый город уже выбирает новые меши, а не прежние фасадные кубы.
+
+### Рабочие коммиты и ассеты (разрешённые пути AGENT 03)
+
+- [`f305b96e`](https://github.com/alexvelikiy88-sketch/nonation/commit/f305b96ef9c4fb2c4ee81daaf1e4e379b7ff2597) — **`Assets/MIR/Art/Architecture/MirArchitectureQuarter.cs`**, новая авторская система модульной архитектуры. Все **12** прежних зданий сохранены на точных исходных координатах и с прежними внешними `BoxCollider`; четыре архитектурных семейства (кирпич, светлый известняк, минеральная облицовка, дерево), модули реальных открытых передних проёмов/глубинных рам, сегментированные оконные стены, объёмные витрины и мерчандайзинг, скамейки/кашпо у коммерции, балконы, кровельные перголы, террасы/парапеты и 3D-вывески. Не изменяются POI/игровые пути и `MirWorldGeometry`. Набор геометрических элементов объединён в `Mesh` по материалам, **не отдельный рендерер на каждый элемент**.
+- [`ef00446e`](https://github.com/alexvelikiy88-sketch/nonation/commit/ef00446ecb0c326f3285db59f846309de4c3c0aa) — `MirCity.cs` больше не вызывает четыре общественных и восемь жилых `BlockBuilding`, вместо них `MirArchitectureQuarter.Build(root)`. Коммерческие `market/cafe/garage/town`, остальные бизнесы, `MirWorldGeometry.HomeEntry`, машины, существующая набережная и сценарии NPC остались без изменений.
+- [`5ccdc4ac`](https://github.com/alexvelikiy88-sketch/nonation/commit/5ccdc4ac3fd437eb2455bcc654cc45b937277741) и [`8baedbf7`](https://github.com/alexvelikiy88-sketch/nonation/commit/8baedbf7166b61c76ece9ab5a37c0cbcc18b8c53) — исправлена авторская линейная 3D-типографика вывесок (13 сегментов), обеспечена цветовая текстура кирпича/камня/штукатурки/дерева и корректный резервный tint при отсутствии шейдера. Цветовые карты генерируются один раз в **256×256** с mipmaps, tileable world-space UV; это **собственный ограниченный procedurally-authored albedo**, а не готовые high-res PBR текстуры из внешнего пакета.
+- [`19a72db4`](https://github.com/alexvelikiy88-sketch/nonation/commit/19a72db499cc55cf71d6c853f411c84f4b4f81c5), [`10cb390c`](https://github.com/alexvelikiy88-sketch/nonation/commit/10cb390c8b630da6b55d34386f1f270c0687c300), [`ac0519b3`](https://github.com/alexvelikiy88-sketch/nonation/commit/ac0519b3070b8e2d14cd74b389b3d462268e3fed) — **`Assets/MIR/Art/Architecture/Resources/Nonation/Architecture/ArchitecturalLit.shader`**, собственный URP-compatible lit+textured shader с встроенным pipeline fallback, directional diffuse/specular, fog, shadow caster/pass, Resources-backed для гарантированной доступности в player при корректном импорте. **Это облегчённый shader, не фотоподобный PBR/Lit**. Не тестировался через настоящий Unity Shader Compiler; возможны исправления у AGENT 01 при появлении Unity compile/log. `Packages/manifest.json` в `main` указывает URP 17.0.3; Packages и Editor файлы нами не изменялись.
+- [`5b8043b4`](https://github.com/alexvelikiy88-sketch/nonation/commit/5b8043b4018afcdcc49bf81a82d7eb61ae395f58), [`f5168f5c`](https://github.com/alexvelikiy88-sketch/nonation/commit/f5168f5c2a2c2f768aa0fe5336a92914cb1e14a8), [`49b75a49`](https://github.com/alexvelikiy88-sketch/nonation/commit/49b75a49e08da086fedd209020f6f720c62efa3f), [`ba9c0d62`](https://github.com/alexvelikiy88-sketch/nonation/commit/ba9c0d62fb5c773be149ab8f45e1c55328161707) — **`Assets/MIR/Art/Architecture/MirCivicSquare.cs`**, прежняя demo-площадь заменена настоящей 3D-геометрией: 27×27 м, 324 плашки мощения в общих мешах, многоуровневый круглый фонтан с водой, непрерывный золотой N-знак, рассадники/деревянные лавки/уличная мебель, два shadowless светильника; два упрощённых физических коллайдера. Старый `MarketSquare()` больше не вызывается.
+- [`6bd1ee09`](https://github.com/alexvelikiy88-sketch/nonation/commit/6bd1ee0926e258e9600b0cc11ff480fcb75a97f8) — [`Assets/MIR/Art/Architecture/ARCHITECTURE_REBUILD_RU.md`](../../../Assets/MIR/Art/Architecture/ARCHITECTURE_REBUILD_RU.md), канон сверки, модули, лицензии, блокеры и QA.
+
+### Что прошло проверку
+
+**Статический осмотр нового и существующего C# + shader: 18/18 source-инвариантов выполнены** на промежуточном графическом SHA, включая сбалансированные скобки и круглые скобки (строки/комментарии исключены), ровно один вызов новой архитектуры и новой площади, старые `BlockBuilding()/MarketSquare()` вне `Build`, целостность всех восьми business ID, сохранение home/vehicle entry, отсутствие `UnityEditor` в runtime, наличие реальных Mesh.SetVertices/Triangles, URP shader в owned Resources, existing camera/waterfront, никакой подмены кадра. Это **не C# компилятор Unity**.
+
+- [Cross-Branch Integration #40054683205](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40054683205) — SUCCESS на промежуточном коде c городом/площадью.
+- [Source/.NET #40054683157](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40054683157) — SUCCESS.
+- [Ownership Guard #40054683226](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40054683226) — SUCCESS.
+- В более поздних исходных коммитах были только документы и шейдер/материал-совместимость; актуальные CI на последнем SHA нужно проверять отдельно.
+- **WebGL workflow SUCCESS может означать только `source-validation`** — Unity Shader Compiler, активный рендер, scene, Chromium и GPU/FPS не подтверждены этим кодовым этапом.
+
+### VISUAL GATE — реальная оценка по эталону
+
+| Слой | Сейчас в исходниках | Статус художественной приёмки |
+|---|---|---|
+| 12 зданий и коммерция | Новые отдельные рельефные фасады/витрины/крыши/террасы | **ПРОГРЕСС, НЕ ПРОВЕРЕНО в WebGL** |
+| Центр квартала | Полноценная геометрическая plaza и фонтан | **ПРОГРЕСС, НЕ ПРОВЕРЕНО в WebGL** |
+| Набережная | Модуль `MirWaterfrontQuarter` остаётся | **НЕ ПРОВЕРЕНО в WebGL** |
+| Люди | Rocketbox FBX+MIT текстуры в Art, но не готовый Humanoid Animator/LOD | **НЕ ДОСТИГНУТО** |
+| Свет/PBR | Облегчённый URP лит-шейдер, 256×256 authored pattern | **НЕ ДОСТИГНУТО** до реальных материалов/освещения |
+| Транспорт/NPC | Исходная игровая логика и консервативный рендер сохранены | **НЕТ живого доказательства** |
+| HUD/камера | Предыдущие H/V режимы сохранены | **НЕ ПРОВЕРЕНО в браузере** |
+| FPS/draw calls/tris/memory | Нет фактических Unity GPU/браузерных замеров | **НЕ ИЗМЕРЕНО** |
+
+Соблюдено `Documentation/VISUAL_CANON_RU.md`: **новый архитектурный код не означает, что сцена не хуже оригинального референса**. Старые промышленные объекты и части улиц ещё примитивны, персонажи не подтверждены, авторские 256² текстуры — промежуточные; схожесть композиции требуется подтвердить **настоящим кадром Chromium** и явным владельческим review.
+
+### CROSS-OWNER REQUEST / ближайший внешний gate
+
+[Issue #28](https://github.com/alexvelikiy88-sketch/nonation/issues/28) для AGENT 01/Manager требуется дополнить: построить/запустить **preview Unity/WebGL именно текущей графической ветки**, проверить компиляцию `MirArchitectureQuarter.cs`, `MirCivicSquare.cs`, `ArchitecturalLit.shader` и import свойства `Resources`, затем непрепарированные 16:9 скриншоты V day/evening и реальный p50/p95 frame time/FPS/draw calls/triangles/memory. Плюс прочность коллайдеров и gameplay regression. До этих доказательств PR 26 остаётся **Draft**. Файлы AGENT 01/02/Manager, `TASKS.md` и защищённый `main` не изменялись.
+
+**Следующая наша визуальная задача:** после реального кадрового proof — импорт более качественных лицензированных PBR текстур/нормалей, усиление дороги и зелени, затем один действительно риггированный и анимированный humanoid. Только после этого допускается выпуск новых вариантов NPC и расширение карты.
