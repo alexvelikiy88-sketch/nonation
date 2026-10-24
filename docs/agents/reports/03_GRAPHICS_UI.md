@@ -327,3 +327,15 @@ Author: CHAT 04 / Manager
 [Коммит `b7068306`](https://github.com/alexvelikiy88-sketch/nonation/commit/b7068306a7f42b6cf254a76aa1cc8228e7cff104) — `Assets/MIR/Scripts/MirHUD.cs`: введён обратимый **H — компактный HUD**. Полная панель остаётся режимом по умолчанию, в том числе со всеми экономическими действиями; при H рисуется только небольшая плашка NONATION (день, число жителей) и кнопка `Панель` для возврата. Мир, физика, анимация, время и ввод камеры **не выключаются**, поэтому это не обманная «чистая картинка». [Коммит `1dafb673`](https://github.com/alexvelikiy88-sketch/nonation/commit/1dafb673a798b3b3ddd83f72604107531fc85a06) дополняет инструкцию камеры/компактного HUD. Responsive layout, интерфейс игрока на touch и профессиональная UI-приёмка **не проверены**.
 
 **Приёмка по Source-референсу остаётся открытой:** инженерный 3D waterfront + H/V режимы повышают проверяемость и насыщенность, но не заменяют полноценные PBR здания, rigged NPC и живой Chromium screenshot. Реальное качество игры не объявлено достигнутым.
+
+
+### CI текущего gameplay/art-кода — 24.10.26
+
+После добавления компактного HUD и синхронизации с новым защищённым `main`, исходный C# код и собственная документация находились в `agent/graphics-ui@e6016e802439b5e0aa69ce034a8da2ff10393c10`. GitHub Actions на этом коде:
+
+- [Ownership Guard #40052081842](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40052081842) — **SUCCESS**.
+- [Source/.NET #40052081873](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40052081873) — **SUCCESS**.
+- [Cross-Branch Integration #40052081982](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40052081982) — **SUCCESS**.
+- [MIR Unity WebGL #40052081958](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40052081958) — только **source-validation SUCCESS**, настоящий `webgl`, `Cloud`, `deploy`, `browser smoke` отмечены **SKIPPED**.
+
+Это доказывает владельческие границы и статический/source/.NET контур, **но НЕ доказывает Unity C# compilation, отражения/качества воды, анимаций, действительных draw calls, FPS и соответствия закреплённому в Источниках PNG**. [Issue #28](https://github.com/alexvelikiy88-sketch/nonation/issues/28) — точный запрос на браузерные кадры/метрики AGENT 01/Manager. Следующий результат AGENT 03 должен содержать реальное сравнение, иначе **VISUAL GATE всё ещё не принят**.
