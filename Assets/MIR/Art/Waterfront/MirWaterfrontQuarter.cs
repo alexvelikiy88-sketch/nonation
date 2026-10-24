@@ -144,8 +144,6 @@ namespace MIR
             var sea=new Surface();
             var foam=new Surface();
             var cycle=new Surface();
-            var canvas=new Surface();
-            var canvasAlt=new Surface();
 
             // The current terrain ends at z=-130. The promenade overlaps the
             // final two metres of the existing N-S sidewalks (end at z=-110).
@@ -279,22 +277,9 @@ namespace MIR
             var patioCollider=patioWalk.AddComponent<BoxCollider>();
             patioCollider.center=new Vector3(56,.09f,10.60f);
             patioCollider.size=new Vector3(26,.16f,6.8f);
-            for(int j=0;j<2;j++)
-            {
-                float x=j==0?46.5f:65.5f,z=10.9f;
-                rail.Tube(new Vector3(x,.19f,z),new Vector3(x,3.02f,z),.07f,10);
-                canvas.Umbrella(new Vector3(x,2.72f,z),2.65f,false);
-                canvasAlt.Umbrella(new Vector3(x,2.72f,z),2.65f,true);
-                deckWood.Box(new Vector3(x,1.04f,z),new Vector3(1.48f,.10f,1.48f));
-                rail.Tube(new Vector3(x,.2f,z),new Vector3(x,1.00f,z),.083f);
-                for(int side=-1;side<=1;side+=2)
-                {
-                    float sx=x+side*1.33f;
-                    deckWood.Box(new Vector3(sx,.60f,z),
-                        new Vector3(.62f,.12f,.66f));
-                    rail.Tube(new Vector3(sx,.2f,z),new Vector3(sx,.58f,z),.054f);
-                }
-            }
+            // Tables and 3D parasols at the café entrance are built by the
+            // detailed MirQuarterStreetLife mesh, not duplicated here.
+            // Keep only this walkable plaza-grade patio and its single collider.
 
             stone.Emit(parent,"Promenade stonework and cafe deck",
                 material("waterfront-sandstone",new Color(.69f,.68f,.62f),0,.18f),true);
@@ -316,10 +301,6 @@ namespace MIR
                 material("waterfront-highlights",new Color(.83f,.86f,.77f),0,.29f),false);
             cycle.Emit(parent,"Promenade cycle strip",
                 material("waterfront-cycle",new Color(.47f,.31f,.29f),0,.15f),false);
-            canvas.Emit(parent,"Cafe umbrellas ivory",
-                material("waterfront-canvas",new Color(.88f,.83f,.71f),0,.3f),true);
-            canvasAlt.Emit(parent,"Cafe umbrellas warm white",
-                material("waterfront-canvas-alt",new Color(.96f,.91f,.82f),0,.3f),true);
         }
 
         static Vector3 Wave(float x,float z)
