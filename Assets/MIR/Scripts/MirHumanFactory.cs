@@ -18,6 +18,7 @@ namespace MIR
         // weights, texture quality, LODs or actual animation transitions.
         static readonly System.Collections.Generic.HashSet<string> ReportedRigFailures=
             new System.Collections.Generic.HashSet<string>();
+        static bool reportedVerifiedPilotInRuntime;
         static void WarnOnce(string prefab,string reason)
         {
             string key=prefab+"|"+reason;
@@ -93,36 +94,79 @@ namespace MIR
             int variant=StableVariant(person.id);
             string requested=person.look=="default" || string.IsNullOrEmpty(person.look)?
                 "PlayableHuman":person.look;
-            // The rig/controller is checked below. A custom character must not
-            // depend on the existence of the Quaternius-only animation catalog.
-            GameObject source=Resources.Load<GameObject>("MIR/"+requested);
-            if(source==null && requested!="PlayableHuman")
-                source=Resources.Load<GameObject>("MIR/PlayableHuman");
-            if(source!=null)
+
+            // VIS-03: the licensed Microsoft Rocketbox prefab is built from a
+            // real skin/Avatar + verified textures and CC0 clips at Unity build.
+            // Prefer an actual person for ALL NPCs before legacy proxies. Existing
+            // gameplay IDs, gait speed and animation state contract are untouched.
+            string[] candidates={
+                "MIR/RocketboxPilot01",
+                "MIR/"+requested,
+                "MIR/PlayableHuman"
+            };
+            var tested=new System.Collections.Generic.HashSet<string>();
+            foreach(string candidate in candidates)
             {
-                var instance=Object.Instantiate(source,holder);instance.name="Humanoid · "+source.name;
-                instance.transform.localPosition=Vector3.zero;instance.transform.localRotation=Quaternion.identity;
-                var a=instance.GetComponentInChildren<Animator>();
+                if(!tested.Add(candidate))continue;
+                GameObject source=Resources.Load<GameObject>(candidate);
+                if(source==null)continue;
+                var instance=Object.Instantiate(source,holder);
+                instance.name="Humanoid · "+source.name;
+                instance.transform.localPosition=Vector3.zero;
+                instance.transform.localRotation=Quaternion.identity;
+                var animator=instance.GetComponentInChildren<Animator>();
                 string reason;
-                if(HasPlayableRig(instance,a,out reason))
+                if(HasPlayableRig(instance,animator,out reason))
                 {
-                    // Match human height to ~1.72m while preserving authored proportions.
-                    var rends=instance.GetComponentsInChildren<Renderer>();
-                    bool has=false;Bounds bounds=new Bounds(instance.transform.position,Vector3.zero);
-                    foreach(var r in rends){if(!has){bounds=r.bounds;has=true;}else bounds.Encapsulate(r.bounds);}
-                    if(has && bounds.size.y>.25f)instance.transform.localScale*=Mathf.Clamp(1.72f/bounds.size.y,.05f,10f);
-                    var driver=instance.AddComponent<MirMotionDriver>();driver.Configure(person.gaitSeed);
+                    // Uniform 1.72 m target, original anatomy and bones preserved.
+                    var renders=instance.GetComponentsInChildren<Renderer>();
+                    bool has=false;
+                    Bounds bounds=new Bounds(instance.transform.position,Vector3.zero);
+                    foreach(var renderer in renders)
+                    {
+                        if(!has){bounds=renderer.bounds;has=true;}
+                        else bounds.Encapsulate(renderer.bounds);
+                    }
+                    if(has && bounds.size.y>.25f)
+                        instance.transform.localScale*=Mathf.Clamp(
+                            1.72f/bounds.size.y,.05f,10f);
+                    var driver=instance.AddComponent<MirMotionDriver>();
+                    driver.Configure(person.gaitSeed);
+                    if(candidate=="MIR/RocketboxPilot01" && !reportedVerifiedPilotInRuntime)
+                    {
+                        reportedVerifiedPilotInRuntime=true;
+                        var skins=instance.GetComponentsInChildren<SkinnedMeshRenderer>();
+                        int realVertices=0,realBones=0;
+                        foreach(var skinned in skins)
+                        {
+                            if(skinned.sharedMesh!=null)realVertices+=skinned.sharedMesh.vertexCount;
+                            if(skinned.bones!=null)realBones+=skinned.bones.Length;
+                        }
+                        // Browser smoke can now distinguish real skinned people
+                        // from a passing generic gameplay/capsule smoke test.
+                        Debug.Log("NONATION_REAL_HUMAN_RUNTIME_OK asset=RocketboxPilot01"+
+                            " humanAvatar="+animator.avatar.isHuman+
+                            " skinnedVertices="+realVertices+
+                            " bones="+realBones+
+                            " controller="+animator.runtimeAnimatorController.name);
+                    }
                     return driver;
                 }
                 WarnOnce(source.name,reason);
-                instance.SetActive(false); // rejected rig must not flash for one frame
+                instance.SetActive(false);
                 Object.Destroy(instance);
+                // A broken new asset must not unnecessarily discard an
+                // otherwise valid older licensed/rigged prefab.
             }
-            if(source==null)WarnOnce(requested,"no prefab available in Resources/MIR");
-            // Fail safe: no invalid rig, no T-pose. This articulated proxy actually walks.
-            var proxy=new GameObject("MIR · Articulated Humanoid Fallback");proxy.transform.SetParent(holder,false);
-            var fallback=proxy.AddComponent<MirFallbackWalker>();fallback.Initialize(variant);
-            var motion=proxy.AddComponent<MirMotionDriver>();motion.Configure(person.gaitSeed);return motion;
+            WarnOnce(requested,"no eligible valid Humanoid prefab in Resources/MIR");
+            // TECHNICAL FAILURE ONLY: capsule/proxy is not accepted final art.
+            var proxy=new GameObject("MIR · Articulated Humanoid Fallback");
+            proxy.transform.SetParent(holder,false);
+            var fallback=proxy.AddComponent<MirFallbackWalker>();
+            fallback.Initialize(variant);
+            var motion=proxy.AddComponent<MirMotionDriver>();
+            motion.Configure(person.gaitSeed);
+            return motion;
         }
         public static GameObject Capsule(string name,Transform parent,Vector3 pos,Vector3 size,Material mat)
         {

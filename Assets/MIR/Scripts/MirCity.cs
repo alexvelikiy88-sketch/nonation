@@ -42,7 +42,72 @@ namespace MIR
             return go;
         }
         void Place(MirPlace p){Places.Add(p);byId[p.id]=p;}
-        void BlockBuilding(string label,Vector3 center,int floors,Color color,float w=14,float d=14)
+        // Optional pilot art pass. These are visual-only modules, not gameplay blockers.
+        // They do not replace licensed facade meshes required by the visual benchmark.
+        void RetailFront(Vector3 center,float w,float d)
+        {
+            float front=center.z-d*.5f;
+            var frame=Mat("retail-metal",new Color(.18f,.21f,.22f),.45f,.25f);
+            var pane=Mat("retail-glass",new Color(.16f,.27f,.30f),.06f,.7f);
+            var canopy=Mat("retail-canopy",new Color(.38f,.33f,.29f),.07f,.2f);
+            var planter=Mat("retail-planter",new Color(.43f,.43f,.39f),.08f,.14f);
+            var foliage=Mat("retail-foliage",new Color(.27f,.40f,.26f));
+            Cube("Retail fascia",new Vector3(center.x,3.29f,front-.18f),
+                new Vector3(w-.65f,.52f,.30f),frame);
+            for(int j=-1;j<=1;j++)
+            {
+                float x=center.x+j*w*.27f;
+                float panelWidth=w*.26f;
+                Cube("Storefront frame",new Vector3(x,1.70f,front-.20f),
+                    new Vector3(panelWidth,2.55f,.16f),frame);
+                Cube("Storefront glazed panel",new Vector3(x,1.70f,front-.31f),
+                    new Vector3(panelWidth-.20f,2.34f,.055f),pane);
+            }
+            Cube("Storefront mullion L",new Vector3(center.x-w*.135f,1.7f,front-.34f),
+                new Vector3(.10f,2.55f,.12f),frame);
+            Cube("Storefront mullion R",new Vector3(center.x+w*.135f,1.7f,front-.34f),
+                new Vector3(.10f,2.55f,.12f),frame);
+            Cube("Retail entrance handle",new Vector3(center.x+.40f,1.53f,front-.39f),
+                new Vector3(.075f,.43f,.07f),Mat("handles",new Color(.73f,.68f,.55f),.62f,.32f));
+            Cube("Retail rain canopy",new Vector3(center.x,3.08f,front-.9f),
+                new Vector3(w-.55f,.18f,1.35f),canopy);
+            for(int side=-1;side<=1;side+=2)
+            {
+                float x=center.x+side*(w*.44f);
+                Cube("Shopfront planter",new Vector3(x,.43f,front-1.08f),
+                    new Vector3(.70f,.70f,.70f),planter);
+                var bush=GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                bush.name="Shopfront planted shrub";
+                bush.transform.SetParent(root);
+                bush.transform.position=new Vector3(x,1.06f,front-1.08f);
+                bush.transform.localScale=new Vector3(.95f,.80f,.95f);
+                bush.GetComponent<Renderer>().sharedMaterial=foliage;
+                UnityEngine.Object.Destroy(bush.GetComponent<Collider>());
+            }
+        }
+        void Balcony(Vector3 center,float w,float d,int floor)
+        {
+            float front=center.z-d*.5f;
+            float x=center.x+(floor%2==0?-1:1)*w*.27f;
+            float height=floor*3.5f;
+            var slab=Mat("balcony-stone",new Color(.68f,.66f,.60f));
+            var rail=Mat("balcony-rail",new Color(.23f,.26f,.26f),.34f,.22f);
+            var planter=Mat("balcony-planter",new Color(.41f,.43f,.38f));
+            var leaves=Mat("balcony-green",new Color(.28f,.40f,.27f));
+            Cube("Balcony slab",new Vector3(x,height+1.04f,front-.67f),
+                new Vector3(2.55f,.18f,1.42f),slab);
+            Cube("Balcony front handrail",new Vector3(x,height+1.97f,front-1.33f),
+                new Vector3(2.50f,.10f,.12f),rail);
+            for(int post=-1;post<=1;post++)
+                Cube("Balcony rail post",new Vector3(x+post*1.06f,height+1.57f,front-1.33f),
+                    new Vector3(.09f,.78f,.10f),rail);
+            Cube("Balcony planter",new Vector3(x-.65f,height+1.24f,front-1.17f),
+                new Vector3(.60f,.22f,.26f),planter);
+            Cube("Balcony planted foliage",new Vector3(x-.65f,height+1.48f,front-1.17f),
+                new Vector3(.62f,.33f,.28f),leaves);
+        }
+        void BlockBuilding(string label,Vector3 center,int floors,Color color,
+            float w=14,float d=14,bool retail=false,bool balconies=false)
         {
             float h=floors*3.5f;
             var brick=Mat("facade-"+color.ToString(),color,0.03f,0.15f);
@@ -52,14 +117,21 @@ namespace MIR
             var windowTrim=Mat("frames",new Color(.19f,.22f,.23f),.32f,.29f);
             for(int floor=0;floor<floors;floor++)for(int j=0;j<3;j++)
             {
+                if(retail && floor==0)continue; // glazed shop replaces residential windows
                 float wx=center.x+(j-1)*w*.27f;
                 float wy=2.10f+floor*3.5f;
                 Cube("Window frame",new Vector3(wx,wy,center.z-d/2-.13f),new Vector3(1.78f,1.75f,.18f),windowTrim);
                 Cube("Glass",new Vector3(wx,wy,center.z-d/2-.245f),new Vector3(1.48f,1.48f,.04f),glass);
                 Cube("Window sill",new Vector3(wx,wy-.86f,center.z-d/2-.34f),new Vector3(1.95f,.18f,.40f),Mat("sills",new Color(.76f,.72f,.63f)));
             }
-            Cube("Door",new Vector3(center.x,1.20f,center.z-d/2-.15f),new Vector3(2.1f,2.38f,.28f),Mat("doors",new Color(.24f,.31f,.30f)),root,false);
-            Cube("Entrance awning",new Vector3(center.x,2.68f,center.z-d/2-.85f),new Vector3(4.1f,.20f,1.85f),Mat("awning",new Color(.33f,.38f,.34f)));
+            if(retail)RetailFront(center,w,d);
+            else
+            {
+                Cube("Door",new Vector3(center.x,1.20f,center.z-d/2-.15f),new Vector3(2.1f,2.38f,.28f),Mat("doors",new Color(.24f,.31f,.30f)),root,false);
+                Cube("Entrance awning",new Vector3(center.x,2.68f,center.z-d/2-.85f),new Vector3(4.1f,.20f,1.85f),Mat("awning",new Color(.33f,.38f,.34f)));
+            }
+            if(balconies)for(int floor=1;floor<floors;floor++)
+                Balcony(center,w,d,floor);
         }
         void Tree(Vector3 p,float scale)
         {
@@ -123,6 +195,9 @@ namespace MIR
             for(int a=-2;a<=2;a++)for(int b=-2;b<=2;b++)
             {
                 Vector3 p=new Vector3(a*40,0,b*40);
+                // VIS-02 focal junctions use their own batched, correct-scale paint.
+                // Preserve legacy zebra markings on all the other intersections.
+                if(a>=0&&a<=1&&b>=0&&b<=1)continue;
                 for(int k=-3;k<=3;k++)
                 {
                     Cube("Zebra N",p+new Vector3(k*1.05f,.11f,7f),new Vector3(.67f,.02f,2.4f),white);
@@ -175,11 +250,13 @@ namespace MIR
         public void Build()
         {
             root=new GameObject("MIR Dockside · Procedural District").transform;
-            AsphaltRoads();MarketSquare();Fields();FuelStation();
-            BlockBuilding("Grocery store",new Vector3(20,0,-20),2,new Color(.64f,.67f,.60f),13,14);
-            BlockBuilding("Corner café",new Vector3(56,0,20),2,new Color(.67f,.59f,.47f),12,12);
-            BlockBuilding("Auto workshop",new Vector3(-58,0,-22),2,new Color(.45f,.54f,.61f),15,15);
-            BlockBuilding("Town hall",new Vector3(-20,0,-20),3,new Color(.76f,.72f,.63f),14,14);
+            AsphaltRoads();
+            MirCivicSquare.Build(root,Mat,lamps.Add);
+            Fields();FuelStation();
+            // VIS-02: replace all legacy cubic residential/commercial building
+            // renderers with one real modular facade/roof/balcony mesh system.
+            // The original POI coordinates and collision footprints are kept.
+            MirArchitectureQuarter.Build(root);
             AddBusiness("market",MirPlaceKind.Store,"Магазин");
             AddBusiness("cafe",MirPlaceKind.Cafe,"Кафе");
             AddBusiness("garage",MirPlaceKind.Garage,"Автосервис");
@@ -188,12 +265,8 @@ namespace MIR
             AddBusiness("packing",MirPlaceKind.Packing,"Пищевой цех");
             AddBusiness("warehouse",MirPlaceKind.Warehouse,"Склад");
             AddBusiness("fuel",MirPlaceKind.Fuel,"АЗС");
-            for(int i=0;i<8;i++)
-            {
-                int gx=i%4;int gz=i/4;
-                float x=-66+gx*36;float z=56+gz*38;
-                BlockBuilding("Residential block "+i,new Vector3(x,0,z),3+(i%3),new Color(.55f+(i%3)*.055f,.57f,.54f),14,13);
-            }
+            // Eight corresponding homes are part of MirArchitectureQuarter;
+            // their MirWorldGeometry.HomeEntry world coordinates are unchanged.
             for(int i=0;i<MirGame.Instance.World.citizens.Count;i++)
             {
                 MirCitizen c=MirGame.Instance.World.citizens[i];
@@ -202,7 +275,10 @@ namespace MIR
             }
             for(int i=-2;i<=2;i++)for(int j=-2;j<=2;j++)
             {
-                if((i+j)%2==0)Tree(new Vector3(i*40+13,.2f,j*40+13),.8f);
+                // Two hero-quarter trees are replaced by detailed clustered
+                // crowns in MirQuarterStreetLife, not drawn twice in one spot.
+                if((i+j)%2==0 && !(i==0&&j==0) && !(i==1&&j==1))
+                    Tree(new Vector3(i*40+13,.2f,j*40+13),.8f);
                 if((i+j)%3==0)Lamp(new Vector3(i*40+8,0,j*40+8),i==-1&&j==1);
             }
             // Keep an explicit index: the first parked vehicle may use the optional
@@ -210,6 +286,12 @@ namespace MIR
             var parkingSpawns=new[]{new Vector3(11,0,-31),new Vector3(-53,0,-35),new Vector3(71,0,32)};
             for(int i=0;i<parkingSpawns.Length;i++)
                 Vehicles.Add(MirVehicle.Spawn(parkingSpawns[i],false,i==0));
+            // ART-ONLY P0: coherent public promenade outside the southern map edge.
+            // Stays off NPC POIs/sidewalk routes; no scene or Editor pipeline edits.
+            MirWaterfrontQuarter.Build(root,Mat,lamps.Add);
+            // VIS-02: high-detail foliage, bikes, true street cafe furnishings
+            // and 4 correctly marked junctions. Decorative geometry, no POI edits.
+            MirQuarterStreetLife.Build(root,Mat);
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
