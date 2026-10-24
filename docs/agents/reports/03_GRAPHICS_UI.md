@@ -266,3 +266,15 @@ Author: CHAT 04 / Manager
 4. Все доступные фактические CI и PR-результаты необходимо фиксировать на текущем SHA после создания нового самостоятельного AGENT 03 PR. Старый PR #2 **уже интегрирован** через менеджера; не открывать его заново и не пытаться повторно импортировать старый код в main.
 
 **GATE:** отказ от «готово» до реального side-by-side с закреплённым **проектным Source-файлом** и отдельного доказательства WebGL rendering/performance.
+
+
+### Подтверждённые автоматические проверки PR #26 — 24.10.26
+
+На исходном SHA `3d70ad2797391671afed492a9cfd2db4a073dc89` (включены и `MirCity.cs`, и benchmark документ, и предыдущая версия этого отчёта):
+
+- [Ownership & Change Integrity #40050786994](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40050786994) — **SUCCESS**.
+- [Source preflight + .NET 8 #40050785775](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40050785775) — **SUCCESS**.
+- [Cross-Branch Integration #40050785896](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40050785896) — **SUCCESS**.
+- [MIR Unity WebGL #40050785811](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40050785811) — общий workflow **SUCCESS только в source-validation**; `webgl`, Cloud preview, deployment и Chromium browser QA **SKIPPED**. **Unity C# компиляция и WebGL rendering этим не доказаны**.
+
+**Сверка с закреплённым визуальным референсом из Источников NONATION** — актуального side-by-side WebGL capture для коммита `3d70ad27` нет, итог **ВИЗУАЛЬНОЕ СООТВЕТСТВИЕ НЕ ПРОВЕРЕНО**. Следующий необходимый артефакт: сравнительный дневной+вечерний Unity screenshot, где реально можно оценить плотность объектов, витрины, дома, waterfront, людей и свет относительно **`Солнечный городской квартал у набережной.png`**.
