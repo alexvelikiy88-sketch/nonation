@@ -174,13 +174,9 @@ namespace MIR
             // the 3/4 shot it stays a legible marker rather than a PNG billboard.
             gold.Box(new Vector3(18.90f,2.15f,20),new Vector3(.46f,3.26f,.60f));
             gold.Box(new Vector3(21.10f,2.15f,20),new Vector3(.46f,3.26f,.60f));
-            for(int i=0;i<10;i++)
-            {
-                float t=i/10f;
-                float x=19.17f+(20.83f-19.17f)*t;
-                float y=3.48f-(3.48f-1.02f)*t;
-                gold.Box(new Vector3(x,y,20),new Vector3(.37f,.37f,.65f));
-            }
+            // Single continuous sloping gold beam, no staircase of cubes.
+            gold.Tube(new Vector3(19.17f,3.48f,20),
+                new Vector3(20.83f,1.02f,20),.27f,8);
             gold.Box(new Vector3(20,.73f,20),new Vector3(3.10f,.10f,.95f));
 
             // Curved social space with planted beds; the benches are normal
