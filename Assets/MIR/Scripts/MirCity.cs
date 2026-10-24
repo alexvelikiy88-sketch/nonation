@@ -248,10 +248,10 @@ namespace MIR
         {
             root=new GameObject("MIR Dockside · Procedural District").transform;
             AsphaltRoads();MarketSquare();Fields();FuelStation();
-            BlockBuilding("Grocery store",new Vector3(20,0,-20),2,new Color(.64f,.67f,.60f),13,14,retail:true);
-            BlockBuilding("Corner café",new Vector3(56,0,20),2,new Color(.67f,.59f,.47f),12,12,retail:true);
-            BlockBuilding("Auto workshop",new Vector3(-58,0,-22),2,new Color(.45f,.54f,.61f),15,15);
-            BlockBuilding("Town hall",new Vector3(-20,0,-20),3,new Color(.76f,.72f,.63f),14,14);
+            // VIS-02: replace all legacy cubic residential/commercial building
+            // renderers with one real modular facade/roof/balcony mesh system.
+            // The original POI coordinates and collision footprints are kept.
+            MirArchitectureQuarter.Build(root);
             AddBusiness("market",MirPlaceKind.Store,"Магазин");
             AddBusiness("cafe",MirPlaceKind.Cafe,"Кафе");
             AddBusiness("garage",MirPlaceKind.Garage,"Автосервис");
@@ -260,13 +260,8 @@ namespace MIR
             AddBusiness("packing",MirPlaceKind.Packing,"Пищевой цех");
             AddBusiness("warehouse",MirPlaceKind.Warehouse,"Склад");
             AddBusiness("fuel",MirPlaceKind.Fuel,"АЗС");
-            for(int i=0;i<8;i++)
-            {
-                int gx=i%4;int gz=i/4;
-                float x=-66+gx*36;float z=56+gz*38;
-                BlockBuilding("Residential block "+i,new Vector3(x,0,z),3+(i%3),
-                    new Color(.55f+(i%3)*.055f,.57f,.54f),14,13,balconies:i==2);
-            }
+            // Eight corresponding homes are part of MirArchitectureQuarter;
+            // their MirWorldGeometry.HomeEntry world coordinates are unchanged.
             for(int i=0;i<MirGame.Instance.World.citizens.Count;i++)
             {
                 MirCitizen c=MirGame.Instance.World.citizens[i];
