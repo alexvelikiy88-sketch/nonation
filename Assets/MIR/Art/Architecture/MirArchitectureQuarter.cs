@@ -103,7 +103,7 @@ namespace MIR
             public GameObject Emit(Transform group,Material material,int layer)
             {
                 if(points.Count==0)return null;
-                Mesh mesh=new Mesh();
+                UnityEngine.Mesh mesh=new UnityEngine.Mesh();
                 mesh.name="NONATION Architectural Surface / "+material.name;
                 if(points.Count>65535)mesh.indexFormat=IndexFormat.UInt32;
                 mesh.SetVertices(points);mesh.SetUVs(0,uv);
