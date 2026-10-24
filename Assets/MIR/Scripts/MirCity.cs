@@ -283,6 +283,9 @@ namespace MIR
             var parkingSpawns=new[]{new Vector3(11,0,-31),new Vector3(-53,0,-35),new Vector3(71,0,32)};
             for(int i=0;i<parkingSpawns.Length;i++)
                 Vehicles.Add(MirVehicle.Spawn(parkingSpawns[i],false,i==0));
+            // ART-ONLY P0: coherent public promenade outside the southern map edge.
+            // Stays off NPC POIs/sidewalk routes; no scene or Editor pipeline edits.
+            MirWaterfrontQuarter.Build(root,Mat);
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
