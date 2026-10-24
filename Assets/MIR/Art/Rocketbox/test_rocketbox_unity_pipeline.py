@@ -71,6 +71,8 @@ class RealHumanoidPipelineTests(unittest.TestCase):
         self.assertIn('AssetDatabase.DeleteAsset(Output)',self.editor)
         self.assertIn('NONATION_ROCKETBOX_BLOCKED:',self.editor)
         self.assertIn('HasPlayableRig(instance,animator,out reason)',self.factory)
+        self.assertIn('NONATION_REAL_HUMAN_RUNTIME_OK',self.factory)
+        self.assertIn('skinnedVertices=',self.factory)
         self.assertIn('MIR · Articulated Humanoid Fallback',self.factory)
         self.assertIn('diagnostic',self.factory.lower())
         self.assertIn('AnimatorCullingMode.CullUpdateTransforms',self.motion)
