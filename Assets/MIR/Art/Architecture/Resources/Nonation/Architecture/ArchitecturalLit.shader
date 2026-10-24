@@ -25,6 +25,7 @@ Shader "NONATION/ArchitecturalLit"
             #pragma fragment Fragment
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fog
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -78,7 +79,9 @@ Shader "NONATION/ArchitecturalLit"
                 half3 diffuse=albedo.rgb*(.39h+sun.color*ndl*shadow*.67h);
                 half3 specular=sun.color*shine*shadow*
                     (lerp(.028h,.36h,saturate(_Metallic))*saturate(_Smoothness));
-                return half4(saturate(diffuse+specular),albedo.a);
+                half fogFactor=ComputeFogFactor(input.positionCS.z);
+                half3 litColor=MixFog(saturate(diffuse+specular),fogFactor);
+                return half4(litColor,albedo.a);
             }
             ENDHLSL
         }
@@ -95,6 +98,7 @@ Shader "NONATION/ArchitecturalLit"
             #pragma target 3.0
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile_fog
             #include "UnityCG.cginc"
             sampler2D _MainTex;
             float4 _MainTex_ST;
@@ -111,6 +115,7 @@ Shader "NONATION/ArchitecturalLit"
                 float4 pos : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 half3 normalWorld : TEXCOORD1;
+                UNITY_FOG_COORDS(2)
             };
             v2f vert(appdata input)
             {
@@ -118,6 +123,7 @@ Shader "NONATION/ArchitecturalLit"
                 o.pos=UnityObjectToClipPos(input.vertex);
                 o.uv=TRANSFORM_TEX(input.uv,_MainTex);
                 o.normalWorld=UnityObjectToWorldNormal(input.normal);
+                UNITY_TRANSFER_FOG(o,o.pos);
                 return o;
             }
             fixed4 frag(v2f input) : SV_Target
@@ -126,7 +132,32 @@ Shader "NONATION/ArchitecturalLit"
                 float ndl=saturate(dot(normalize(input.normalWorld),
                     normalize(_WorldSpaceLightPos0.xyz)));
                 tex.rgb*=.39+.61*ndl;
+                UNITY_APPLY_FOG(input.fogCoord,tex);
                 return tex;
+            }
+            ENDCG
+        }
+        Pass
+        {
+            Name "NonationBuiltInShadow"
+            Tags { "LightMode"="ShadowCaster" }
+            ZWrite On
+            CGPROGRAM
+            #pragma target 3.0
+            #pragma vertex shadowVert
+            #pragma fragment shadowFrag
+            #pragma multi_compile_shadowcaster
+            #include "UnityCG.cginc"
+            struct ShadowOutput { V2F_SHADOW_CASTER; };
+            ShadowOutput shadowVert(appdata_base v)
+            {
+                ShadowOutput o;
+                TRANSFER_SHADOW_CASTER_NORMALOFFSET(o)
+                return o;
+            }
+            float4 shadowFrag(ShadowOutput i) : SV_Target
+            {
+                SHADOW_CASTER_FRAGMENT(i)
             }
             ENDCG
         }
