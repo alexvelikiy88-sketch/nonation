@@ -166,11 +166,9 @@ namespace MIR
             shade.Ring(center,2.50f,2.84f,.72f);
             var fColl=new GameObject("Central fountain plinth / collider");
             fColl.transform.SetParent(parent,false);
-            var fountainCollider=fColl.AddComponent<CapsuleCollider>();
-            fountainCollider.direction=1;
-            fountainCollider.center=new Vector3(20,.48f,20);
-            fountainCollider.height=1.15f;
-            fountainCollider.radius=3.4f;
+            var fountainCollider=fColl.AddComponent<SphereCollider>();
+            fountainCollider.center=new Vector3(20,1.0f,20);
+            fountainCollider.radius=3.55f;
 
             // Four-sided sculptural metal N, actually built as a volume. From
             // the 3/4 shot it stays a legible marker rather than a PNG billboard.
