@@ -5,6 +5,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.RUNNER_TEMP + '/nonation-playwright/node_modules/playwright');
+const { criticalRuntimeMessages } = require('./webgl_runtime_guard');
 
 const target = process.env.NONATION_LOCAL_URL || 'http://127.0.0.1:8765/';
 const meta = {
@@ -22,6 +23,7 @@ const meta = {
   fatalErrors: [],
 };
 const messages = [];
+const allMessages = [];
 const errors = [];
 
 async function check() {
@@ -36,6 +38,7 @@ async function check() {
   page.on('console', msg => {
     const line = msg.text();
     messages.push(line);
+    allMessages.push(line);
     if (line.includes('NONATION_') || msg.type() === 'error')
       console.log('WEBGL CONSOLE [' + msg.type() + '] ' + line.slice(0, 450));
     if (msg.type() === 'error') errors.push(line);
@@ -100,12 +103,11 @@ async function check() {
     await marker('NONATION_RUNTIME_READY', 90000);
     meta.restored = true;
 
-    const fatal = errors.filter(err =>
-      /RuntimeError|abort\(|out of memory|WebGL context lost|wasm trap|uncaught/i.test(err));
+    const fatal = criticalRuntimeMessages([...errors, ...allMessages]);
     if (fatal.length) throw new Error('Fatal Unity browser error: ' + fatal.slice(0, 3).join(' | '));
     console.log('PASS: real Unity WebGL runtime, 39+ NPC, canvas, W movement, save and reload.');
   } catch (error) {
-    meta.fatalErrors = errors.slice(-6).map(v => v.slice(0, 500));
+    meta.fatalErrors = criticalRuntimeMessages([...errors, ...allMessages]).slice(-10).map(v => v.slice(0, 500));
     meta.failure = String(error && error.message || error).slice(0, 1600);
     console.error('WEBGL BROWSER SMOKE FAILURE:', meta.failure);
     try { await page.screenshot({ path: 'nonation-browser-failure.png', fullPage: true }); }
