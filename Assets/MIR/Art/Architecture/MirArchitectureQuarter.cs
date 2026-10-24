@@ -199,7 +199,26 @@ namespace MIR
             string pattern=null)
         {
             Material found;if(materials.TryGetValue(name,out found))return found;
-            found=MirRenderMaterials.Create(pattern==null?tint:Color.white,metallic,smoothness);
+            Shader qualityShader=Resources.Load<Shader>("Nonation/Architecture/ArchitecturalLit");
+            bool texturedShader=qualityShader!=null&&qualityShader.isSupported;
+            if(texturedShader)
+            {
+                found=new Material(qualityShader);
+                Color baseColor=pattern==null?tint:Color.white;
+                found.SetColor("_BaseColor",baseColor);
+                found.SetColor("_Color",baseColor);
+                found.SetFloat("_Metallic",metallic);
+                found.SetFloat("_Smoothness",smoothness);
+            }
+            else
+            {
+                // Fail visibly but safely if an URP material cannot load,
+                // instead of producing a huge pure-white textured city.
+                found=MirRenderMaterials.Create(tint,metallic,smoothness);
+                if(materials.Count==0)
+                    Debug.LogWarning("NONATION_ARCH_SHADER_FALLBACK: authored texture shader " +
+                        "missing/unsupported; architecture will use untextured materials.");
+            }
             found.name="NONATION / "+name;found.enableInstancing=true;
             if(pattern!=null)
             {
@@ -223,10 +242,10 @@ namespace MIR
         {
             switch(p.style)
             {
-                case 0:return Mat("Warm brick",Color.white,0,.22f,"brick");
-                case 1:return Mat("Limestone panels",Color.white,0,.22f,"stone");
-                case 2:return Mat("Cream mineral cladding",Color.white,0,.23f,"plaster");
-                default:return Mat("Timber wall accents",Color.white,0,.24f,"wood");
+                case 0:return Mat("Warm brick",new Color(.63f,.48f,.39f),0,.22f,"brick");
+                case 1:return Mat("Limestone panels",new Color(.82f,.80f,.75f),0,.22f,"stone");
+                case 2:return Mat("Cream mineral cladding",new Color(.83f,.81f,.77f),0,.23f,"plaster");
+                default:return Mat("Timber wall accents",new Color(.45f,.34f,.26f),0,.24f,"wood");
             }
         }
 
