@@ -81,7 +81,7 @@ namespace MIR
                         Vector3 p=Point(center,radii,lo,a),q=Point(center,radii,lo,b);
                         Vector3 r=Point(center,radii,hi,b),s=Point(center,radii,hi,a);
                         // Outward-facing winding of the latitude strips.
-                        Quad(q,p,s,r);
+                        Quad(p,q,r,s);
                     }
                 }
             }
@@ -101,7 +101,7 @@ namespace MIR
                     Vector3 top=center+Vector3.up*.58f;
                     Vector3 edgeA=center+new Vector3(Mathf.Cos(a)*radius,0,Mathf.Sin(a)*radius);
                     Vector3 edgeB=center+new Vector3(Mathf.Cos(b)*radius,0,Mathf.Sin(b)*radius);
-                    Triangle(top,edgeA,edgeB);
+                    Triangle(top,edgeB,edgeA);
                 }
             }
 
@@ -150,6 +150,12 @@ namespace MIR
             // final two metres of the existing N-S sidewalks (end at z=-110).
             // The sea is physically outside the terrain, not a picture plane on it.
             stone.Box(new Vector3(0,.12f,-118f),new Vector3(188,.24f,20f));
+            // One contiguous static walkable collider, not 940 tile colliders.
+            var promenadeWalk=new GameObject("Walkable promenade surface");
+            promenadeWalk.transform.SetParent(parent,false);
+            var promenadeCollider=promenadeWalk.AddComponent<BoxCollider>();
+            promenadeCollider.center=new Vector3(0,.12f,-118f);
+            promenadeCollider.size=new Vector3(188,.24f,20f);
             stone.Box(new Vector3(0,-.35f,-128.62f),new Vector3(190,1.20f,1.35f));
             stoneAccent.Box(new Vector3(0,.28f,-128.13f),new Vector3(190,.15f,.85f));
 
@@ -161,13 +167,13 @@ namespace MIR
                 float far=-126.8f+z*1.70f+.055f;
                 float near=-126.8f+(z+1)*1.70f-.055f;
                 var target=(x+z*3)%7==0?stoneAccent:stone;
-                target.Quad(new Vector3(left,.247f,far),new Vector3(right,.247f,far),
-                    new Vector3(right,.247f,near),new Vector3(left,.247f,near));
+                target.Quad(new Vector3(left,.247f,near),new Vector3(right,.247f,near),
+                    new Vector3(right,.247f,far),new Vector3(left,.247f,far));
             }
 
             // Continuous separated bicycle strip and its understated edge.
-            cycle.Quad(new Vector3(-94,.252f,-113.8f),new Vector3(94,.252f,-113.8f),
-                new Vector3(94,.252f,-111.5f),new Vector3(-94,.252f,-111.5f));
+            cycle.Quad(new Vector3(-94,.252f,-111.5f),new Vector3(94,.252f,-111.5f),
+                new Vector3(94,.252f,-113.8f),new Vector3(-94,.252f,-113.8f));
             foam.Box(new Vector3(0,.256f,-114.15f),new Vector3(188,.018f,.075f));
             for(int x=-89;x<90;x+=9)
                 foam.Box(new Vector3(x,.258f,-112.6f),new Vector3(3.4f,.012f,.06f));
@@ -244,7 +250,12 @@ namespace MIR
 
             // A working-scale café patio stays to either side of the canonical
             // (56,12) cafe entry. It does not move the entry or add fake patrons.
-            stone.Box(new Vector3(56,.09f,10.75f),new Vector3(26,.16f,6.8f));
+            stone.Box(new Vector3(56,.09f,10.60f),new Vector3(26,.16f,6.8f));
+            var patioWalk=new GameObject("Walkable cafe patio");
+            patioWalk.transform.SetParent(parent,false);
+            var patioCollider=patioWalk.AddComponent<BoxCollider>();
+            patioCollider.center=new Vector3(56,.09f,10.60f);
+            patioCollider.size=new Vector3(26,.16f,6.8f);
             for(int j=0;j<2;j++)
             {
                 float x=j==0?46.5f:65.5f,z=10.9f;
