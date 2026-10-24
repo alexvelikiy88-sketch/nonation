@@ -33,7 +33,19 @@
 
 **Приоритеты на данный момент:** `P0-VISUAL` (новый качественный квартал), `P0-RELEASE` (не ломать уже достигнутый WebGL baseline), `P1` (живые функции квартала), `P2` (масштабирование и LOD), `P3` (MMO). Подробная архитектура — [VISUAL_CANON_RU.md](Documentation/VISUAL_CANON_RU.md).
 
-## P0 — Pages опубликован, WebGL runtime нуждается в исправленной сборке
+## P0-RELEASE — проверенный Unity/WebGL baseline, 24.10.26
+
+**Актуальная проверка имеет приоритет над историческими статусами ниже.** `main@12b3d4a56ad420a63150ecad8d4113c8b806cb89` отличается от игрового `55051008dee22e3a44d867a6191e7ab3ba6e83b4` только двумя документационными коммитами (Git compare; `Assets`, `Server`, `Packages`, `ProjectSettings` не менялись).
+
+- **Unity Cloud #8 — PASS:** [Actions #40024399013](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40024399013) — `Unity Cloud WebGL` SUCCESS; опубликован `nonation-unity-cloud-webgl` artifact ID `12533916450` (9 645 106 bytes), проверены `index.html`, несжатые `.wasm/.data/.js`. Скрипт `Tools/unity_cloud_ci.py::poll_build` отказывает в публикации без `lastBuiltRevision == 55051008dee22e3a44d867a6191e7ab3ba6e83b4`; job завершился SUCCESS.
+- **Pages/HTTPS — PASS:** тот же run #40024399013, job `Publish Unity WebGL to GitHub Pages` SUCCESS и `Verify all deployed Unity files over HTTPS` PASS, `github-pages` artifact ID `12533712104`. Это статическое подтверждение WebGL файлов, не художественная приёмка.
+- **Настоящий Chromium artifact smoke — PARTIAL, runtime FAIL:** [#40028408620](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40028408620) общий SUCCESS, реальный браузерный job исполнялся на игровом артефакте `55051008...`; присутствуют `NONATION_RUNTIME_READY scene=MIR_PlayableDistrict player=player-001 npcs=39 vehicles=4 citizens=40`, Canvas, W movement, save/reload. Однако в логе сотни `Can't add component because class 'CapsuleCollider' doesn't exist!` и ошибки SphereCollider. Старый тест не классифицировал их как fatal. **Полноценный Chromium gameplay PASS отсутствует** до исправленного Unity IL2CPP и smoke без ошибок.
+- **Исправление предложено, не проверено Unity:** [manager PR #30](https://github.com/alexvelikiy88-sketch/nonation/pull/30), SHA `9fa6e45547dd0c85b0f8de2b9cf391d7301028ca`, сохраняет collider-типы через `link.xml` и усиливает browser guard. Guard #40087240292 / PR Validation #40087240266 / Cross-Branch #40087240260 **PASS**, MIR Unity WebGL #40087240328 — source-validation **PASS**, Unity/Cloud/Pages/Chromium **SKIPPED**.
+- **Художественный VISUAL GATE — BLOCKED:** graphics [PR #26](https://github.com/alexvelikiy88-sketch/nonation/pull/26), SHA `35d73180e22d7487fb65045bab64dd92feb9098d`, Guard/Source/.NET/Cross-Branch PASS, но реальные Unity/WebGL/Chromium jobs SKIPPED ([#40079307152](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40079307152)). Нет raw day/evening кадров, готового Humanoid/Animator/LOD proof, FPS/p50/p95/draw calls/triangles/memory и явного художественного одобрения владельца.
+
+**Блокер:** одна обоснованная Unity-сборка исправленного collider-кода, Chromium smoke без runtime ошибок; отдельно необходима доказанная игра с новым кварталом и ручная художественная приёмка.
+
+## Исторический P0 — ранние Pages/Shader/Unity compile дефекты (снимок до Cloud #8)
 
 - **Все три агента объединены** в защищённую `main` через PR #19, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. Проверки source/.NET и совместной интеграции на новом `main` завершились успешно: [CI #40020804529](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804529).
 - **GitHub Pages включён и публикация прошла:** [Actions #40019259462, attempt 3](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019259462) завершился **SUCCESS** с `Reported success!` и URL `https://alexvelikiy88-sketch.github.io/nonation/`. Развёрнут старый SHA `47a6424ea7b8a55db82db27b3133a98c3160e139`; это **не** текущая интегрированная версия.
@@ -56,9 +68,9 @@
 |---|---|---|---|
 | G0 | Код трёх направлений интегрируется, .NET-тесты и HTTP проходят | **PASS** на первоначальном интеграционном SHA `52d3bd8a`: [Guard](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019467544), [Python/.NET/HTTP](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019467542), [Cross-Branch](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40019467534). Поздние SHA проверять отдельно | CHAT 04 |
 | G1-A | Настоящая сборка Unity WebGL хотя бы для одной ветки | **PASS** Unity-only Cloud #4 / `cb46b496`; source/runtime арт сохранён | CHAT 01 |
-| G1-B | WebGL export **полностью интегрированного** HEAD | **ОЖИДАЕТ РЕАЛЬНОЙ UNITY СБОРКИ**, source/.NET PASS недостаточно | CHAT 04 + 01 |
-| G1-C | HTTPS Pages + браузерная сцена/NPC/WASD/save/reload | **ЧАСТИЧНО:** Pages SUCCESS на старом SHA; настоящий Chromium smoke FAIL на Shader, фикс #22 в main, повторный browser proof ожидается | CHAT 04 |
-| G2 | Игровой цикл: движение, NPC, работа, покупки, транспорт, сохранение | Код есть, .NET-алгоритмы проверены; **WebGL игровой прогон не доказан** | CHAT 01 + 02 |
+| G1-B | WebGL export полностью интегрированного игрового SHA | **PASS** Unity Cloud #8 на `55051008...`, #40024399013; не относится к новому graphics/manager коду | CHAT 04 + 01 |
+| G1-C | HTTPS Pages + браузерная сцена/NPC/WASD/save/reload | **PARTIAL:** Pages PASS на `55051008...`; Chromium #40028408620 сцена/Canvas/39 NPC/W/save/reload PASS, но Collider Console runtime **FAIL** | CHAT 04 |
+| G2 | Игровой цикл: движение, NPC, работа, покупки, транспорт, сохранение | **PARTIAL:** движение W и save/reload в Chromium PASS; реальная NPC POI/торговля/транспорт, коллизии не проверены | CHAT 01 + 02 |
 | G3 | Unity spectator v2 ↔ .NET backend | `MirSceneSnapshot` и read-only API согласованы по source/HTTP тестам; внешний HTTPS live NPC не проверен | CHAT 02 |
 | G4 | Реалистичный Humanoid, skin/Animator, LOD, WebGL FPS | Rocketbox MIT FBX + 6 TGA и LOD script есть; **Unity import/Animator/LOD/FPS не проверены** | CHAT 03 |
 | G5 | MMO-сервер 24/7, auth, state changes, SQL ledger | **Не реализовано**, API только публичное чтение | CHAT 02 + 04 |
