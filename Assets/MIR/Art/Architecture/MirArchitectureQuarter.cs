@@ -141,9 +141,32 @@ namespace MIR
         }
         // Entirely AGENT-03-authored small tileable albedo maps. They are not
         // photograph assets and have no external licensing or runtime downloads.
+        Texture2D Scan(string name)
+        {
+            return Resources.Load<Texture2D>("Nonation/Architecture/Scans/"+name);
+        }
         Texture2D Texture(string id)
         {
             Texture2D existing;if(textures.TryGetValue(id,out existing))return existing;
+            // Actual CC0 source scan from ambientCG. It is pinned byte-for-byte
+            // in the architecture provenance manifest; not a runtime download.
+            string scanned=id=="brick"?"Bricks097_Color":
+                id=="plaster"?"Plaster007_ColorEven":
+                id=="wood"?"Planks023A_Color":null;
+            if(scanned!=null)
+            {
+                Texture2D real=Scan(scanned);
+                if(real!=null)
+                {
+                    real.wrapMode=TextureWrapMode.Repeat;
+                    real.filterMode=FilterMode.Trilinear;
+                    real.anisoLevel=2;
+                    textures.Add(id,real);
+                    return real;
+                }
+                Debug.LogWarning("NONATION_CC0_TEXTURE_FALLBACK: "+scanned);
+            }
+            // Only emergency fallback when a scan is missing from Resources.
             const int size=256;
             var pixels=new Color32[size*size];
             bool brick=id=="brick", stone=id=="stone", wood=id=="wood";
