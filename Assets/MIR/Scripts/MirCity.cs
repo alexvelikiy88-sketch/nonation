@@ -247,7 +247,9 @@ namespace MIR
         public void Build()
         {
             root=new GameObject("MIR Dockside · Procedural District").transform;
-            AsphaltRoads();MarketSquare();Fields();FuelStation();
+            AsphaltRoads();
+            MirCivicSquare.Build(root,Mat,lamps.Add);
+            Fields();FuelStation();
             // VIS-02: replace all legacy cubic residential/commercial building
             // renderers with one real modular facade/roof/balcony mesh system.
             // The original POI coordinates and collision footprints are kept.
