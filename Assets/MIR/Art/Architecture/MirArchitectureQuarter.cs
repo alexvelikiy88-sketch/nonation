@@ -214,7 +214,11 @@ namespace MIR
             {
                 // Fail visibly but safely if an URP material cannot load,
                 // instead of producing a huge pure-white textured city.
-                found=MirRenderMaterials.Create(tint,metallic,smoothness);
+                Color safeTint=pattern=="brick"?new Color(.63f,.48f,.39f):
+                    pattern=="stone"?new Color(.82f,.80f,.75f):
+                    pattern=="wood"?new Color(.45f,.34f,.26f):
+                    pattern=="plaster"?new Color(.83f,.81f,.77f):tint;
+                found=MirRenderMaterials.Create(safeTint,metallic,smoothness);
                 if(materials.Count==0)
                     Debug.LogWarning("NONATION_ARCH_SHADER_FALLBACK: authored texture shader " +
                         "missing/unsupported; architecture will use untextured materials.");
