@@ -128,7 +128,8 @@ namespace MIR
 
         // Called once by MirCity.Build. All geometry is static and away from
         // existing mapped business entrances and NPC sidewalk routing.
-        public static void Build(Transform city, Func<string,Color,float,float,Material> material)
+        public static void Build(Transform city, Func<string,Color,float,float,Material> material,
+            Action<Light> registerLight)
         {
             var group=new GameObject("NONATION / Waterfront hero-quarter");
             group.transform.SetParent(city,false);
@@ -246,6 +247,28 @@ namespace MIR
                 for(int sign=-1;sign<=1;sign+=2)
                     rail.Tube(new Vector3(x+sign*.94f,.28f,z),
                         new Vector3(x+sign*.94f,.71f,z),.065f);
+            }
+
+            // Four restrained, shadowless promenade fixtures share the existing
+            // MirCity night/day light switch. No per-frame animation or probes.
+            for(int i=0;i<4;i++)
+            {
+                float x=-75f+i*50f;
+                rail.Tube(new Vector3(x,.25f,-116.3f),
+                    new Vector3(x,4.10f,-116.3f),.082f,10);
+                rail.Box(new Vector3(x,4.14f,-116.3f),
+                    new Vector3(.52f,.16f,.52f));
+                foam.Box(new Vector3(x,4.035f,-116.3f),
+                    new Vector3(.42f,.045f,.42f));
+                var light=new GameObject("Waterfront warm path light").AddComponent<Light>();
+                light.transform.SetParent(parent,false);
+                light.transform.localPosition=new Vector3(x,4.02f,-116.3f);
+                light.type=LightType.Point;
+                light.range=14f;
+                light.intensity=0f;
+                light.shadows=LightShadows.None;
+                light.color=new Color(1f,.78f,.57f);
+                if(registerLight!=null)registerLight(light);
             }
 
             // A working-scale café patio stays to either side of the canonical
