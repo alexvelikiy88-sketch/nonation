@@ -59,7 +59,7 @@ namespace MIR
             GUILayout.BeginArea(new Rect(25,Screen.height-h,w-26,h-14));
             GUILayout.Label("УПРАВЛЕНИЕ",small);
             GUILayout.Label("WASD — идти / вести авто   Shift — бег",small);
-            GUILayout.Label("Tab — камера   ПКМ — вращать   Колесо — масштаб",small);
+            GUILayout.Label("Tab — вид   V — квартал   ПКМ/колесо — ракурс",small);
             GUILayout.Label("E — действовать   F — авто   R — поесть",small);
             GUILayout.Label("Смена реального времени не зависит от камеры.",small);
             GUILayout.EndArea();
