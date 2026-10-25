@@ -22,6 +22,7 @@ class KenneyWebglProofContract(unittest.TestCase):
         self.assertIn("browser-smoke:", workflow)
         section = workflow.split("  browser-smoke:", 1)[1]
         self.assertIn("actions/checkout@v4", section)
+        self.assertIn("if: always() && needs.deploy.result == 'success'", section)
         self.assertIn("NONATION_REQUIRE_KENNEY_ART: '1'", section)
         self.assertIn("node Tools/browser_smoke_preview.js", section)
         self.assertIn("nonation-browser-proof.png", section)
