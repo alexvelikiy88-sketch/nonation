@@ -220,6 +220,10 @@ namespace MIR
             var parkingSpawns=new[]{new Vector3(11,0,-31),new Vector3(-53,0,-35),new Vector3(71,0,32)};
             for(int i=0;i<parkingSpawns.Length;i++)
                 Vehicles.Add(MirVehicle.Spawn(parkingSpawns[i],false,i==0));
+            // AGENT 03 VIS-02: isolated real-mesh waterfront at the southern
+            // map edge. Does not replace building IDs, NPC POIs or Kenney art.
+            // Its BoxColliders remain part of the existing IL2CPP physics guard.
+            MirWaterfrontQuarter.Build(root,Mat,lamps.Add);
             // Optional real CC0 3D art replaces only visual placeholders; POIs,
             // vehicle controllers, original colliders and local saves remain.
             var art=new GameObject("NONATION · Kenney Free City Art");
