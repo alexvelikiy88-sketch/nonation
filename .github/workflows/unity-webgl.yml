@@ -329,5 +329,6 @@ jobs:
             nonation-browser-proof.json
             nonation-browser-proof.png
             nonation-browser-showcase.png
+            nonation-browser-waterfront.png
             nonation-browser-failure.png
           if-no-files-found: warn

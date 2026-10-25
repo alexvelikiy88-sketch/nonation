@@ -2,79 +2,164 @@ using UnityEngine;
 
 namespace MIR
 {
+    /// <summary>
+    /// A small readable playable UI. The full economic/action panel remains
+    /// accessible with H, while the actual 3D frame stays unobstructed.
+    /// Showroom view (V) hides UI, not simulation, for truthful comparison.
+    /// Latin labels avoid the missing Cyrillic fallback in Unity WebGL IMGUI;
+    /// proper localized fonts and final UGUI remain a dedicated visual task.
+    /// </summary>
     public sealed class MirHUD : MonoBehaviour
     {
         MirGame game;
-        GUIStyle title,body,small,button,box,eventStyle;
-        Texture2D background;
-        public void Init(MirGame g){game=g;}
-        void MakeStyles()
+        bool fullPanel;
+        GUIStyle panel, title, caption, body, button, heading;
+        Texture2D panelTexture, buttonTexture, hoverTexture;
+
+        public void Init(MirGame source) { game = source; }
+
+        void Update()
         {
-            if(title!=null)return;
-            title=new GUIStyle(GUI.skin.label){fontSize=22,fontStyle=FontStyle.Bold};title.normal.textColor=new Color(.95f,.95f,.87f);
-            body=new GUIStyle(GUI.skin.label){fontSize=14,wordWrap=true};body.normal.textColor=new Color(.87f,.90f,.86f);
-            small=new GUIStyle(body){fontSize=12};small.normal.textColor=new Color(.70f,.77f,.75f);
-            eventStyle=new GUIStyle(body){fontSize=12,wordWrap=true};eventStyle.normal.textColor=new Color(.88f,.78f,.56f);
-            button=new GUIStyle(GUI.skin.button){fontSize=13,fontStyle=FontStyle.Bold,fixedHeight=34};
-            box=new GUIStyle(GUI.skin.box){padding=new RectOffset(13,13,13,13)};
-            background=new Texture2D(1,1);background.SetPixel(0,0,new Color(.08f,.15f,.17f,.91f));background.Apply();
-            box.normal.background=background;
+            if (Input.GetKeyDown(KeyCode.H))
+                fullPanel = !fullPanel;
         }
+
+        bool IsShowcase()
+        {
+            var camera = Camera.main;
+            if (camera == null) return false;
+            var driver = camera.GetComponent<MirFollowCamera>();
+            return driver != null &&
+                (driver.CurrentView == MirFollowCamera.View.DistrictShowcase ||
+                 driver.CurrentView == MirFollowCamera.View.WaterfrontShowcase);
+        }
+
+        static Texture2D ColorTexture(Color color)
+        {
+            var texture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            texture.SetPixel(0, 0, color);
+            texture.Apply(false, true);
+            return texture;
+        }
+
+        void EnsureStyles()
+        {
+            if (panel != null) return;
+            panelTexture = ColorTexture(new Color(.075f, .125f, .15f, .83f));
+            buttonTexture = ColorTexture(new Color(.17f, .28f, .32f, .97f));
+            hoverTexture = ColorTexture(new Color(.24f, .37f, .41f, .99f));
+
+            panel = new GUIStyle(GUI.skin.box);
+            panel.normal.background = panelTexture;
+            panel.padding = new RectOffset(10, 10, 10, 10);
+
+            title = new GUIStyle(GUI.skin.label);
+            title.fontSize = 20;
+            title.fontStyle = FontStyle.Bold;
+            title.normal.textColor = new Color(.96f, .96f, .91f);
+
+            caption = new GUIStyle(GUI.skin.label);
+            caption.fontSize = 11;
+            caption.normal.textColor = new Color(.79f, .84f, .83f);
+
+            heading = new GUIStyle(title);
+            heading.fontSize = 14;
+
+            body = new GUIStyle(caption);
+            body.fontSize = 13;
+            body.wordWrap = true;
+            body.normal.textColor = new Color(.92f, .95f, .94f);
+
+            button = new GUIStyle(GUI.skin.button);
+            button.fontSize = 12;
+            button.fontStyle = FontStyle.Normal;
+            button.fixedHeight = 34f;
+            button.alignment = TextAnchor.MiddleCenter;
+            button.normal.background = buttonTexture;
+            button.hover.background = hoverTexture;
+            button.active.background = hoverTexture;
+            button.normal.textColor = Color.white;
+            button.hover.textColor = Color.white;
+        }
+
         void OnGUI()
         {
-            if(game==null||game.World==null)return;
-            MakeStyles();float w=Mathf.Min(Screen.width-24f,330f);
-            var left=new Rect(12,12,w,Screen.height-24);
-            GUI.Box(new Rect(left.x,left.y,w,390),GUIContent.none,box);
-            GUILayout.BeginArea(new Rect(left.x+13,left.y+10,w-26,375));
-            GUILayout.Label("NONATION",title);
-            GUILayout.Label(game.RemoteSpectator?"SERVER · READ-ONLY":"UNITY 6 · OFFLINE PLAYABLE DISTRICT",small);
-            GUILayout.Space(7);
-            var resident=game.Player.Resident;
-            GUILayout.Label("День "+game.World.Day+"  •  "+(int)game.World.Hour+":"+(((int)game.World.gameMinutes)%60).ToString("00")+"  •  жителей "+game.World.citizens.Count,body);
-            if(game.RemoteSpectator)
+            if (game == null || game.World == null || game.Player == null)
+                return;
+
+            // This is still the real 3D camera, not a composited concept
+            // screenshot. Suppress overlay panels only for the scenic camera.
+            if (IsShowcase()) return;
+
+            EnsureStyles();
+            float width = Mathf.Min(310f, Screen.width - 24f);
+            GUI.Box(new Rect(12, 12, width, 70), GUIContent.none, panel);
+            GUI.Label(new Rect(24, 17, width - 120, 29), "NONATION", title);
+            string clock = ((int)game.World.Hour).ToString("00") + ":" +
+                (((int)game.World.gameMinutes) % 60).ToString("00");
+            GUI.Label(new Rect(24, 48, width - 115, 22),
+                "DAY " + game.World.Day.ToString("00") + " | " + clock +
+                " | PEOPLE " + game.World.citizens.Count, caption);
+            if (GUI.Button(new Rect(12 + width - 82, 30, 72, 31),
+                fullPanel ? "CLOSE" : "MENU", button))
+                fullPanel = !fullPanel;
+
+            if (!fullPanel) return;
+
+            float available = Mathf.Max(220f, Screen.height - 106f);
+            float height = Mathf.Min(470f, available);
+            GUI.Box(new Rect(12, 90, width, height), GUIContent.none, panel);
+            GUILayout.BeginArea(new Rect(24, 102, width - 24, height - 20));
+            GUILayout.Label(game.RemoteSpectator ? "SPECTATOR MODE" : "CITY STATUS", heading);
+
+            if (game.RemoteSpectator)
             {
-                GUILayout.Label("Просмотр серверных NPC и игрового времени.",body);
-                GUILayout.Label(game.RemoteStatus,small);
-                GUILayout.Label("Движение камеры и персонажа доступно. Покупки, транспорт и сохранение отключены.",small);
+                GUILayout.Label("Read-only live server world.", body);
+                GUILayout.Label("Economy, saving and vehicle actions are disabled.", caption);
             }
             else
             {
-                GUILayout.Label("Баланс: "+(resident.cash/100f).ToString("0.00")+" кредитов",body);
-                GUILayout.Label("Еда: "+Mathf.RoundToInt(resident.satiety)+" / 100  •  энергия: "+Mathf.RoundToInt(resident.energy)+" / 100",small);
-                GUILayout.Label("Инвентарь: "+resident.inventoryFood+" продукта(ов)",small);
-                var place=game.City.Nearest(game.Player.transform.position,8f);
-                GUILayout.Label("Рядом: "+(place!=null?place.name:"улица"),small);
-                GUILayout.Space(8);
-                if(GUILayout.Button("E  ·  взаимодействовать",button))game.Player.Interact();
-                if(GUILayout.Button("F  ·  сесть / выйти из машины",button))game.Player.ToggleVehicle();
-                if(GUILayout.Button("R  ·  поесть",button))game.Economy.Eat(resident);
-                if(GUILayout.Button("Заказать поставку на рынок",button))game.Player.OrderFreight();
-                if(GUILayout.Button(game.Paused?"Продолжить симуляцию":"Пауза",button))game.Paused=!game.Paused;
-                if(GUILayout.Button("Сохранить мир",button)){game.Save();game.Notify("Сохранение записано.");}
+                var resident = game.Player.Resident;
+                if (resident != null)
+                {
+                    GUILayout.Label("Balance  " +
+                        (resident.cash / 100f).ToString("0.00") + " credits", body);
+                    GUILayout.Label("Food  " +
+                        Mathf.RoundToInt(resident.satiety) + "/100   Energy  " +
+                        Mathf.RoundToInt(resident.energy) + "/100", caption);
+                    GUILayout.Label("Supplies  " + resident.inventoryFood, caption);
+                }
+                var place = game.City.Nearest(game.Player.transform.position, 8f);
+                GUILayout.Label("Near  " + (place == null ? "Street" : place.id), caption);
+                GUILayout.Space(10);
+                if (GUILayout.Button("E   Interact", button)) game.Player.Interact();
+                if (GUILayout.Button("F   Enter / exit vehicle", button))
+                    game.Player.ToggleVehicle();
+                if (resident != null && GUILayout.Button("R   Eat food", button))
+                    game.Economy.Eat(resident);
+                if (GUILayout.Button("Order freight", button))
+                    game.Player.OrderFreight();
+                if (GUILayout.Button(game.Paused ? "Resume simulation" : "Pause simulation", button))
+                    game.Paused = !game.Paused;
+                if (GUILayout.Button("Save world", button))
+                {
+                    game.Save();
+                    game.Notify("World saved.");
+                }
             }
+            GUILayout.Space(8);
+            GUILayout.Label("CONTROLS", heading);
+            GUILayout.Label("WASD move   Shift run   Tab camera", caption);
+            GUILayout.Label("V city   B waterfront   Mouse look / zoom", caption);
+            GUILayout.Label("H close this panel", caption);
             GUILayout.EndArea();
-            float h=140;
-            GUI.Box(new Rect(12,Screen.height-h-12,w,h),GUIContent.none,box);
-            GUILayout.BeginArea(new Rect(25,Screen.height-h,w-26,h-14));
-            GUILayout.Label("УПРАВЛЕНИЕ",small);
-            GUILayout.Label("WASD — идти / вести авто   Shift — бег",small);
-            GUILayout.Label("Tab — камера   ПКМ — вращать   Колесо — масштаб",small);
-            GUILayout.Label("E — действовать   F — авто   R — поесть",small);
-            GUILayout.Label("Смена реального времени не зависит от камеры.",small);
-            GUILayout.EndArea();
-            float rw=Mathf.Min(Screen.width-24,325f);
-            if(Screen.width>700)
-            {
-                GUI.Box(new Rect(Screen.width-rw-12,12,rw,230),GUIContent.none,box);
-                GUILayout.BeginArea(new Rect(Screen.width-rw,rw>320?24:20,rw-26,206));
-                GUILayout.Label("СОБЫТИЯ МИРА",body);
-                var events=game.World.events;
-                for(int i=events.Count-1;i>=Mathf.Max(0,events.Count-6);i--)
-                    GUILayout.Label("• "+events[i].text,eventStyle);
-                GUILayout.EndArea();
-            }
         }
-        void OnDestroy(){if(background!=null)Destroy(background);}
+
+        void OnDestroy()
+        {
+            if (panelTexture != null) Destroy(panelTexture);
+            if (buttonTexture != null) Destroy(buttonTexture);
+            if (hoverTexture != null) Destroy(hoverTexture);
+        }
     }
 }
