@@ -26,6 +26,8 @@ const meta = {
   kenneyArtReloaded: null,
   modernFacades: null,
   modernFacadesReloaded: null,
+  realHumanPilot: null,
+  realHumanPilotReloaded: null,
   heroQuarter: false,
   heroQuarterReloaded: false,
   showcaseScreenshot: false,
@@ -84,6 +86,20 @@ async function check() {
       '. Recent messages: ' + messages.slice(-14).join(' | ').slice(0, 3000));
   }
 
+  function optionalRealHumanPilot() {
+    const line = messages.find(msg => msg.includes('NONATION_REAL_HUMAN_PILOT_OK'));
+    if (!line) return null; // Technical alpha still allows diagnostic NPCs.
+    const match = /humanAvatar=(True|true)\s+skinnedVertices=(\d+)\s+bones=(\d+)\s+lodGroups=(\d+)/.exec(line);
+    if (!match || Number(match[2]) < 1000 || Number(match[3]) < 40)
+      throw new Error('Invalid real Humanoid pilot evidence: ' + line);
+    return {
+      asset: 'RocketboxPilot01', humanAvatar: true,
+      skinnedVertices: Number(match[2]),
+      bones: Number(match[3]),
+      lodGroups: Number(match[4])
+    };
+  }
+
   try {
     const response = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 60000 });
     if (!response || response.status() !== 200)
@@ -98,6 +114,10 @@ async function check() {
       throw new Error('Expected at least 39 Unity NPCs: ' + ready);
     meta.ready = true;
     meta.npcCount = Number(match[1]);
+    meta.realHumanPilot = optionalRealHumanPilot();
+    if (meta.realHumanPilot)
+      console.log('NONATION_REAL_HUMAN_CHROMIUM_VERIFIED phase=initial ' +
+        JSON.stringify(meta.realHumanPilot));
 
     // The released city-art build must have instantiated real 3D GLB renderers;
     // static glTF file checks alone never establish actual Unity runtime usage.
@@ -163,6 +183,10 @@ async function check() {
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await marker('NONATION_SAVE_RESTORED', 90000);
     await marker('NONATION_RUNTIME_READY', 90000);
+    meta.realHumanPilotReloaded = optionalRealHumanPilot();
+    if (meta.realHumanPilotReloaded)
+      console.log('NONATION_REAL_HUMAN_CHROMIUM_VERIFIED phase=reload ' +
+        JSON.stringify(meta.realHumanPilotReloaded));
     // A successful restore is not enough: glTF meshes must also load again.
     if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
       const modern = await marker('NONATION_MODULAR_CITY_READY', 30000);
