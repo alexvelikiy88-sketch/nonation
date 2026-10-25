@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "Assets/WebGLTemplates/Nonation/index.html"
 BUILD = ROOT / "Assets/MIR/Editor/MirCloudBuild.cs"
 HOOK = ROOT / "Assets/MIR/Editor/MirNonationWebTemplatePrebuild.cs"
+BROWSER = ROOT / "Tools/browser_smoke_preview.js"
 
 
 class ImmersiveWebGLTemplateTests(unittest.TestCase):
@@ -53,6 +54,19 @@ class ImmersiveWebGLTemplateTests(unittest.TestCase):
         # GitHub Pages host has its own HTTPS static content, no trackers.
         self.assertNotIn('https://', page)
         self.assertNotIn('http://', page)
+
+    def test_release_browser_smoke_fails_on_old_unity_centered_canvas(self):
+        code = BROWSER.read_text(encoding="utf-8")
+        for fragment in (
+            "meta.fullscreenCanvas = true",
+            "page.viewportSize()",
+            "rect.width - viewport.width",
+            "rect.height - viewport.height",
+            "WebGL canvas does not fill browser viewport",
+            "#unity-footer",
+            "NONATION_WEBGL_FULLSCREEN_CANVAS_VERIFIED",
+        ):
+            self.assertIn(fragment, code)
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is unavailable")
     def test_embedded_loader_javascript_has_valid_syntax(self):
