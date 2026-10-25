@@ -152,5 +152,6 @@ jobs:
           path: |
             nonation-browser-proof.json
             nonation-browser-proof.png
+            nonation-browser-showcase.png
             nonation-browser-failure.png
           if-no-files-found: ignore

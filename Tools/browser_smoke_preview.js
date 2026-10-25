@@ -24,6 +24,9 @@ const meta = {
   fatalErrors: [],
   kenneyArt: null,
   kenneyArtReloaded: null,
+  heroQuarter: false,
+  heroQuarterReloaded: false,
+  showcaseScreenshot: false,
   browserViewport: '1280x720',
 };
 const messages = [];
@@ -65,6 +68,10 @@ async function check() {
       if (fatal.length)
         throw new Error('Fatal Unity browser error awaiting ' + word + ': ' +
           fatal.slice(0, 3).join(' | '));
+      const visualFailure = allMessages.find(line =>
+        line.includes('NONATION_HERO_QUARTER_ERROR'));
+      if (visualFailure)
+        throw new Error('Real 3D quarter construction failed: ' + visualFailure);
       const value = messages.find(msg => msg.includes(word));
       if (value) return value;
       await page.waitForTimeout(750);
@@ -97,6 +104,15 @@ async function check() {
         JSON.stringify(meta.kenneyArt));
     }
 
+    if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      const detail = await marker('NONATION_HERO_QUARTER_READY', 30000);
+      if (!/\bplaza=1\b/.test(detail) || !/\bwaterfront=1\b/.test(detail) ||
+          !/\bstreets=1\b/.test(detail))
+        throw new Error('Incomplete real hero quarter: ' + detail);
+      meta.heroQuarter = true;
+      console.log('NONATION_HERO_QUARTER_VERIFIED phase=initial');
+    }
+
     const canvas = page.locator('canvas').first();
     await canvas.waitFor({ state: 'visible', timeout: 15000 });
     const rect = await canvas.boundingBox();
@@ -116,6 +132,17 @@ async function check() {
     meta.saved = true;
     await page.screenshot({ path: 'nonation-browser-proof.png', timeout: 20000 });
 
+    if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      // Capture the exact approved-angle live 3D composition, never an overlay.
+      await page.keyboard.press('v');
+      await marker('NONATION_SHOWCASE_CAMERA_READY active=1', 10000);
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: 'nonation-browser-showcase.png', timeout: 20000 });
+      meta.showcaseScreenshot = true;
+      await page.keyboard.press('v');
+      await marker('NONATION_SHOWCASE_CAMERA_READY active=0', 10000);
+    }
+
     messages.length = 0;
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await marker('NONATION_SAVE_RESTORED', 90000);
@@ -127,10 +154,20 @@ async function check() {
       console.log('KENNEY_RUNTIME_3D_VERIFIED phase=reload ' +
         JSON.stringify(meta.kenneyArtReloaded));
     }
+    if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      const detail = await marker('NONATION_HERO_QUARTER_READY', 30000);
+      if (!/\bplaza=1\b/.test(detail) || !/\bwaterfront=1\b/.test(detail) ||
+          !/\bstreets=1\b/.test(detail))
+        throw new Error('Hero quarter not restored: ' + detail);
+      meta.heroQuarterReloaded = true;
+      console.log('NONATION_HERO_QUARTER_VERIFIED phase=reload');
+    }
     meta.restored = true;
 
     const fatal = criticalRuntimeMessages([...errors, ...allMessages]);
     if (fatal.length) throw new Error('Fatal Unity browser error: ' + fatal.slice(0, 3).join(' | '));
+    if (allMessages.some(line => line.includes('NONATION_HERO_QUARTER_ERROR')))
+      throw new Error('NONATION_HERO_QUARTER_ERROR during gameplay');
     console.log('PASS: real Unity WebGL runtime, 39+ NPC, canvas, W movement, save and reload.');
   } catch (error) {
     meta.fatalErrors = criticalRuntimeMessages([...errors, ...allMessages]).slice(-10).map(v => v.slice(0, 500));

@@ -129,9 +129,12 @@ namespace MIR
                 for(int xx=-106;xx<=106;xx+=13)
                     Cube("Lane center dash",new Vector3(xx,.10f,x),new Vector3(4f,.02f,.14f),white);
             }
-            // Crosswalks at intersections: actual marks, not large floating decals.
+            // Keep the 21 outer zebra crossings. The four hero intersections
+            // are drawn as one batched 3D street mesh by MirQuarterStreetLife:
+            // do not overlap another set of cubes in the same space.
             for(int a=-2;a<=2;a++)for(int b=-2;b<=2;b++)
             {
+                if(a>=0 && a<=1 && b>=0 && b<=1)continue;
                 Vector3 p=new Vector3(a*40,0,b*40);
                 for(int k=-3;k<=3;k++)
                 {
@@ -185,7 +188,19 @@ namespace MIR
         public void Build()
         {
             root=new GameObject("MIR Dockside · Procedural District").transform;
-            AsphaltRoads();MarketSquare();Fields();FuelStation();
+            AsphaltRoads();
+            bool plazaReady=false,waterfrontReady=false,streetsReady=false;
+            try
+            {
+                MirCivicSquare.Build(root,Mat,lamps.Add);
+                plazaReady=true;
+            }
+            catch(Exception error)
+            {
+                Debug.LogWarning("NONATION_HERO_QUARTER_ERROR plaza: "+error);
+                MarketSquare(); // Playable technical fallback, never visual PASS.
+            }
+            Fields();FuelStation();
             BlockBuilding("Grocery store",new Vector3(20,0,-20),2,new Color(.64f,.67f,.60f),13,14);
             BlockBuilding("Corner café",new Vector3(56,0,20),2,new Color(.67f,.59f,.47f),12,12);
             BlockBuilding("Auto workshop",new Vector3(-58,0,-22),2,new Color(.45f,.54f,.61f),15,15);
@@ -220,6 +235,29 @@ namespace MIR
             var parkingSpawns=new[]{new Vector3(11,0,-31),new Vector3(-53,0,-35),new Vector3(71,0,32)};
             for(int i=0;i<parkingSpawns.Length;i++)
                 Vehicles.Add(MirVehicle.Spawn(parkingSpawns[i],false,i==0));
+            // AGENT 03 authored actual 3D waterfront, cafe frontage and
+            // pedestrian details. Preserve the original simulation/POI map.
+            try
+            {
+                MirWaterfrontQuarter.Build(root,Mat,lamps.Add);
+                waterfrontReady=true;
+            }
+            catch(Exception error)
+            {
+                Debug.LogWarning("NONATION_HERO_QUARTER_ERROR waterfront: "+error);
+            }
+            try
+            {
+                MirQuarterStreetLife.Build(root,Mat);
+                streetsReady=true;
+            }
+            catch(Exception error)
+            {
+                Debug.LogWarning("NONATION_HERO_QUARTER_ERROR streets: "+error);
+            }
+            if(plazaReady && waterfrontReady && streetsReady)
+                Debug.Log("NONATION_HERO_QUARTER_READY plaza=1 waterfront=1 streets=1 " +
+                    "(real 3D meshes; VISUAL GATE still requires screenshot review)");
             // Optional real CC0 3D art replaces only visual placeholders; POIs,
             // vehicle controllers, original colliders and local saves remain.
             var art=new GameObject("NONATION · Kenney Free City Art");
