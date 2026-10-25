@@ -76,6 +76,20 @@ class RealHumanoidPilotTests(unittest.TestCase):
         self.assertIn("lodGroups=", s)
         self.assertIn('new GameObject("MIR · Articulated Humanoid Fallback")', s)
 
+    def test_browser_report_can_prove_one_pilot_not_fake_all_npcs(self):
+        script = (
+            ROOT / "Tools/browser_smoke_preview.js"
+        ).read_text(encoding="utf-8")
+        self.assertIn("NONATION_REAL_HUMAN_PILOT_OK", script)
+        self.assertIn("meta.realHumanPilot = optionalRealHumanPilot()", script)
+        self.assertIn("meta.realHumanPilotReloaded = optionalRealHumanPilot()", script)
+        self.assertIn("skinnedVertices", script)
+        self.assertIn("lodGroups", script)
+        self.assertIn("if (!line) return null", script)
+        # A missing pilot is NOT accepted as proof of the full humanoid gate.
+        self.assertNotIn("realHumanPilot: true,", script)
+
+
 
 if __name__ == "__main__":
     unittest.main()
