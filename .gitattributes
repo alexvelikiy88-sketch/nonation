@@ -7,3 +7,10 @@
 *.glb filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
+
+# Three reviewed ambientCG CC0 albedo scans are tiny direct Git blobs,
+# not standalone proprietary/Asset Store assets. Exempt these paths from LFS:
+# their original content already exists in the agent/graphics-ui branch.
+Assets/MIR/Art/Architecture/Resources/Nonation/Architecture/Scans/Bricks097_Color.jpg -filter -diff -merge -text
+Assets/MIR/Art/Architecture/Resources/Nonation/Architecture/Scans/Planks023A_Color.jpg -filter -diff -merge -text
+Assets/MIR/Art/Architecture/Resources/Nonation/Architecture/Scans/Plaster007_ColorEven.jpg -filter -diff -merge -text
