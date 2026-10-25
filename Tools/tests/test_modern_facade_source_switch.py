@@ -54,6 +54,20 @@ class ModernFacadeSwitchTests(unittest.TestCase):
         self.assertIn("Texture2D(size,size,TextureFormat.RGBA32,true,false)", importer)
         self.assertNotIn("DownloadHandler", importer)
 
+    def test_real_cc0_texture_blobs_not_git_lfs_placeholders(self):
+        scan_root = ART / "Architecture/Resources/Nonation/Architecture/Scans"
+        source = ARCHITECTURE.read_text(encoding="utf-8")
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        names = ("Bricks097_Color.jpg", "Planks023A_Color.jpg",
+                 "Plaster007_ColorEven.jpg")
+        for name in names:
+            p = scan_root / name
+            self.assertTrue(p.exists(), name)
+            self.assertGreater(p.stat().st_size, 200_000, name)
+            self.assertEqual(p.read_bytes()[:3], b"\\xff\\xd8\\xff", name)
+            self.assertIn(name + " -filter -diff -merge -text", attributes)
+            self.assertIn('"' + name.rsplit(".", 1)[0] + '"', source)
+
     def test_kenney_is_still_loaded_for_trees_vehicles_props_and_fallback(self):
         kenney = KENNEY.read_text(encoding="utf-8")
         self.assertIn("public bool SkipBuildings", kenney)
