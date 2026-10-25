@@ -22,7 +22,7 @@ class KenneyMaterialGenerationTests(unittest.TestCase):
         self.assertIn("GraphicsSettings.currentRenderPipeline == null", art)
         self.assertIn("new BuiltInMaterialGenerator()", art)
         self.assertIn("MaterialGenerator.GetDefaultMaterialGenerator()", art)
-        self.assertIn("new GltfImport(materialGenerator: materialGenerator)", art)
+        self.assertRegex(art, r"new\s+GltfImport\(materialGenerator:\s*materialGenerator,\s*logger:\s*new\s+ConsoleLogger\(\)\)")
         self.assertNotIn("gltf = new GltfImport();", art)
 
     def test_chromium_checks_unity_errors_during_marker_wait(self):

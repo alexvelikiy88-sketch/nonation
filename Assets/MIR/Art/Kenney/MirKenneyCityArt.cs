@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using GLTFast;
 using GLTFast.Materials;
+using GLTFast.Logging;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -45,10 +46,43 @@ namespace MIR
         readonly HashSet<string> failed = new HashSet<string>();
         bool stopping;
 
+        static bool BuiltInShaderReferencesReady()
+        {
+            // Unity strips shaders used only through glTFast Shader.Find. The
+            // Editor build hook retains three actual material references in
+            // Resources; check them before loading any GLB.
+            string[] keepAlive =
+            {
+                "KenneyPbrMetallicRoughness",
+                "KenneyPbrSpecularGlossiness",
+                "KenneyUnlit"
+            };
+            foreach (var name in keepAlive)
+            {
+                var path = "MIR/GltfRuntime/" + name;
+                var material = Resources.Load<Material>(path);
+                if (material == null || material.shader == null || !material.shader.isSupported)
+                {
+                    Debug.LogWarning("NONATION_KENNEY_SHADER_MISSING: " + path +
+                        " (missing or unsupported WebGL glTF shader material)");
+                    return false;
+                }
+            }
+            return true;
+        }
+
         async void Start()
         {
             try
             {
+                if (GraphicsSettings.currentRenderPipeline == null &&
+                    !BuiltInShaderReferencesReady())
+                {
+                    Debug.LogWarning("NONATION_KENNEY_CITY_ERROR: Built-in glTF shaders " +
+                        "were stripped or not included in Resources.");
+                    return; // Retain old geometry as a visible diagnostic fallback.
+                }
+
                 int buildings = 0, trees = 0, cars = 0, objects = 0;
                 foreach (var building in BusinessBuildings)
                     if (await ReplaceBuilding(building)) buildings++;
@@ -188,12 +222,12 @@ namespace MIR
                     GraphicsSettings.currentRenderPipeline == null
                     ? (IMaterialGenerator)new BuiltInMaterialGenerator()
                     : MaterialGenerator.GetDefaultMaterialGenerator();
-                gltf = new GltfImport(materialGenerator: materialGenerator);
+                gltf = new GltfImport(materialGenerator: materialGenerator, logger: new ConsoleLogger());
                 bool ok;
                 try { ok = await gltf.Load(PinnedBase + path + ".glb"); }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("NONATION_KENNEY_FETCH_FAILED: " + path + " " + ex.Message);
+                    Debug.LogWarning("NONATION_KENNEY_FETCH_FAILED: " + path + " " + ex);
                     ok = false;
                 }
                 if (!ok || stopping)
@@ -210,11 +244,14 @@ namespace MIR
             try { created = await gltf.InstantiateMainSceneAsync(root.transform); }
             catch (Exception ex)
             {
-                Debug.LogWarning("NONATION_KENNEY_IMPORT_FAILED: " + path + " " + ex.Message);
+                Debug.LogWarning("NONATION_KENNEY_IMPORT_FAILED: " + path + " " + ex);
                 created = false;
             }
             if (!created || stopping)
             {
+                if (!stopping)
+                    Debug.LogWarning("NONATION_KENNEY_IMPORT_FAILED: " + path +
+                        " InstantiateMainSceneAsync returned false.");
                 Destroy(root);
                 return null;
             }

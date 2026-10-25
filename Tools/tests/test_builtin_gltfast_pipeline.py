@@ -36,7 +36,7 @@ class BuiltinGltfPipelineContract(unittest.TestCase):
             ROOT / "Assets/MIR/Art/Kenney/MirKenneyCityArt.cs"
         ).read_text(encoding="utf-8")
         self.assertIn("new BuiltInMaterialGenerator()", importer)
-        self.assertIn("new GltfImport(materialGenerator: materialGenerator)", importer)
+        self.assertRegex(importer, r"new\s+GltfImport\(materialGenerator:\s*materialGenerator,\s*logger:\s*new\s+ConsoleLogger\(\)\)")
         self.assertIn("GraphicsSettings.currentRenderPipeline == null", importer)
         self.assertIn("NONATION_KENNEY_CITY_READY", importer)
         self.assertIn("Resources.Load<GameObject>", importer)
