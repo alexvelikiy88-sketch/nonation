@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using GLTFast;
+using GLTFast.Materials;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace MIR
 {
@@ -176,7 +178,17 @@ namespace MIR
             GltfImport gltf;
             if (!imported.TryGetValue(path, out gltf))
             {
-                gltf = new GltfImport();
+                // This release uses Built-in rendering (URP is installed as a
+                // package but no SRP asset is assigned in project settings).
+                // glTFast's implicit MaterialGenerator discovery fails in
+                // IL2CPP/WebGL for this setup; inject the Built-in converter.
+                // Once a Scriptable Render Pipeline asset is configured, use
+                // its corresponding glTFast converter instead.
+                IMaterialGenerator materialGenerator =
+                    GraphicsSettings.currentRenderPipeline == null
+                    ? (IMaterialGenerator)new BuiltInMaterialGenerator()
+                    : MaterialGenerator.GetDefaultMaterialGenerator();
+                gltf = new GltfImport(materialGenerator: materialGenerator);
                 bool ok;
                 try { ok = await gltf.Load(PinnedBase + path + ".glb"); }
                 catch (Exception ex)
