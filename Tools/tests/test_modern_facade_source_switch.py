@@ -64,7 +64,7 @@ class ModernFacadeSwitchTests(unittest.TestCase):
             p = scan_root / name
             self.assertTrue(p.exists(), name)
             self.assertGreater(p.stat().st_size, 200_000, name)
-            self.assertEqual(p.read_bytes()[:3], b"\\xff\\xd8\\xff", name)
+            self.assertEqual(p.read_bytes()[:3], bytes.fromhex("ffd8ff"), name)
             self.assertIn(name + " -filter -diff -merge -text", attributes)
             self.assertIn('"' + name.rsplit(".", 1)[0] + '"', source)
 
