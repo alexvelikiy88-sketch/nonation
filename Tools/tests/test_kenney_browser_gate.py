@@ -42,7 +42,7 @@ class KenneyWebglProofContract(unittest.TestCase):
         self.assertIn("KENNEY_RUNTIME_3D_VERIFIED", code)
         for name, expected in (("buildings", 12), ("trees", 13),
                                ("vehicles", 3), ("props", 2)):
-            self.assertRegex(helper, rf"\\b{name}:\\s*{expected}\\b")
+            self.assertRegex(helper, rf"\b{name}:\s*{expected}\b")
 
     def test_stripping_detection_includes_nonerror_unity_console(self):
         code = PREVIEW.read_text(encoding="utf-8")
