@@ -62,6 +62,9 @@ class HeroQuarterIntegrationContract(unittest.TestCase):
         browser = BROWSER.read_text(encoding="utf-8")
         self.assertIn("DistrictShowcase", camera)
         self.assertIn("KeyCode.V", camera)
+        self.assertIn("KeyCode.B", camera)
+        self.assertIn("WaterfrontShowcase", camera)
+        self.assertIn("WaterfrontFocus=new Vector3(28f,1.5f,-108f)", camera)
         self.assertIn("ShowcaseFocus", camera)
         self.assertIn("NONATION_SHOWCASE_CAMERA_READY active=", camera)
         for marker in ("NONATION_HERO_QUARTER_READY",
@@ -70,11 +73,14 @@ class HeroQuarterIntegrationContract(unittest.TestCase):
                        "NONATION_HERO_QUARTER_VERIFIED phase=reload"):
             self.assertIn(marker, browser)
         self.assertIn("nonation-browser-showcase.png", browser)
+        self.assertIn("nonation-browser-waterfront.png", browser)
+        self.assertIn("NONATION_WATERFRONT_CAMERA_READY active=1", browser)
         self.assertIn("meta.heroQuarterReloaded = true", browser)
         self.assertIn("NONATION_HERO_QUARTER_ERROR", browser)
         for file in (FLOW, ARTIFACT_FLOW):
             s = file.read_text(encoding="utf-8")
             self.assertIn("nonation-browser-showcase.png", s)
+            self.assertIn("nonation-browser-waterfront.png", s)
             self.assertIn("NONATION_REQUIRE_KENNEY_ART: '1'", s)
 
     @unittest.skipUnless(shutil.which("node"), "Node.js not available")
