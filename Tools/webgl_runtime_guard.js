@@ -4,8 +4,9 @@
 // inspecting only Playwright pageerror/error events is insufficient.
 const FATAL_RUNTIME = /\b(?:RuntimeError|out of memory|WebGL context lost|wasm trap|uncaught(?: exception)?|Missing runtime shader)\b|abort\(/i;
 const COLLIDER_FAILURE = /(?:cannot|can't|can not|failed|missing|stripp?ed|doesn.t exist|not found|could not|unable to).{0,180}\b(?:BoxCollider|CapsuleCollider|SphereCollider)\b|\b(?:BoxCollider|CapsuleCollider|SphereCollider)\b.{0,180}(?:doesn.t exist|missing|stripp?ed|failed|not found|not allowed)/i;
+const KENNEY_IMPORT_FAILURE = /\bNONATION_KENNEY_(?:CITY_ERROR|FETCH_FAILED|IMPORT_FAILED)\b/i;
 function criticalRuntimeMessages(lines) {
   return [...new Set(lines.map(String).filter(line =>
-    FATAL_RUNTIME.test(line) || COLLIDER_FAILURE.test(line)))];
+    FATAL_RUNTIME.test(line) || COLLIDER_FAILURE.test(line) || KENNEY_IMPORT_FAILURE.test(line)))];
 }
 module.exports = { criticalRuntimeMessages };
