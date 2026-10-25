@@ -5,6 +5,18 @@
 **Все три направления объединены в `main`:** [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) MERGED, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. История и исходные SHA трёх агентов сохранены.  
 **Предыдущая полная история:** [архив реестра](Documentation/STATUS_HISTORY_23_10_26.md). Для новых решений использовать этот файл и актуальный GitHub, а не устаревшие строки архива.
 
+## Актуальные следующие работы / 25.10.26 — вертикальный срез, управляемые gate
+
+**План производства:** [Documentation/VERTICAL_SLICE_EXECUTION_PLAN_RU.md](Documentation/VERTICAL_SLICE_EXECUTION_PLAN_RU.md). Эталон и критерии качества остаются в [VISUAL_CANON_RU.md](Documentation/VISUAL_CANON_RU.md).
+
+- **P0 / main `39b189a00815f7db4ba64c88fae9d801a65e3f7a`:** [Unity Cloud run #40194385409](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40194385409) — `source-validation SUCCESS`, Unity Cloud ещё `in_progress` на момент ревизии; нет нового WebGL Player/Pages/Chromium доказательства. Никакие предыдущие успехи нельзя переносить на этот SHA.
+- **P1-A / Waterfront:** [PR #38](https://github.com/alexvelikiy88-sketch/nonation/pull/38), head `c4c740e397c1c8268aadd97837f66a805fb85da5`, **DRAFT / НЕ MERGED**. Добавлен самостоятельный 3D-модуль набережной от Graphics AGENT 03 и единственный вызов в `MirCity.Build()`, сохранены Kenney/POI/NPC/Collider. **Integration Guard, source/.NET PASS** на PR head. Реальная компиляция Unity, WebGL сцена, FPS и видимый waterfront **НЕ ПРОВЕРЕНЫ**. Не объединять до подтверждения P0.
+- **P1-B / Graphics PR #26:** `agent/graphics-ui@35d73180e22d7487fb65045bab64dd92feb9098d` конфликтует с main в `Assets/MIR/Scripts/MirCity.cs`; cross-branch FAIL. Модули делить на совместимые PR по матрице в плане. Сначала набережная #38, затем улицы/площадь, после этого фасады — строго один источник 12 зданий на слот. Текстуры/shader/LFS проверять до включения.
+- **P2 / Humanoid:** один действительный Rocketbox/Quaternius SkinnedMeshRenderer, валидные Avatar/Animator Idle/Walk/Run и LOD в Unity WebGL. Зафиксированный дефект графического prebuild `Prepare(false)` без проверки результата необходимо устранить в изолированном визуальном PR; `VIS-03` не закрывать по наличию FBX.
+- **P3–P5:** проверить действующие NPC и экономические POI, затем материалы/камеру/HUD, снимки без монтажа и измеренные FPS/p50/p95/дроуколлы/память. Финальная `VIS-07` требует явной приёмки владельца; в настоящий момент **OPEN**.
+
+**Следующее действие:** узнать финальный исход Unity Cloud #40194385409. Если FAIL — первичный Unity log и минимальный PR; если PASS — Pages + Chromium текущего SHA, настоящие `NONATION_KENNEY_CITY_READY buildings=12 trees=13 vehicles=3 props=2` до/после reload, отсутствие фатальных Collider/Shader/glTF ошибок и raw screenshot. Только после подтверждения можно принимать PR #38. Не запускать дублирующий Cloud Build для обновления документации.
+
 ## Последняя проверка нового WebGL-релиза / 25.10.26 — GLB runtime BLOCKED
 
 - **Точный `main` SHA:** `faf1bdbdcfaa1493cf9798b24fa4cc58464a6093`.
