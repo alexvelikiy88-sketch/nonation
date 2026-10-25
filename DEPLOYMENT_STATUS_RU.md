@@ -3,6 +3,14 @@
 **Последняя проверка:** 25.10.26. **Unity Cloud #8 и GitHub Pages с интегрированным игровым SHA подтверждены; Chromium доказал частичную работоспособность, но обнаружил массовые runtime Collider-ошибки.** Технический baseline — PARTIAL PASS, полноценный игровой релиз — BLOCKED, художественный релиз — NOT APPROVED.
 
 
+## Последняя сборка / 25.10.26 — подтверждённый CS0246, публикации нет
+
+- [GitHub Actions #40192802666](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40192802666) (Unity Cloud Build #11), `main@1e1f134e2c16b762760efbddf0bf469aa2120864`: `source-validation` **SUCCESS**, `Unity Cloud WebGL` **FAILURE**, GitHub Pages и Chromium **SKIPPED**. Новая игра не опубликована этим запуском.
+- UBA log: `Assets\MIR\Art\Kenney\MirKenneyCityArt.cs(189,47): error CS0246: The type or namespace name 'BuiltInMaterialGenerator' could not be found`.
+- Конкретная причина: Unity glTFast 6.0.0 компилирует `BuiltInMaterialGenerator` только при отсутствии `USING_URP` (либо в Editor), а установленный `com.unity.render-pipelines.universal` включал `USING_URP`, хотя игровая сцена использует Built-in Render Pipeline. Доказано исходным [glTFast 6.0.0 snapshot](https://github.com/needle-mirror/com.unity.cloud.gltfast/tree/b05d842446989f0521b1e2283c7e93121d785b29) и актуальным Unity compiler log.
+- В отдельном PR предложено удалить **неиспользуемую** зависимость URP и сохранить Built-in shader/material path. Этого **пока недостаточно** для утверждения успешного рендера: обязательны Unity WebGL compile, правильная загрузка Kenney GLB и настоящий Chromium screenshot на одном SHA.
+- Последняя подтверждённая опубликованная версия — предшествующий технический билд [#40190193106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40190193106), где Unity и Pages PASS, но Kenney GLB не загружались из-за MaterialGenerator. Публичный адрес остаётся https://alexvelikiy88-sketch.github.io/nonation/, это **не** подтверждённый графический релиз.
+
 ## Актуальный релиз / 25.10.26 — Unity/Pages PASS, Kenney runtime FAIL
 
 - GitHub `main@faf1bdbdcfaa1493cf9798b24fa4cc58464a6093`, [run #40190193106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40190193106): **Unity Cloud WebGL SUCCESS** (artifact `12597753213`), **Pages HTTPS SUCCESS** (artifact `12598875494`). Адрес публикации: https://alexvelikiy88-sketch.github.io/nonation/.

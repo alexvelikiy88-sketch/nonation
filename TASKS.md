@@ -16,6 +16,14 @@
 
 **P0 следующий шаг:** принять исправление PR #35 после обязательного PR Guard и всех относящихся к нему тестов, произвести **один** новый SHA-проверенный Unity Cloud релиз и подтвердить реальную GLB-сцену в Chromium. `VIS-02/VIS-03/VIS-06/VIS-07` остаются OPEN.
 
+## P0 / 25.10.26 — Unity Cloud #11 compiler blocker (проверено)
+
+- [Unity WebGL run #40192802666](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40192802666), Unity Cloud Build #11 на `main@1e1f134e2c16b762760efbddf0bf469aa2120864` — **FAILED**; Source Validation PASS, Unity Player export и GitHub Pages **SKIPPED**, Chromium по этому SHA **не проверен**.
+- **Первопричина из полного UBA журнала:** `Assets/MIR/Art/Kenney/MirKenneyCityArt.cs(189,47): error CS0246: 'BuiltInMaterialGenerator' could not be found`. Не подменять её сообщениями Unity AssemblyUpdater / `System.Reflection.Emit` или исходным Runtime `NONATION_KENNEY_CITY_ERROR` на предыдущем SHA.
+- Исходный [Unity glTFast **6.0.0** package snapshot](https://github.com/needle-mirror/com.unity.cloud.gltfast/tree/b05d842446989f0521b1e2283c7e93121d785b29) доказывает: `glTFast.asmdef` устанавливает `USING_URP` при наличии пакета URP, а `BuiltInMaterialGenerator.cs` исключает этот класс из non-Editor Player при `USING_URP`. Между тем браузер [#40190193106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40190193106) подтвердил, что активный Render Pipeline **BuiltIn**.
+- **Исправление предложено в отдельном manager PR:** удалить пока не настроенную зависимость `com.unity.render-pipelines.universal` из `Packages/manifest.json`, сохранить фактически используемый Built-in pipeline, glTFast 6.0.0 и реальные mesh/material loading. Отдельный source regression test запрещает возвращать эту конфигурацию без полноценного SRP migration.
+- После source/.NET/ownership CI нужен **один** реальный Unity Cloud Build на точном SHA и браузерная проверка 12 зданий, 13 деревьев, 3 автомобилей, 2 светофоров, движения, Collider, сохранения и reload. Художественная приёмка **OPEN**. Возвращать URP только отдельной проверенной миграцией с настоящим URP Pipeline Asset, renderer data и shader variants.
+
 ## Новая визуальная реализация / 25.10.26 — подтверждённые факты
 
 - **[PR #32](https://github.com/alexvelikiy88-sketch/nonation/pull/32) MERGED**, исходный release SHA `b70ada3663c0d2ffab02479ff604c51f3b685437`: встроен fetcher **14 оригинальных Kenney CC0 GLB** с проверкой конкретных Git SHA и размеров. Код реального 3D-переодевания 12 зданий, 13 деревьев, трёх автомобилей и двух светофоров находится в `Assets/MIR/Art/Kenney/MirKenneyCityArt.cs`. Игровая экономика/POI/коллизии не заменены; при невозможности импорта сохраняется старый визуальный fallback.
