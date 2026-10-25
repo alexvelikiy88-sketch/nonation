@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 set -eu
-# Configure this as Unity Cloud Build Automation's pre-build script.
-# It supplies CC0 animations to the Editor import without committing large FBX assets.
+# Unity Cloud Build Automation pre-build hook. Validate and import pinned
+# CC0 source assets before Unity Editor refresh / glTFast scripted import.
+# Neither the old scene nor its game logic is removed if the visuals fail.
 python3 Tools/fetch_quaternius.py
+python3 Tools/fetch_kenney_city.py

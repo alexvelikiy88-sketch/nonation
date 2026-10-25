@@ -53,6 +53,14 @@
 - **Точный игровой дефект:** [реальный Chromium artifact smoke #40022712096](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40022712096) на агентском Cloud #4 архиве завершился **FAILURE**: Unity вывел `InvalidOperationException: Missing runtime shader`, не сообщил `NONATION_RUNTIME_READY`, хотя `NONATION_SAVE_WRITTEN citizens=40` работал. [PR #22](https://github.com/alexvelikiy88-sketch/nonation/pull/22), merge SHA `4366103dd439cfda4b65223608f84688084ba998`, добавил Shader asset под Resources и безопасный fallback при Shader stripping; статический CI PASS. **Исправленная Unity-компиляция и Chromium runtime на этом новом SHA ещё не подтверждены**. Новый [MIR Unity WebGL #40023751528](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40023751528) — отдельный билд/деплой.
 - Встроенная Chromium среда этого разговора блокирует навигацию и localhost политикой `ERR_BLOCKED_BY_ADMINISTRATOR` даже для `file://`; это **не** ошибка игры. Поэтому официальный Pages browser-smoke является решающим доказательством runtime.
 
+### Пробная замена процедурной графики на бесплатный CC0 город (25.10.26)
+
+- **Выбран реальный пакет для программной интеграции:** Kenney City Kit Commercial + Roads + Nature + Car, 14 неизменяемых GLB-файлов в [manifest](Tools/kenney_city_manifest.json), авторские CC0-источники и [документация интеграции](Documentation/FREE_CITY_PACK_RU.md).
+- Добавлены загрузчик с проверкой хешей, glTFast prefab/runtime интегратор и визуальная замена 12 существующих зданий, 13 деревьев, трёх автомобилей и двух светофоров **без удаления игровых Collider, POI, движения или экономики**. На этапе написания зафиксированы только исходники, **не подтверждён WebGL-кадр или Animator**.
+- Статус **IN PROGRESS**, не DONE: требуется успешный Unity Cloud/WebGL экспорт и браузерный скриншот с доказательством `NONATION_KENNEY_CITY_READY buildings=12 trees=13 vehicles=3 props=2`, без критических ошибок; затем сравнение качества и решение по стилю.
+- **Synty POLYGON City и Characters не импортированы.** Отдельно найти/импортировать настоящего CC0 скелетного персонажа с проверкой Avatar, skin/animations/LOD; не подменять его статичной GLB-фигурой.
+- Текущий стилизованный Kenney городской стиль **сам по себе не соответствует автоматически** реалистичному художественному эталону; VIS-07 остаётся блокирующей задачей.
+
 ## P0 — подтверждённая ошибка Unity-компиляции после объединения, исправлена в Git
 
 - [Unity Cloud Build №6 / Actions #40020804542](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40020804542) **FAIL** для объединённого игрового SHA `a75602df4ef56e95709a8472eba62d879795c977`: `Assets/MIR/Editor/MirIntegrityAudit.cs(39,24): error CS0266: Cannot implicitly convert type 'long' to 'int'`. Изменение Backend расширило `TotalKnownMoney()` до `long`, а Editor-аудит остался `int`.

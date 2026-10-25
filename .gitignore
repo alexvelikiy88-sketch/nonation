@@ -18,3 +18,8 @@
 # Assets with redistribution restrictions require separate rights review
 Assets/MIR/Art/Characters/
 Assets/MIR/Art/NonCommercial/
+
+# Deterministic Kenney CC0 meshes are fetched and hash-verified in pre-build.
+# Keep the repository small; Unity imports the locally generated GLB copies.
+Assets/MIR/Resources/MIR/Kenney/**/*.glb
+Assets/MIR/Resources/MIR/Kenney/**/*.glb.meta

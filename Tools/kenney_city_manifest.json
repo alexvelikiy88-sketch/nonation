@@ -1,0 +1,99 @@
+{
+  "schema": "nonation-kenney-city/1",
+  "upstream": "Hidencod/tge-assets",
+  "revision": "7be9b573bc74f32ed766b44b3f46550d02ca83b5",
+  "original_artist": "Kenney",
+  "original_license": "CC0-1.0",
+  "original_sources": [
+    "https://kenney.nl/assets/city-kit-commercial",
+    "https://kenney.nl/assets/city-kit-roads",
+    "https://kenney.nl/assets/car-kit",
+    "https://kenney.nl/assets/nature-kit"
+  ],
+  "models": [
+    {
+      "id": "city-kit-commercial/building-e",
+      "path": "packs/city-kit-commercial/building-e.glb",
+      "size": 139248,
+      "git_blob_sha1": "4443371e51be1d82100a6984211a0f7bc8daae74"
+    },
+    {
+      "id": "city-kit-commercial/building-a",
+      "path": "packs/city-kit-commercial/building-a.glb",
+      "size": 119976,
+      "git_blob_sha1": "351d7193acdde07877fc92ce6a7e60de092355c0"
+    },
+    {
+      "id": "city-kit-commercial/building-d",
+      "path": "packs/city-kit-commercial/building-d.glb",
+      "size": 106200,
+      "git_blob_sha1": "a2cc6e10c0b0037b08bb2bf95d849007d07df265"
+    },
+    {
+      "id": "city-kit-commercial/building-m",
+      "path": "packs/city-kit-commercial/building-m.glb",
+      "size": 312044,
+      "git_blob_sha1": "9c0effcb1eab8f357eae13227fba40952f930c93"
+    },
+    {
+      "id": "city-kit-commercial/building-b",
+      "path": "packs/city-kit-commercial/building-b.glb",
+      "size": 117452,
+      "git_blob_sha1": "a71ea2a4ccdca22181b6506a194094cac60f35e2"
+    },
+    {
+      "id": "city-kit-commercial/building-h",
+      "path": "packs/city-kit-commercial/building-h.glb",
+      "size": 138412,
+      "git_blob_sha1": "ba87000b72e5b18262438a4c028c1fbf22bb951c"
+    },
+    {
+      "id": "city-kit-commercial/building-k",
+      "path": "packs/city-kit-commercial/building-k.glb",
+      "size": 258020,
+      "git_blob_sha1": "071926508241962d428b9c44be374889d8efb0a5"
+    },
+    {
+      "id": "city-kit-commercial/building-n",
+      "path": "packs/city-kit-commercial/building-n.glb",
+      "size": 352276,
+      "git_blob_sha1": "b8b1307540a1abe0f13c9f6a85dea9eb9b0004c8"
+    },
+    {
+      "id": "nature-kit/tree-detailed",
+      "path": "packs/nature-kit/tree-detailed.glb",
+      "size": 31412,
+      "git_blob_sha1": "8d59ea41e280a5ea9234ec1e503fb871c55021de"
+    },
+    {
+      "id": "nature-kit/tree-oak",
+      "path": "packs/nature-kit/tree-oak.glb",
+      "size": 14644,
+      "git_blob_sha1": "b136723ada4b5574b71f727120ab21fa579bf2fb"
+    },
+    {
+      "id": "car-kit/sedan",
+      "path": "packs/car-kit/sedan.glb",
+      "size": 184504,
+      "git_blob_sha1": "bcae84827ec41907f7f8ac8a314fa670cd372da1"
+    },
+    {
+      "id": "car-kit/taxi",
+      "path": "packs/car-kit/taxi.glb",
+      "size": 187896,
+      "git_blob_sha1": "86c40f0a72018bbf4d66f108928fb9a6a7093e0d"
+    },
+    {
+      "id": "car-kit/delivery",
+      "path": "packs/car-kit/delivery.glb",
+      "size": 252504,
+      "git_blob_sha1": "e3d7487f5cdcfceb59d1a9e1d8748879b059d177"
+    },
+    {
+      "id": "city-kit-roads/traffic-light",
+      "path": "packs/city-kit-roads/traffic-light.glb",
+      "size": 31796,
+      "git_blob_sha1": "39d39733a048bf5c83b9dda85203c926ae5bc258"
+    }
+  ]
+}

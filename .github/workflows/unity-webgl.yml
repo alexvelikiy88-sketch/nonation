@@ -86,6 +86,10 @@ jobs:
           key: mir-quaternius-cc0-${{ hashFiles('Tools/fetch_quaternius.py') }}
       - name: Verify Quaternius CC0 archives and SHA-256 before any Unity build
         run: python3 Tools/fetch_quaternius.py
+      - name: Download and verify pinned Kenney City CC0 GLB models
+        run: |
+          python3 Tools/fetch_kenney_city.py
+          python3 Tools/fetch_kenney_city.py --verify-only
       - name: Check whether GameCI activation is configured
         id: check_activation
         shell: bash
@@ -136,6 +140,8 @@ jobs:
           fi
       - name: Fetch verified CC0 Quaternius clips
         run: python3 Tools/fetch_quaternius.py
+      - name: Fetch verified CC0 Kenney city meshes
+        run: python3 Tools/fetch_kenney_city.py
       - uses: actions/cache@v4
         with:
           path: Library
