@@ -295,7 +295,9 @@ jobs:
   browser-smoke:
     name: Chromium WebGL runtime, Kenney city meshes, colliders and save/reload
     needs: deploy
-    if: needs.deploy.result == 'success'
+    # A skipped alternate (webgl vs cloud-webgl) is a transitive dependency.
+    # Explicit always() prevents GitHub's implicit success() from skipping this job.
+    if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
