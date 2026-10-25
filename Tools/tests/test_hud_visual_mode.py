@@ -15,6 +15,7 @@ class CompactHudTests(unittest.TestCase):
         self.assertIn("KeyCode.H", content)
         self.assertIn("if (IsShowcase()) return;", content)
         self.assertIn("MirFollowCamera.View.DistrictShowcase", content)
+        self.assertIn("MirFollowCamera.View.WaterfrontShowcase", content)
         self.assertIn("NONATION", content)
         self.assertIn('fullPanel ? "CLOSE" : "MENU"', content)
         self.assertNotIn('GUI.Box(new Rect(Screen.width-rw', content)
@@ -32,6 +33,7 @@ class CompactHudTests(unittest.TestCase):
         content = HUD.read_text(encoding="utf-8")
         self.assertFalse(re.search("[\\u0400-\\u052f]", content))
         self.assertIn("ColorTexture", content)
+        self.assertIn("B waterfront", content)
         self.assertIn("OnDestroy()", content)
 
 
