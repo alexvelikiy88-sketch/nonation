@@ -5,6 +5,17 @@
 **Все три направления объединены в `main`:** [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) MERGED, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. История и исходные SHA трёх агентов сохранены.  
 **Предыдущая полная история:** [архив реестра](Documentation/STATUS_HISTORY_23_10_26.md). Для новых решений использовать этот файл и актуальный GitHub, а не устаревшие строки архива.
 
+## Последняя проверка нового WebGL-релиза / 25.10.26 — GLB runtime BLOCKED
+
+- **Точный `main` SHA:** `faf1bdbdcfaa1493cf9798b24fa4cc58464a6093`.
+- **[Unity/WebGL #40190193106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40190193106):** `source-validation` **PASS**, Unity Cloud WebGL **PASS**, GitHub Pages + HTTPS **PASS**. Cloud archive artifact `12597753213`; `github-pages` artifact `12598875494`. Это подтверждение сборки/размещения файлов, **не** полноценной сцены с новыми GLB.
+- **Chromium runtime FAIL** на том же `main`: `NONATION_RUNTIME_READY scene=MIR_PlayableDistrict player=player-001 npcs=39 vehicles=4 citizens=40`, но `NONATION_KENNEY_CITY_ERROR: Could not determine default MaterialGenerator (render pipeline BuiltIn)`. `NONATION_KENNEY_CITY_READY` отсутствует; 3D Kenney не загружен в игровой кадр. Истинный proof artifact `12598396433` содержит JSON/скриншот ошибки, **не** кадр успешного релиза.
+- **Проверенное объяснение:** glTFast в IL2CPP/WebGL не выбрал материалы для фактически активного Built-In pipeline. Установленный пакет URP не означает, что URP выбран как активный pipeline. Старые игровые коллайдеры, перемещение, сохранение и рендер после успешного GLB-импорта данным smoke **не проверены** — браузер упал до следующих стадий.
+- **[PR #35](https://github.com/alexvelikiy88-sketch/nonation/pull/35)** предлагает адресное исправление: явный `BuiltInMaterialGenerator` для Built-In, строгая проверка количества GLB на старте и после reload, быстрый fail при `NONATION_KENNEY_*ERROR` и статические/Node регрессии. Это **не закрывает** runtime gate до нового Unity/WebGL/Chromium испытания точного SHA.
+- **[Graphics PR #26](https://github.com/alexvelikiy88-sketch/nonation/pull/26)** по-прежнему конфликтует в `Assets/MIR/Scripts/MirCity.cs`; Cross-Branch FAIL независим от ошибки material generator. Не сливать его целиком без разрешения конфликта и WebGL-проверки.
+
+**P0 следующий шаг:** принять исправление PR #35 после обязательного PR Guard и всех относящихся к нему тестов, произвести **один** новый SHA-проверенный Unity Cloud релиз и подтвердить реальную GLB-сцену в Chromium. `VIS-02/VIS-03/VIS-06/VIS-07` остаются OPEN.
+
 ## Новая визуальная реализация / 25.10.26 — подтверждённые факты
 
 - **[PR #32](https://github.com/alexvelikiy88-sketch/nonation/pull/32) MERGED**, исходный release SHA `b70ada3663c0d2ffab02479ff604c51f3b685437`: встроен fetcher **14 оригинальных Kenney CC0 GLB** с проверкой конкретных Git SHA и размеров. Код реального 3D-переодевания 12 зданий, 13 деревьев, трёх автомобилей и двух светофоров находится в `Assets/MIR/Art/Kenney/MirKenneyCityArt.cs`. Игровая экономика/POI/коллизии не заменены; при невозможности импорта сохраняется старый визуальный fallback.

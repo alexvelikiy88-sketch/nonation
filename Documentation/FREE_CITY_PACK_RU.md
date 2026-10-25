@@ -1,7 +1,7 @@
 # NONATION — бесплатный городской 3D-пак: первый интеграционный срез
 
 **Дата:** 25.10.26  
-**Статус:** исходники и Unity/WebGL экспорт Kenney интегрированы в защищённую `main` через PR #32; Pages опубликован. Реальное наличие 3D-моделей в Chromium и VISUAL GATE **не подтверждены**, поэтому это пока технический этап.  
+**Статус:** исходники и Unity/WebGL экспорт Kenney интегрированы; Pages опубликован. Новый Chromium #40190193106 **подтвердил ошибку** glTFast MaterialGenerator в Built-In, поэтому реальные Kenney GLB **не отобразились**; исправление готовится в PR #35 и ещё не прошло WebGL-проверку. VISUAL GATE открыт.  
 **Цель:** заменить видимые кубы зданий и часть городских заглушек настоящими игровыми 3D-моделями, не ломая 39 NPC, существующие маршруты, экономику, автомобили и сохранение.
 
 ## Почему не Synty
@@ -79,3 +79,12 @@ python3 Tools/fetch_kenney_city.py --verify-only
 - Отдельный [Graphics PR #26](https://github.com/alexvelikiy88-sketch/nonation/pull/26) по архитектуре/набережной вступает в конфликт с `MirCity.cs` главной ветки и остаётся **неинтегрированным**. `Cross-Branch CI` сигнализирует об этом конфликте честно.
 
 **Адрес игры:** https://alexvelikiy88-sketch.github.io/nonation/ (используй фактически опубликованную версию; не утверждай, что графика Kenney уже видна без реального скриншота). 
+
+
+## Chromium root cause / проверено 25.10.26
+
+- `main@faf1bdbdcfaa1493cf9798b24fa4cc58464a6093`, [WebGL run #40190193106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40190193106): Unity Cloud экспорт и Pages **PASS**.
+- Реальный браузер сообщил `NONATION_RUNTIME_READY ... npcs=39`, но затем `NONATION_KENNEY_CITY_ERROR: Could not determine default MaterialGenerator (render pipeline BuiltIn)`. Маркер успешного импорта GLB **не появился**. Старые модели остались fallback.
+- Unity в этом проекте использует **Built-In Render Pipeline**, несмотря на установленный пакет URP; не путать зависимость `com.unity.render-pipelines.universal` с назначенным URP Pipeline Asset.
+- [PR #35](https://github.com/alexvelikiy88-sketch/nonation/pull/35): явная передача `GLTFast.Materials.BuiltInMaterialGenerator` при Built-In, отдельный материал-конвертер для активной SRP, проверка 3D-счётчиков на старте и после сохранения/reload, фатальная классификация ошибок загрузчика.
+- До повторного успешного Unity WebGL + Chromium теста на точном SHA это **исправление на уровне исходников**, а не подтверждённая игра. После его применения проверить возможные дополнительные shader/Resources/CORS/GLB import ошибки по журналу, а не скрывать заглушками.

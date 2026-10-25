@@ -1,7 +1,17 @@
 # NONATION — проверенное состояние WebGL и публикации
 
-**Дата:** 24.10.26. **Unity Cloud #8 и GitHub Pages с интегрированным игровым SHA подтверждены; Chromium доказал частичную работоспособность, но обнаружил массовые runtime Collider-ошибки.** Технический baseline — PARTIAL PASS, полноценный игровой релиз — BLOCKED, художественный релиз — NOT APPROVED.
+**Последняя проверка:** 25.10.26. **Unity Cloud #8 и GitHub Pages с интегрированным игровым SHA подтверждены; Chromium доказал частичную работоспособность, но обнаружил массовые runtime Collider-ошибки.** Технический baseline — PARTIAL PASS, полноценный игровой релиз — BLOCKED, художественный релиз — NOT APPROVED.
 
+
+## Актуальный релиз / 25.10.26 — Unity/Pages PASS, Kenney runtime FAIL
+
+- GitHub `main@faf1bdbdcfaa1493cf9798b24fa4cc58464a6093`, [run #40190193106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40190193106): **Unity Cloud WebGL SUCCESS** (artifact `12597753213`), **Pages HTTPS SUCCESS** (artifact `12598875494`). Адрес публикации: https://alexvelikiy88-sketch.github.io/nonation/.
+- **Chromium FAIL**, proof artifact `12598396433`: `NONATION_RUNTIME_READY ... npcs=39 ... vehicles=4 citizens=40` есть; после этого `NONATION_KENNEY_CITY_ERROR: Could not determine default MaterialGenerator (render pipeline BuiltIn)`. `NONATION_KENNEY_CITY_READY` **отсутствует**. Браузер дожидался маркера и завершился ошибкой.
+- **Причина доказана журналом:** импорт моделей glTFast останавливается при выборе генератора материалов для активного Built-In pipeline; скомпилированная Unity игра запускается, но вместо новых Kenney-моделей остаётся аварийный legacy-рендер. `NONATION_SHADER_FALLBACK` также присутствует как предупреждение, но главный blocker — material generator.
+- **Исправление только предложено:** [PR #35](https://github.com/alexvelikiy88-sketch/nonation/pull/35) вводит явный Built-In glTFast MaterialGenerator, быстрый отказ на ошибках импорта и регрессионное тестирование загрузки/reload; его успешный Unity/WebGL-рендер **пока не подтверждён**. Платную пересборку до оценки PR CI не запускать.
+- **VISUAL GATE не пройден.** Скриншот сбойного Chromium не считается доказательством новых 3D, а экономику/сохранения и FPS необходимо проверять в полноценном browser smoke на следующем игровом SHA.
+
+Ниже сохранён исторический подтверждённый baseline 24.10.26.
 
 ## Проверенный интегрированный WebGL baseline / CHAT 04, 24.10.26
 

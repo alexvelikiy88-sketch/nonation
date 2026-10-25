@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.RUNNER_TEMP + '/nonation-playwright/node_modules/playwright');
 const { criticalRuntimeMessages } = require('./webgl_runtime_guard');
+const { requireKenneyCityReady } = require('./kenney_runtime_counts');
 
 const target = process.env.NONATION_LOCAL_URL || 'http://127.0.0.1:8765/';
 const meta = {
@@ -22,6 +23,7 @@ const meta = {
   restored: false,
   fatalErrors: [],
   kenneyArt: null,
+  kenneyArtReloaded: null,
   browserViewport: '1280x720',
 };
 const messages = [];
@@ -57,6 +59,12 @@ async function check() {
   async function marker(word, timeoutMs) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
+      // A missing glTF material generator or shader should fail immediately
+      // with the original Unity error, not after a long marker timeout.
+      const fatal = criticalRuntimeMessages([...errors, ...allMessages]);
+      if (fatal.length)
+        throw new Error('Fatal Unity browser error awaiting ' + word + ': ' +
+          fatal.slice(0, 3).join(' | '));
       const value = messages.find(msg => msg.includes(word));
       if (value) return value;
       await page.waitForTimeout(750);
@@ -84,17 +92,9 @@ async function check() {
     // static glTF file checks alone never establish actual Unity runtime usage.
     if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
-      const counts = {};
-      for (const name of ['buildings', 'trees', 'vehicles', 'props']) {
-        const found = new RegExp(name + '=(\\d+)').exec(line);
-        if (!found) throw new Error('Missing Kenney art counter ' + name + ': ' + line);
-        counts[name] = Number(found[1]);
-      }
-      if (counts.buildings !== 12 || counts.trees !== 13 ||
-          counts.vehicles !== 3 || counts.props !== 2)
-        throw new Error('3D city art integration incomplete: ' + JSON.stringify(counts));
-      meta.kenneyArt = counts;
-      console.log('KENNEY_RUNTIME_3D_VERIFIED ' + JSON.stringify(counts));
+      meta.kenneyArt = requireKenneyCityReady(line);
+      console.log('KENNEY_RUNTIME_3D_VERIFIED phase=initial ' +
+        JSON.stringify(meta.kenneyArt));
     }
 
     const canvas = page.locator('canvas').first();
@@ -120,6 +120,13 @@ async function check() {
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await marker('NONATION_SAVE_RESTORED', 90000);
     await marker('NONATION_RUNTIME_READY', 90000);
+    // A successful restore is not enough: glTF meshes must also load again.
+    if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
+      meta.kenneyArtReloaded = requireKenneyCityReady(line);
+      console.log('KENNEY_RUNTIME_3D_VERIFIED phase=reload ' +
+        JSON.stringify(meta.kenneyArtReloaded));
+    }
     meta.restored = true;
 
     const fatal = criticalRuntimeMessages([...errors, ...allMessages]);
