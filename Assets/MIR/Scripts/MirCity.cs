@@ -258,11 +258,17 @@ namespace MIR
             if(plazaReady && waterfrontReady && streetsReady)
                 Debug.Log("NONATION_HERO_QUARTER_READY plaza=1 waterfront=1 streets=1 " +
                     "(real 3D meshes; VISUAL GATE still requires screenshot review)");
-            // Optional real CC0 3D art replaces only visual placeholders; POIs,
-            // vehicle controllers, original colliders and local saves remain.
+            // Replace the same twelve actual footprint slots with more
+            // detailed modular art.  All original physics/POIs stay live.
+            // If material/geometry QA fails, Kenney buildings remain the
+            // exclusive visual fallback; never render both building sets.
+            bool modularBuildings=MirModernDistrictIntegrator.TryActivate(root);
+            // Kenney still supplies the existing 13 trees, 3 real car meshes
+            // and 2 traffic lights in both exclusive building art modes.
             var art=new GameObject("NONATION · Kenney Free City Art");
             art.transform.SetParent(root,false);
-            art.AddComponent<MirKenneyCityArt>();
+            var kenney=art.AddComponent<MirKenneyCityArt>();
+            kenney.SkipBuildings=modularBuildings;
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
