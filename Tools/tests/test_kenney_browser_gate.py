@@ -39,7 +39,10 @@ class KenneyWebglProofContract(unittest.TestCase):
         self.assertIn("require('./kenney_runtime_counts')", code)
         self.assertIn("meta.kenneyArt = requireKenneyCityReady(line)", code)
         self.assertIn("meta.kenneyArtReloaded = requireKenneyCityReady(line)", code)
-        self.assertIn("KENNEY_RUNTIME_3D_VERIFIED", code)
+        self.assertIn("NONATION_MODERN_FACADES_VERIFIED", code)
+        self.assertIn("meta.modernFacades = requireModernQuarterReady", code)
+        self.assertIn("meta.modernFacadesReloaded = requireModernQuarterReady", code)
+        self.assertIn("requireKenneyCityReady(line, true)", code)
         for name, expected in (("buildings", 12), ("trees", 13),
                                ("vehicles", 3), ("props", 2)):
             self.assertRegex(helper, rf"\b{name}:\s*{expected}\b")
