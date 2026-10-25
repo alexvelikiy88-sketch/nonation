@@ -1,9 +1,20 @@
 # NONATION — центральные задачи, доказательства и приёмка
 
-**Актуализация CHAT 04: 24.10.26**  
+**Актуализация CHAT 04: 25.10.26**  
 **Каноническая ветка:** `main`, защищённая GitHub Ruleset №25749583.  
 **Все три направления объединены в `main`:** [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) MERGED, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. История и исходные SHA трёх агентов сохранены.  
 **Предыдущая полная история:** [архив реестра](Documentation/STATUS_HISTORY_23_10_26.md). Для новых решений использовать этот файл и актуальный GitHub, а не устаревшие строки архива.
+
+## Новая визуальная реализация / 25.10.26 — подтверждённые факты
+
+- **[PR #32](https://github.com/alexvelikiy88-sketch/nonation/pull/32) MERGED**, исходный release SHA `b70ada3663c0d2ffab02479ff604c51f3b685437`: встроен fetcher **14 оригинальных Kenney CC0 GLB** с проверкой конкретных Git SHA и размеров. Код реального 3D-переодевания 12 зданий, 13 деревьев, трёх автомобилей и двух светофоров находится в `Assets/MIR/Art/Kenney/MirKenneyCityArt.cs`. Игровая экономика/POI/коллизии не заменены; при невозможности импорта сохраняется старый визуальный fallback.
+- **Unity Cloud и Pages для PR #32 — PASS:** [MIR Unity WebGL #40188505283](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40188505283) на SHA `b70ada3663c0d2ffab02479ff604c51f3b685437`: `source-validation SUCCESS`, `Unity Cloud WebGL SUCCESS`, `Publish Unity WebGL to GitHub Pages SUCCESS`. Текущий публичный адрес: **https://alexvelikiy88-sketch.github.io/nonation/**.
+- **НО браузерная проверка этого релиза была SKIPPED.** Unity WebGL не доказал, что новые GLB действительно появились в игровом кадре; успешный export/Pages недостаточен для `VIS-02` и `VIS-06`.
+- **[PR #33](https://github.com/alexvelikiy88-sketch/nonation/pull/33) MERGED** в `main@4252ac19e9def4dde75d5392b10b70b9597728ee`: сохранение нативных Box/Capsule/Sphere Collider для IL2CPP, отказ по Unity console warnings о отсутствующих компонентах, фикс пропуска браузерного теста из-за неявного `success()`, обязательные счётчики `NONATION_KENNEY_CITY_READY` и необработанный screenshot + runtime JSON в GitHub artifacts. **PR Guard + source/.NET validation PASS** на `7c4471f727a50a32f6db9b83cbd56bbdba75b1bb`. Реальная компиляция/браузер этого нового SHA проверяется отдельно.
+- **Не скрывать открытый конфликт другого направления:** [Cross-Branch #40188505402](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40188505402) FAIL из-за content conflict в `MirCity.cs` с открытым Graphics [PR #26](https://github.com/alexvelikiy88-sketch/nonation/pull/26), а не из-за формата Kenney GLB. Руководитель оставил точный `CROSS-OWNER` handoff в комментариях PR #26; смешивать несовместимые два генератора без явного разрешения конфликта нельзя.
+- **Визуальная приёмка НЕ ПРОЙДЕНА:** Kenney — облегчённая игровая графика ниже утверждённого более реалистичного концепта; полноценные Humanoid вместо шарнирных диагностических NPC пока не подтверждены. `VIS-02`, `VIS-03`, `VIS-06`, `VIS-07` остаются открытыми.
+
+**Следующие блокирующие доказательства:** Unity Cloud компиляция на `4252ac...`, GitHub Pages deployment на этом же SHA, unedited Chromium screenshot с положительными счётчиками моделей и отсутствием IL2CPP collider/shader ошибок, затем реальные GPU/FPS замеры и согласование графики с владельцем.
 
 ## ПЕРВЫЙ ПРИОРИТЕТ ПРОЕКТА — VISUAL GATE / утверждённый изометрический квартал
 
