@@ -2,12 +2,10 @@ name: NONATION WebGL Artifact Browser Smoke
 
 # Browser runtime proof is independent of GitHub Pages enablement.
 # It downloads an existing verified Unity artifact; NEVER creates another Unity build.
+# Run only when the main Unity workflow finishes; a push event has no
+# authoritative Unity artifact yet. The old push branch tested a pinned
+# 24.10.26 preview, producing unrelated "Missing runtime shader" failures.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/webgl-artifact-browser-smoke.yml'
-      - 'Tools/browser_smoke_preview.js'
   workflow_run:
     workflows: ['MIR Unity WebGL']
     types: [completed]
@@ -24,7 +22,7 @@ concurrency:
 jobs:
   local-chromium:
     name: Real Unity browser smoke (artifact, no Pages)
-    if: github.event_name == 'push' || github.event.workflow_run.head_branch == 'main'
+    if: github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
@@ -40,40 +38,32 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
           UPSTREAM_RUN: ${{ github.event.workflow_run.id }}
           UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
           REPOSITORY_NAME: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = "push" ]; then
-            # Bootstrap one existing successful Unity-only preview; LABEL IT.
-            source_run=40015140424
-            source_sha=cb46b4960dd8bcd255880f569254dfe9876ea14b
-            scope=unity-agent-only-bootstrap
-          else
-            source_run="$UPSTREAM_RUN"
-            source_sha="$UPSTREAM_SHA"
-            scope=integrated-main
-            if ! [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]; then
-              echo "::error::Invalid upstream Git SHA"
-              exit 1
-            fi
-            git fetch --no-tags origin "$source_sha"
-            if ! git merge-base --is-ancestor "$source_sha" HEAD; then
-              echo "::notice::Skip stale Unity artifact, source revision is not ancestor of current main"
-              echo "eligible=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            if ! git diff --quiet "$source_sha" HEAD -- \
-              Assets Server Packages ProjectSettings \
-              Tools/unity_cloud_ci.py Tools/fetch_quaternius.py \
-              Tools/unity_cloud_prebuild.sh Tools/unity_source_preflight.py \
-              .github/workflows/unity-webgl.yml; then
-              echo "::notice::Skip stale artifact: current game code differs from upstream build"
-              echo "eligible=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+          source_run="$UPSTREAM_RUN"
+          source_sha="$UPSTREAM_SHA"
+          scope=integrated-main
+          if ! [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid upstream Git SHA"
+            exit 1
+          fi
+          git fetch --no-tags origin "$source_sha"
+          if ! git merge-base --is-ancestor "$source_sha" HEAD; then
+            echo "::notice::Skip stale Unity artifact, source revision is not ancestor of current main"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git diff --quiet "$source_sha" HEAD -- \
+            Assets Server Packages ProjectSettings \
+            Tools/unity_cloud_ci.py Tools/fetch_quaternius.py \
+            Tools/unity_cloud_prebuild.sh Tools/unity_source_preflight.py \
+            .github/workflows/unity-webgl.yml; then
+            echo "::notice::Skip stale artifact: current game code differs from upstream build"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           echo "SOURCE_RUN_ID=$source_run" >> "$GITHUB_ENV"
@@ -132,6 +122,7 @@ jobs:
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/nonation-playwright-browsers
           NONATION_LOCAL_URL: http://127.0.0.1:8765/
+          NONATION_REQUIRE_KENNEY_ART: '1'
         run: |
           set -euo pipefail
           python3 -m http.server 8765 --bind 127.0.0.1 --directory build/WebGL \
