@@ -20,6 +20,21 @@ const { requireKenneyCityReady: parse, EXPECTED } =
   require('./Tools/kenney_runtime_counts');
 const valid = 'NONATION_KENNEY_CITY_READY buildings=12 trees=13 vehicles=3 props=2 (true glTF meshes)';
 assert.deepEqual(parse(valid), EXPECTED);
+const modernKenney = 'NONATION_KENNEY_CITY_READY buildings=0 trees=13 vehicles=3 props=2 source=modular-facades';
+assert.deepEqual(parse(modernKenney, true), {buildings:0, trees:13, vehicles:3, props:2});
+assert.throws(() => parse(modernKenney));
+assert.throws(() => parse(valid, true));
+const {requireModernQuarterReady} = require('./Tools/kenney_runtime_counts');
+assert.deepEqual(
+  requireModernQuarterReady('NONATION_MODULAR_CITY_READY buildings=12 meshes=14 vertices=16500'),
+  {buildings:12, meshes:14, vertices:16500}
+);
+for (const invalid of [
+  'NONATION_MODULAR_CITY_READY buildings=11 meshes=14 vertices=16500',
+  'NONATION_MODULAR_CITY_READY buildings=12 meshes=0 vertices=16500',
+  'NONATION_MODULAR_CITY_READY buildings=12 meshes=14 vertices=0',
+  'NONATION_MODULAR_CITY_READY buildings=twelve meshes=14 vertices=16500'
+]) assert.throws(() => requireModernQuarterReady(invalid));
 const bad = [
   'NONATION_RUNTIME_READY buildings=12 trees=13 vehicles=3 props=2',
   'NONATION_KENNEY_CITY_READY buildings=11 trees=13 vehicles=3 props=2',
