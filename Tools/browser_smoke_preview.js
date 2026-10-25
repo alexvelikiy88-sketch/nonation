@@ -59,6 +59,12 @@ async function check() {
   async function marker(word, timeoutMs) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
+      // A missing glTF material generator or shader should fail immediately
+      // with the original Unity error, not after a long marker timeout.
+      const fatal = criticalRuntimeMessages([...errors, ...allMessages]);
+      if (fatal.length)
+        throw new Error('Fatal Unity browser error awaiting ' + word + ': ' +
+          fatal.slice(0, 3).join(' | '));
       const value = messages.find(msg => msg.includes(word));
       if (value) return value;
       await page.waitForTimeout(750);
