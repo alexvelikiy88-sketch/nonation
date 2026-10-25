@@ -298,8 +298,9 @@ namespace MIR
                 // Original reference: tree-shaded crossroads, readable cafe
                 // terraces, bicycle storage by market and benches. Do not
                 // create actual fake NPCs just to populate a screenshot.
-                Tree(13f,13f,.99f,0);    // replaces original block tree
-                Tree(53f,53f,1.02f,1);  // replaces original block tree
+                // Preserve the two existing Kenney trees at (13,13) and (53,53).
+                // Rebuilding these crowns would produce overlapping trunks
+                // and z-fighting in the live city.
                 Tree(11f,28.3f,.82f,2);
                 Tree(30.2f,11.4f,.89f,3);
                 Tree(14f,-31.0f,.84f,4);
