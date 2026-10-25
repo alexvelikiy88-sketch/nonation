@@ -1,7 +1,7 @@
 # NONATION — бесплатный городской 3D-пак: первый интеграционный срез
 
 **Дата:** 25.10.26  
-**Статус:** исходники интеграции в PR; Unity-компиляция, Chromium-скриншот и визуальный gate **должны быть проверены отдельно**.  
+**Статус:** исходники и Unity/WebGL экспорт Kenney интегрированы в защищённую `main` через PR #32; Pages опубликован. Реальное наличие 3D-моделей в Chromium и VISUAL GATE **не подтверждены**, поэтому это пока технический этап.  
 **Цель:** заменить видимые кубы зданий и часть городских заглушек настоящими игровыми 3D-моделями, не ломая 39 NPC, существующие маршруты, экономику, автомобили и сохранение.
 
 ## Почему не Synty
@@ -70,3 +70,12 @@ python3 Tools/fetch_kenney_city.py --verify-only
 5. После качественного вертикального среза расширять библиотеку модульных зданий, дорог, коммерции и POI без нарушения экономической логики.
 
 Связанные документы: [VISUAL_CANON_RU.md](VISUAL_CANON_RU.md) · [TASKS.md](../TASKS.md) · [LICENSES.md](LICENSES.md).
+
+## Фактическая WebGL-проверка после PR #32 / 25.10.26
+
+- [PR #32](https://github.com/alexvelikiy88-sketch/nonation/pull/32), `main@b70ada3663c0d2ffab02479ff604c51f3b685437`: исходники и модели интегрированы через предварительную загрузку/проверку GLB.
+- [Unity WebGL #40188505283](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40188505283): настоящие Unity Cloud export и Pages **SUCCESS**, но hosted Chromium job **SKIPPED** — никаких визуальных доказательств из этого run.
+- [PR #33](https://github.com/alexvelikiy88-sketch/nonation/pull/33), `main@4252ac19e9def4dde75d5392b10b70b9597728ee`: добавлены IL2CPP collider preservation, мониторинг Unity ошибок и **обязательный Chromium QA** счётчиков 12/13/3/2, исходные снимки и JSON. Не отмечать его игровым SUCCESS до исполнения нового полного Cloud→Pages→browser pipeline.
+- Отдельный [Graphics PR #26](https://github.com/alexvelikiy88-sketch/nonation/pull/26) по архитектуре/набережной вступает в конфликт с `MirCity.cs` главной ветки и остаётся **неинтегрированным**. `Cross-Branch CI` сигнализирует об этом конфликте честно.
+
+**Адрес игры:** https://alexvelikiy88-sketch.github.io/nonation/ (используй фактически опубликованную версию; не утверждай, что графика Kenney уже видна без реального скриншота). 
