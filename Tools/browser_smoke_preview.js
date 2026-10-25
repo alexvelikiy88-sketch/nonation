@@ -29,6 +29,7 @@ const meta = {
   heroQuarter: false,
   heroQuarterReloaded: false,
   showcaseScreenshot: false,
+  waterfrontScreenshot: false,
   browserViewport: '1280x720',
 };
 const messages = [];
@@ -147,6 +148,15 @@ async function check() {
       meta.showcaseScreenshot = true;
       await page.keyboard.press('v');
       await marker('NONATION_SHOWCASE_CAMERA_READY active=0', 10000);
+      // Independent real 3D promenade view: capture sea, cycle lane, cafe
+      // frontage and waterfront furniture without altering gameplay.
+      await page.keyboard.press('b');
+      await marker('NONATION_WATERFRONT_CAMERA_READY active=1', 10000);
+      await page.waitForTimeout(1400);
+      await page.screenshot({ path: 'nonation-browser-waterfront.png', timeout: 20000 });
+      meta.waterfrontScreenshot = true;
+      await page.keyboard.press('b');
+      await marker('NONATION_WATERFRONT_CAMERA_READY active=0', 10000);
     }
 
     messages.length = 0;
