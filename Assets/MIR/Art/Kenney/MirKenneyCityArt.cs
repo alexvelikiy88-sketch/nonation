@@ -45,6 +45,8 @@ namespace MIR
         readonly Dictionary<string, GltfImport> imported = new Dictionary<string, GltfImport>();
         readonly HashSet<string> failed = new HashSet<string>();
         bool stopping;
+        // Set before Start by MirCity; keep one visible source per building.
+        public bool SkipBuildings { get; set; }
 
         static bool BuiltInShaderReferencesReady()
         {
@@ -84,25 +86,29 @@ namespace MIR
                 }
 
                 int buildings = 0, trees = 0, cars = 0, objects = 0;
-                foreach (var building in BusinessBuildings)
-                    if (await ReplaceBuilding(building)) buildings++;
+                if (!SkipBuildings)
+                {
+                    foreach (var building in BusinessBuildings)
+                        if (await ReplaceBuilding(building)) buildings++;
 
-                // Preserve the exact original spatial layout and business entry positions.
-                string[] residentialModels =
-                {
-                    "city-kit-commercial/building-b",
-                    "city-kit-commercial/building-h",
-                    "city-kit-commercial/building-k",
-                    "city-kit-commercial/building-n"
-                };
-                for (int i = 0; i < 8 && !stopping; i++)
-                {
-                    float x = -66 + (i % 4) * 36;
-                    float z = 56 + (i / 4) * 38;
-                    var slot = new Slot(
-                        "Residential block " + i, residentialModels[i % residentialModels.Length],
-                        x, z, 14, (3 + i % 3) * 3.5f, 13);
-                    if (await ReplaceBuilding(slot)) buildings++;
+                    // Preserve the exact original spatial layout and business entry positions.
+                    string[] residentialModels =
+                    {
+                        "city-kit-commercial/building-b",
+                        "city-kit-commercial/building-h",
+                        "city-kit-commercial/building-k",
+                        "city-kit-commercial/building-n"
+                    };
+                    for (int i = 0; i < 8 && !stopping; i++)
+                    {
+                        float x = -66 + (i % 4) * 36;
+                        float z = 56 + (i / 4) * 38;
+                        var slot = new Slot(
+                            "Residential block " + i, residentialModels[i % residentialModels.Length],
+                            x, z, 14, (3 + i % 3) * 3.5f, 13);
+                        if (await ReplaceBuilding(slot)) buildings++;
+                    }
+
                 }
 
                 // Replace the capsule-shaped tree canopies only after a real mesh loads.
@@ -136,6 +142,7 @@ namespace MIR
                 if (!stopping)
                     Debug.Log("NONATION_KENNEY_CITY_READY buildings=" + buildings +
                         " trees=" + trees + " vehicles=" + cars + " props=" + objects +
+                        " source=" + (SkipBuildings ? "modular-facades" : "kenney-buildings") +
                         " (true glTF meshes; visual acceptance remains pending)");
             }
             catch (Exception ex)
