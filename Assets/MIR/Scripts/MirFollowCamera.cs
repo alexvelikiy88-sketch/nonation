@@ -10,14 +10,14 @@ namespace MIR
         Camera cachedCamera;
         // Source-benchmark repeatable 3/4 framing, not a fake concept overlay.
         // World positions are deliberate: plaza/store/cafe in the midground,
-        // waterfront to the south in the foreground.
-        static readonly Vector3 ShowcaseFocus=new Vector3(23f,2.0f,-10f);
-        static readonly Quaternion ShowcaseRotation=Quaternion.Euler(51f,40f,0f);
-        const float ShowcaseDistance=97f;
-        const float ShowcaseFov=51f;
-        static readonly Vector3 WaterfrontFocus=new Vector3(28f,1.5f,-108f);
-        static readonly Quaternion WaterfrontRotation=Quaternion.Euler(50f,40f,0f);
-        const float WaterfrontDistance=83f;
+        // daytime city focal area at street scale, avoiding empty grid lots.
+        static readonly Vector3 ShowcaseFocus=new Vector3(22f,2.0f,8f);
+        static readonly Quaternion ShowcaseRotation=Quaternion.Euler(47f,39f,0f);
+        const float ShowcaseDistance=74f;
+        const float ShowcaseFov=47f;
+        static readonly Vector3 WaterfrontFocus=new Vector3(20f,1.5f,-118f);
+        static readonly Quaternion WaterfrontRotation=Quaternion.Euler(45f,39f,0f);
+        const float WaterfrontDistance=55f;
         const float WaterfrontFov=49f;
         float orbit=35f,tilt=43f,distance=23f;
         public void Init(Transform actor)
@@ -47,7 +47,7 @@ namespace MIR
                 CurrentView=CurrentView==View.Isometric?View.ThirdPerson:View.Isometric;
             if(CurrentView==View.DistrictShowcase)
             {
-                // A fixed reproducible camera to enable honest Unity/WebGL vs
+                // Tight reproducible 3/4 camera for honest Unity/WebGL vs
                 // approved PNG side-by-side capture. Scene is always live 3D.
                 transform.position=ShowcaseFocus-ShowcaseRotation*Vector3.forward*ShowcaseDistance;
                 transform.rotation=ShowcaseRotation;
