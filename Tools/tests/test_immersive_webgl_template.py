@@ -13,6 +13,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "Assets/WebGLTemplates/Nonation/index.html"
 BUILD = ROOT / "Assets/MIR/Editor/MirCloudBuild.cs"
+HOOK = ROOT / "Assets/MIR/Editor/MirNonationWebTemplatePrebuild.cs"
 
 
 class ImmersiveWebGLTemplateTests(unittest.TestCase):
@@ -20,6 +21,14 @@ class ImmersiveWebGLTemplateTests(unittest.TestCase):
         page = TEMPLATE.read_text(encoding="utf-8")
         code = BUILD.read_text(encoding="utf-8")
         self.assertIn('PlayerSettings.WebGL.template = "PROJECT:Nonation";', code)
+        prebuild = HOOK.read_text(encoding="utf-8")
+        self.assertIn("IPreprocessBuildWithReport", prebuild)
+        self.assertIn("OnPreprocessBuild(BuildReport report)", prebuild)
+        self.assertIn("report.summary.platform != BuildTarget.WebGL", prebuild)
+        self.assertIn("NONATION_WEBGL_TEMPLATE_MISSING", prebuild)
+        self.assertIn("NONATION_WEBGL_TEMPLATE_INVALID", prebuild)
+        self.assertIn('PlayerSettings.WebGL.template = TemplateName;', prebuild)
+        self.assertIn("NONATION_WEBGL_FULLSCREEN_TEMPLATE_SELECTED", prebuild)
         self.assertIn("NONATION_WEBGL_TEMPLATE_MISSING", code)
         self.assertIn("BuildPipeline.BuildPlayer(options)", code)
         self.assertIn('<canvas id="unity-canvas"', page)
