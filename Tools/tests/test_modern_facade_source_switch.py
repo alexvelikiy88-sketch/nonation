@@ -85,6 +85,8 @@ class ModernFacadeSwitchTests(unittest.TestCase):
         self.assertIn("NONATION_MODERN_FACADES_VERIFIED phase=reload", browser)
         self.assertIn("NONATION_HERO_QUARTER_READY", browser)
         self.assertIn("nonation-browser-showcase.png", browser)
+        self.assertIn("nonation-browser-waterfront.png", browser)
+        self.assertIn("meta.waterfrontScreenshot = true", browser)
 
     @unittest.skipUnless(shutil.which("node"), "Node.js unavailable")
     def test_count_parser_and_browser_are_valid_javascript(self):
