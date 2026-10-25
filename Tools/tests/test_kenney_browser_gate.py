@@ -30,14 +30,19 @@ class KenneyWebglProofContract(unittest.TestCase):
         self.assertIn("if: always()", section)
 
     def test_art_marker_and_exact_loaded_instance_counts(self):
+        # After refactoring the parser into a shared JS module, assert the
+        # smoke test still invokes it for both loads. Functional parsing and
+        # negative cases are executed in test_kenney_runtime_counts.py.
         code = PREVIEW.read_text(encoding="utf-8")
+        helper = (ROOT / "Tools/kenney_runtime_counts.js").read_text(encoding="utf-8")
         self.assertIn("NONATION_KENNEY_CITY_READY", code)
-        self.assertIn("counts.buildings !== 12", code)
-        self.assertIn("counts.trees !== 13", code)
-        self.assertIn("counts.vehicles !== 3", code)
-        self.assertIn("counts.props !== 2", code)
+        self.assertIn("require('./kenney_runtime_counts')", code)
+        self.assertIn("meta.kenneyArt = requireKenneyCityReady(line)", code)
+        self.assertIn("meta.kenneyArtReloaded = requireKenneyCityReady(line)", code)
         self.assertIn("KENNEY_RUNTIME_3D_VERIFIED", code)
-        self.assertIn("meta.kenneyArt = counts", code)
+        for name, expected in (("buildings", 12), ("trees", 13),
+                               ("vehicles", 3), ("props", 2)):
+            self.assertRegex(helper, rf"\\b{name}:\\s*{expected}\\b")
 
     def test_stripping_detection_includes_nonerror_unity_console(self):
         code = PREVIEW.read_text(encoding="utf-8")
