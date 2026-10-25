@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.RUNNER_TEMP + '/nonation-playwright/node_modules/playwright');
 const { criticalRuntimeMessages } = require('./webgl_runtime_guard');
-const { requireKenneyCityReady } = require('./kenney_runtime_counts');
+const { requireKenneyCityReady, requireModernQuarterReady } = require('./kenney_runtime_counts');
 
 const target = process.env.NONATION_LOCAL_URL || 'http://127.0.0.1:8765/';
 const meta = {
@@ -24,6 +24,8 @@ const meta = {
   fatalErrors: [],
   kenneyArt: null,
   kenneyArtReloaded: null,
+  modernFacades: null,
+  modernFacadesReloaded: null,
   heroQuarter: false,
   heroQuarterReloaded: false,
   showcaseScreenshot: false,
@@ -69,7 +71,8 @@ async function check() {
         throw new Error('Fatal Unity browser error awaiting ' + word + ': ' +
           fatal.slice(0, 3).join(' | '));
       const visualFailure = allMessages.find(line =>
-        line.includes('NONATION_HERO_QUARTER_ERROR'));
+        line.includes('NONATION_HERO_QUARTER_ERROR') ||
+        line.includes('NONATION_MODULAR_CITY_ERROR'));
       if (visualFailure)
         throw new Error('Real 3D quarter construction failed: ' + visualFailure);
       const value = messages.find(msg => msg.includes(word));
@@ -98,9 +101,12 @@ async function check() {
     // The released city-art build must have instantiated real 3D GLB renderers;
     // static glTF file checks alone never establish actual Unity runtime usage.
     if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      const modern = await marker('NONATION_MODULAR_CITY_READY', 30000);
+      meta.modernFacades = requireModernQuarterReady(modern);
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
-      meta.kenneyArt = requireKenneyCityReady(line);
-      console.log('KENNEY_RUNTIME_3D_VERIFIED phase=initial ' +
+      meta.kenneyArt = requireKenneyCityReady(line, true);
+      console.log('NONATION_MODERN_FACADES_VERIFIED phase=initial ' +
+        JSON.stringify(meta.modernFacades) + ' kenney=' +
         JSON.stringify(meta.kenneyArt));
     }
 
@@ -149,9 +155,12 @@ async function check() {
     await marker('NONATION_RUNTIME_READY', 90000);
     // A successful restore is not enough: glTF meshes must also load again.
     if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      const modern = await marker('NONATION_MODULAR_CITY_READY', 30000);
+      meta.modernFacadesReloaded = requireModernQuarterReady(modern);
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
-      meta.kenneyArtReloaded = requireKenneyCityReady(line);
-      console.log('KENNEY_RUNTIME_3D_VERIFIED phase=reload ' +
+      meta.kenneyArtReloaded = requireKenneyCityReady(line, true);
+      console.log('NONATION_MODERN_FACADES_VERIFIED phase=reload ' +
+        JSON.stringify(meta.modernFacadesReloaded) + ' kenney=' +
         JSON.stringify(meta.kenneyArtReloaded));
     }
     if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
@@ -166,8 +175,9 @@ async function check() {
 
     const fatal = criticalRuntimeMessages([...errors, ...allMessages]);
     if (fatal.length) throw new Error('Fatal Unity browser error: ' + fatal.slice(0, 3).join(' | '));
-    if (allMessages.some(line => line.includes('NONATION_HERO_QUARTER_ERROR')))
-      throw new Error('NONATION_HERO_QUARTER_ERROR during gameplay');
+    if (allMessages.some(line => line.includes('NONATION_HERO_QUARTER_ERROR') ||
+        line.includes('NONATION_MODULAR_CITY_ERROR')))
+      throw new Error('City geometry fallback was activated during gameplay');
     console.log('PASS: real Unity WebGL runtime, 39+ NPC, canvas, W movement, save and reload.');
   } catch (error) {
     meta.fatalErrors = criticalRuntimeMessages([...errors, ...allMessages]).slice(-10).map(v => v.slice(0, 500));
