@@ -88,3 +88,12 @@ python3 Tools/fetch_kenney_city.py --verify-only
 - Unity в этом проекте использует **Built-In Render Pipeline**, несмотря на установленный пакет URP; не путать зависимость `com.unity.render-pipelines.universal` с назначенным URP Pipeline Asset.
 - [PR #35](https://github.com/alexvelikiy88-sketch/nonation/pull/35): явная передача `GLTFast.Materials.BuiltInMaterialGenerator` при Built-In, отдельный материал-конвертер для активной SRP, проверка 3D-счётчиков на старте и после сохранения/reload, фатальная классификация ошибок загрузчика.
 - До повторного успешного Unity WebGL + Chromium теста на точном SHA это **исправление на уровне исходников**, а не подтверждённая игра. После его применения проверить возможные дополнительные shader/Resources/CORS/GLB import ошибки по журналу, а не скрывать заглушками.
+
+## P0 / 25.10.26: подтверждённый Unity Cloud #11 CS0246
+
+Раннее исправление в PR #35 создало `new BuiltInMaterialGenerator()`, но в [Unity Cloud #11](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40192802666) на `main@1e1f134e2c16b762760efbddf0bf469aa2120864` реальная Unity C# компиляция упала на `MirKenneyCityArt.cs:189` — **CS0246 BuiltInMaterialGenerator**. Этот результат заменяет предположения о том, что исправление уже работает в Unity.
+
+Источник и механизм: публичный [исходный пакет com.unity.cloud.gltfast@6.0.0](https://github.com/needle-mirror/com.unity.cloud.gltfast/tree/b05d842446989f0521b1e2283c7e93121d785b29) использует `USING_URP` через `glTFast.asmdef` при установке URP; `BuiltInMaterialGenerator` компилируется только для Built-in без этого define или в Unity Editor. У NONATION был установлен URP 17.0.3, но без настроенных Graphics/Quality Render Pipeline assets: настоящий WebGL runtime [#40190193106](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40190193106) объявил `render pipeline BuiltIn`.
+
+Для текущей технической alpha принят **минимальный совместимый шаг:** убрать неактивный URP пакет из `Packages/manifest.json`, оставить glTFast 6.0.0, оригинальные Kenney GLB, их встроенный генератор Built-in материалов и проверку реальных объектов. Это не выбор окончательной художественной технологии: полноценный Unity URP с настроенным pipeline asset/renderer/shader variants можно вернуть отдельным этапом после прохода обязательного Unity/WebGL smoke. Пока нет нового успешного WebGL, весь Kenney graphical gate остаётся **BLOCKED**.
+
