@@ -42,32 +42,42 @@ namespace MIR
             return go;
         }
         void Place(MirPlace p){Places.Add(p);byId[p.id]=p;}
+        int treeSequence;
         void BlockBuilding(string label,Vector3 center,int floors,Color color,float w=14,float d=14)
         {
+            // Keep the primitive collider as the gameplay footprint. The free
+            // Kenney dressing hides this container's renderers only after a
+            // successfully imported glTF has replaced the visible building.
+            Transform legacy = new GameObject("Legacy building · " + label).transform;
+            legacy.SetParent(root, false);
             float h=floors*3.5f;
             var brick=Mat("facade-"+color.ToString(),color,0.03f,0.15f);
-            Cube(label+" · facade",new Vector3(center.x,h/2f,center.z),new Vector3(w,h,d),brick,root,true);
-            Cube("cornice",new Vector3(center.x,h+0.15f,center.z),new Vector3(w+.65f,.34f,d+.65f),Mat("cornice",new Color(.68f,.67f,.60f)));
+            Cube(label+" · facade",new Vector3(center.x,h/2f,center.z),new Vector3(w,h,d),brick,legacy,true);
+            Cube("cornice",new Vector3(center.x,h+0.15f,center.z),new Vector3(w+.65f,.34f,d+.65f),Mat("cornice",new Color(.68f,.67f,.60f)),legacy);
             var glass=Mat("windows",new Color(.13f,.26f,.30f),.05f,.65f);
             var windowTrim=Mat("frames",new Color(.19f,.22f,.23f),.32f,.29f);
             for(int floor=0;floor<floors;floor++)for(int j=0;j<3;j++)
             {
                 float wx=center.x+(j-1)*w*.27f;
                 float wy=2.10f+floor*3.5f;
-                Cube("Window frame",new Vector3(wx,wy,center.z-d/2-.13f),new Vector3(1.78f,1.75f,.18f),windowTrim);
-                Cube("Glass",new Vector3(wx,wy,center.z-d/2-.245f),new Vector3(1.48f,1.48f,.04f),glass);
-                Cube("Window sill",new Vector3(wx,wy-.86f,center.z-d/2-.34f),new Vector3(1.95f,.18f,.40f),Mat("sills",new Color(.76f,.72f,.63f)));
+                Cube("Window frame",new Vector3(wx,wy,center.z-d/2-.13f),new Vector3(1.78f,1.75f,.18f),windowTrim,legacy);
+                Cube("Glass",new Vector3(wx,wy,center.z-d/2-.245f),new Vector3(1.48f,1.48f,.04f),glass,legacy);
+                Cube("Window sill",new Vector3(wx,wy-.86f,center.z-d/2-.34f),new Vector3(1.95f,.18f,.40f),Mat("sills",new Color(.76f,.72f,.63f)),legacy);
             }
-            Cube("Door",new Vector3(center.x,1.20f,center.z-d/2-.15f),new Vector3(2.1f,2.38f,.28f),Mat("doors",new Color(.24f,.31f,.30f)),root,false);
-            Cube("Entrance awning",new Vector3(center.x,2.68f,center.z-d/2-.85f),new Vector3(4.1f,.20f,1.85f),Mat("awning",new Color(.33f,.38f,.34f)));
+            Cube("Door",new Vector3(center.x,1.20f,center.z-d/2-.15f),new Vector3(2.1f,2.38f,.28f),Mat("doors",new Color(.24f,.31f,.30f)),legacy);
+            Cube("Entrance awning",new Vector3(center.x,2.68f,center.z-d/2-.85f),new Vector3(4.1f,.20f,1.85f),Mat("awning",new Color(.33f,.38f,.34f)),legacy);
         }
         void Tree(Vector3 p,float scale)
         {
-            var trunk=Mat("tree-trunk",new Color(.36f,.29f,.21f));var foliage=Mat("leaf",new Color(.22f,.36f,.27f));
-            Cube("tree trunk",p+Vector3.up*(2.2f*scale),new Vector3(.36f,4.4f,.36f)*scale,trunk);
+            Transform legacy=new GameObject("Legacy Tree "+treeSequence++).transform;
+            legacy.SetParent(root,false);
+            var trunk=Mat("tree-trunk",new Color(.36f,.29f,.21f));
+            var foliage=Mat("leaf",new Color(.22f,.36f,.27f));
+            Cube("tree trunk",p+Vector3.up*(2.2f*scale),new Vector3(.36f,4.4f,.36f)*scale,trunk,legacy);
             foreach(var dir in new[]{new Vector3(0,0,0),new Vector3(.8f,-.3f,.6f),new Vector3(-.8f,-.2f,.4f)})
             {
-                var go=GameObject.CreatePrimitive(PrimitiveType.Sphere);go.name="tree crown";go.transform.SetParent(root);
+                var go=GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                go.name="tree crown";go.transform.SetParent(legacy);
                 go.transform.position=p+new Vector3(0,4.8f*scale,0)+dir*scale;
                 go.transform.localScale=new Vector3(3.4f,2.8f,3.4f)*scale;
                 go.GetComponent<Renderer>().sharedMaterial=foliage;
@@ -210,6 +220,11 @@ namespace MIR
             var parkingSpawns=new[]{new Vector3(11,0,-31),new Vector3(-53,0,-35),new Vector3(71,0,32)};
             for(int i=0;i<parkingSpawns.Length;i++)
                 Vehicles.Add(MirVehicle.Spawn(parkingSpawns[i],false,i==0));
+            // Optional real CC0 3D art replaces only visual placeholders; POIs,
+            // vehicle controllers, original colliders and local saves remain.
+            var art=new GameObject("NONATION · Kenney Free City Art");
+            art.transform.SetParent(root,false);
+            art.AddComponent<MirKenneyCityArt>();
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
