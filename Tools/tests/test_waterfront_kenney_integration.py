@@ -64,7 +64,9 @@ class HeroQuarterIntegrationContract(unittest.TestCase):
         self.assertIn("KeyCode.V", camera)
         self.assertIn("KeyCode.B", camera)
         self.assertIn("WaterfrontShowcase", camera)
-        self.assertIn("WaterfrontFocus=new Vector3(28f,1.5f,-108f)", camera)
+        self.assertIn("WaterfrontFocus=new Vector3(20f,1.5f,-118f)", camera)
+        self.assertIn("const float ShowcaseDistance=74f;", camera)
+        self.assertIn("const float WaterfrontDistance=55f;", camera)
         self.assertIn("ShowcaseFocus", camera)
         self.assertIn("NONATION_SHOWCASE_CAMERA_READY active=", camera)
         for marker in ("NONATION_HERO_QUARTER_READY",
