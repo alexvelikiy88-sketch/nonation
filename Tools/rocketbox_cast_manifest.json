@@ -1,0 +1,112 @@
+{
+  "schema": "nonation/microsoft-rocketbox-cast/1",
+  "creator": "Microsoft",
+  "license": "MIT",
+  "source_repo": "microsoft/Microsoft-Rocketbox",
+  "source_sha": "0943055db6ec570bcef9f2c8b41c9e5467c808f9",
+  "original_license_blob": "9bcfb3ece5301a55d3a41bbd00a029ab27d61d13",
+  "source_license_in_game": "Assets/MIR/Art/Rocketbox/Resources/MIR/RocketboxMITNotice.txt",
+  "max_texture_edge": 1024,
+  "characters": [
+    {
+      "id": "Male_Adult_16",
+      "texture_prefix": "m019",
+      "style": "male"
+    },
+    {
+      "id": "Female_Adult_16",
+      "texture_prefix": "f204",
+      "style": "female"
+    }
+  ],
+  "files": [
+    {
+      "source_path": "Assets/Avatars/Adults/Male_Adult_16/Export/Male_Adult_16.fbx",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Male_Adult_16/Male_Adult_16.fbx",
+      "sha1": "c4e2ede0ba75005741094533e964c04a323a79b0",
+      "source_size": 531664,
+      "kind": "fbx",
+      "model": "Male_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Male_Adult_16/Textures/m019_body_color.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Male_Adult_16/m019_body_color.tga",
+      "sha1": "459b042cc353d69bb4d2f1a1186f28e9f5e6b4e7",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Male_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Male_Adult_16/Textures/m019_body_normal.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Male_Adult_16/m019_body_normal.tga",
+      "sha1": "2f6251830be034a8e16555542e8235f5b6c6c7ca",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Male_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Male_Adult_16/Textures/m019_body_specular.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Male_Adult_16/m019_body_specular.tga",
+      "sha1": "d971137f834c2d9e3157f76e16986942734633b5",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Male_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Male_Adult_16/Textures/m019_head_color.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Male_Adult_16/m019_head_color.tga",
+      "sha1": "a7bc5e6aa018e5ddcc96fa2303cf395ac1bbe863",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Male_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Male_Adult_16/Textures/m019_head_normal.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Male_Adult_16/m019_head_normal.tga",
+      "sha1": "b4e53d4654bb7cb40ff8a6f151433f72b059b858",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Male_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Male_Adult_16/Textures/m019_head_specular.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Male_Adult_16/m019_head_specular.tga",
+      "sha1": "bb9b2afff4de7842cd937cdd42a6f8d4b2306396",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Male_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Female_Adult_16/Export/Female_Adult_16.fbx",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Female_Adult_16/Female_Adult_16.fbx",
+      "sha1": "99e60c6d5e1f01edca7e48927f0c6baef7aa2489",
+      "source_size": 373120,
+      "kind": "fbx",
+      "model": "Female_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Female_Adult_16/Textures/f204_color.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Female_Adult_16/f204_color.tga",
+      "sha1": "4002dccf2a8a13147b9f6b75143f3f2a25d1e764",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Female_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Female_Adult_16/Textures/f204_normal.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Female_Adult_16/f204_normal.tga",
+      "sha1": "bfe6895ba7e9896bcd5313f38ed924b5f219aae8",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Female_Adult_16"
+    },
+    {
+      "source_path": "Assets/Avatars/Adults/Female_Adult_16/Textures/f204_specular.tga",
+      "output_path": "Assets/MIR/Art/Rocketbox/Cast/Female_Adult_16/f204_specular.tga",
+      "sha1": "4f9809d3cd14a1633ef995914fe38f5a71428d91",
+      "source_size": 12582956,
+      "kind": "tga",
+      "model": "Female_Adult_16"
+    }
+  ]
+}
