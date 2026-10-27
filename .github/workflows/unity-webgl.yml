@@ -94,6 +94,12 @@ jobs:
         run: |
           python3 Tools/fetch_quaternius_hero.py
           python3 Tools/fetch_quaternius_hero.py --verify-only
+      - name: Download and verify creator-owned CC0 2025 nature, pack real GLBs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Tools/fetch_hero_nature.py
+          python3 Tools/fetch_hero_nature.py --verify-only
       - name: Check whether GameCI activation is configured
         id: check_activation
         shell: bash
