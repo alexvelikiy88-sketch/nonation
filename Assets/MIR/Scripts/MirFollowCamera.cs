@@ -8,17 +8,20 @@ namespace MIR
         public View CurrentView {get;private set;}=View.Isometric;
         Transform target;
         Camera cachedCamera;
+        // Compact premium-diorama 3/4 framing: the plaza, the grocery shop
+        // and the cafe should dominate the 16:9 frame, not 25 empty road lots.
+        // Calculated from actual world footprints, all geometry remains live.
         // Source-benchmark repeatable 3/4 framing, not a fake concept overlay.
         // World positions are deliberate: plaza/store/cafe in the midground,
         // daytime city focal area at street scale, avoiding empty grid lots.
-        static readonly Vector3 ShowcaseFocus=new Vector3(22f,2.0f,8f);
-        static readonly Quaternion ShowcaseRotation=Quaternion.Euler(47f,39f,0f);
-        const float ShowcaseDistance=74f;
-        const float ShowcaseFov=47f;
-        static readonly Vector3 WaterfrontFocus=new Vector3(20f,1.5f,-118f);
-        static readonly Quaternion WaterfrontRotation=Quaternion.Euler(45f,39f,0f);
-        const float WaterfrontDistance=55f;
-        const float WaterfrontFov=49f;
+        static readonly Vector3 ShowcaseFocus=new Vector3(18f,4f,0f);
+        static readonly Quaternion ShowcaseRotation=Quaternion.Euler(36f,50f,0f);
+        const float ShowcaseDistance=62f;
+        const float ShowcaseFov=44f;
+        static readonly Vector3 WaterfrontFocus=new Vector3(12f,1.8f,-120f);
+        static readonly Quaternion WaterfrontRotation=Quaternion.Euler(38f,47f,0f);
+        const float WaterfrontDistance=43f;
+        const float WaterfrontFov=45f;
         float orbit=35f,tilt=43f,distance=23f;
         public void Init(Transform actor)
         {

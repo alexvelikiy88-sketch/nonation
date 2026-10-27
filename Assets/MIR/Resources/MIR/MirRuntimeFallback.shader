@@ -1,54 +1,38 @@
-// NONATION fallback material shader. Used when built-in/URP lit shaders are
-// stripped because the scene creates nearly all renderers dynamically.
-// This exact Shader asset is under Resources and is included in WebGL Player.
+// NONATION self-contained Built-in RP material. The old technical alpha used
+// a one-pass vertex Lambert shader, making streets, trees and 3D furniture
+// appear flat and disconnected from the custom physically lit facades.
+// This Resources-pinned shader uses the same Unity Standard lighting response
+// as ArchitecturalLit, with real shadow receiving and coherent roughness.
+// It is original NONATION source, not a third-party shader asset.
 Shader "MIR/RuntimeFallback"
 {
     Properties
     {
-        _Color ("Base Color", Color) = (1, 1, 1, 1)
+        [MainColor] _Color ("Base Color", Color) = (1,1,1,1)
+        _Metallic ("Metallic", Range(0,1)) = 0
+        _Smoothness ("Smoothness", Range(0,1)) = .12
     }
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "Queue" = "Geometry" }
-        Cull Back
-        ZWrite On
-        Pass
+        Tags { "RenderType"="Opaque" "Queue"="Geometry" }
+        LOD 250
+        CGPROGRAM
+        #pragma target 3.0
+        #pragma surface surf Standard fullforwardshadows addshadow
+        #pragma multi_compile_instancing
+        fixed4 _Color;
+        half _Metallic;
+        half _Smoothness;
+        struct Input { float3 worldPos; };
+        void surf(Input IN, inout SurfaceOutputStandard o)
         {
-            CGPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #include "UnityCG.cginc"
-
-            fixed4 _Color;
-
-            struct Input
-            {
-                float4 vertex : POSITION;
-                float3 normal : NORMAL;
-            };
-
-            struct Output
-            {
-                float4 pos : SV_POSITION;
-                fixed brightness : TEXCOORD0;
-            };
-
-            Output vert(Input input)
-            {
-                Output output;
-                output.pos = UnityObjectToClipPos(input.vertex);
-                float3 worldNormal = normalize(UnityObjectToWorldNormal(input.normal));
-                float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
-                output.brightness = 0.38 + 0.62 * saturate(dot(worldNormal, lightDir));
-                return output;
-            }
-
-            fixed4 frag(Output input) : SV_Target
-            {
-                return fixed4(_Color.rgb * input.brightness, _Color.a);
-            }
-            ENDCG
+            o.Albedo = _Color.rgb;
+            o.Metallic = saturate(_Metallic);
+            o.Smoothness = saturate(_Smoothness);
+            o.Occlusion = 1;
+            o.Alpha = _Color.a;
         }
+        ENDCG
     }
-    Fallback Off
+    Fallback "Diffuse"
 }

@@ -106,12 +106,16 @@ namespace MIR
         }
         void AsphaltRoads()
         {
-            var ground=Mat("ground",new Color(.29f,.35f,.28f));
+            // Premium stylized 3D diorama palette: lively muted grass, warm
+            // limestone walkways, clean slate roads and legible painted lines.
+            // Existing road coordinates, native collisions and route graph
+            // remain exactly as they were.
+            var ground=Mat("ground",new Color(.41f,.55f,.34f));
             Cube("ground",new Vector3(0,-.35f,0),new Vector3(290,.65f,260),ground,root,true);
-            var asphalt=Mat("asphalt",new Color(.18f,.21f,.23f),0,.11f);
-            var pavement=Mat("pavement",new Color(.64f,.63f,.57f));
-            var kerb=Mat("curb",new Color(.77f,.77f,.70f));
-            var white=Mat("road-white",new Color(.92f,.88f,.76f));
+            var asphalt=Mat("asphalt",new Color(.235f,.265f,.270f),0,.11f);
+            var pavement=Mat("pavement",new Color(.77f,.755f,.70f));
+            var kerb=Mat("curb",new Color(.84f,.825f,.75f));
+            var white=Mat("road-white",new Color(.95f,.95f,.90f));
             for(int n=-2;n<=2;n++)
             {
                 int x=n*40;
@@ -280,9 +284,9 @@ namespace MIR
         public void UpdateLighting(float hour)
         {
             bool night=hour<6||hour>=19;
-            RenderSettings.ambientLight=night?new Color(.25f,.30f,.36f):new Color(.64f,.66f,.68f);
-            RenderSettings.fog=true;RenderSettings.fogColor=night?new Color(.13f,.17f,.22f):new Color(.65f,.71f,.69f);
-            RenderSettings.fogDensity=night?0.006f:.0025f;
+            RenderSettings.ambientLight=night?new Color(.25f,.30f,.36f):new Color(.72f,.73f,.69f);
+            RenderSettings.fog=true;RenderSettings.fogColor=night?new Color(.13f,.17f,.22f):new Color(.72f,.78f,.75f);
+            RenderSettings.fogDensity=night?0.006f:.0017f;
             for(int i=0;i<lamps.Count;i++)if(lamps[i]!=null)lamps[i].intensity=night?1.65f:0;
         }
     }
