@@ -1,0 +1,125 @@
+{
+  "schema": "nonation/stylized-nature-cc0/1",
+  "source_page": "https://opengameart.org/content/stylized-nature-megakit",
+  "creator": "Quaternius",
+  "license": "CC0-1.0",
+  "original_published": "2025-04-16",
+  "archive_url": "https://opengameart.org/sites/default/files/stylized_nature_megakitstandard.zip",
+  "archive_sha256": "298f6732b872e4cf7b30e6e7abf9641c7f6dc6b326df37ac089533ed7e3d58c9",
+  "archive_bytes": 104088529,
+  "model_names": [
+    "CommonTree_1",
+    "CommonTree_3",
+    "TwistedTree_2",
+    "Bush_Common_Flowers",
+    "Flower_3_Group",
+    "Grass_Common_Short"
+  ],
+  "members": [
+    {
+      "path": "glTF/Bark_NormalTree.png",
+      "size": 3894788,
+      "sha256": "f36e94fdd73255347325b998e02a0b2575fdf714b0315bfe5e8ff34bc8e13603"
+    },
+    {
+      "path": "glTF/Bark_NormalTree_Normal.png",
+      "size": 4384496,
+      "sha256": "852f6155404b8c39e100e41e26970e02a6a5c81b482d3726618dab28e3ad03a2"
+    },
+    {
+      "path": "glTF/Bark_TwistedTree.png",
+      "size": 4630805,
+      "sha256": "01608a96c42954eb725b32824530b51e67a2f3d85432d21a8d8adff958d2084a"
+    },
+    {
+      "path": "glTF/Bark_TwistedTree_Normal.png",
+      "size": 5728199,
+      "sha256": "692da2f58909263f074cb17b36defd09f56bf89ab7efda567a9a3e59261747b3"
+    },
+    {
+      "path": "glTF/Bush_Common_Flowers.bin",
+      "size": 128928,
+      "sha256": "15f56a013afe0eecaded0eb97fd8f323305af11e1f0f7bb9b68472ec4cdc20d5"
+    },
+    {
+      "path": "glTF/Bush_Common_Flowers.gltf",
+      "size": 3654,
+      "sha256": "08768c680e3abeafd25858c9d3f369bcb7eed014661d3b6825a397f2a6a3deea"
+    },
+    {
+      "path": "glTF/CommonTree_1.bin",
+      "size": 491576,
+      "sha256": "9dd689e84e1aa2f5b08db8def591254d582783c73737af54ba0d89b3e549c3ae"
+    },
+    {
+      "path": "glTF/CommonTree_1.gltf",
+      "size": 3869,
+      "sha256": "b51cdea6545edb51d102dd6c27caafe62aa75e3c328ac8f9039f4e7bfd690bfa"
+    },
+    {
+      "path": "glTF/CommonTree_3.bin",
+      "size": 296984,
+      "sha256": "24541f46fd9553e2389aba15575f2697009226e82118ed76868284114fd12b49"
+    },
+    {
+      "path": "glTF/CommonTree_3.gltf",
+      "size": 3864,
+      "sha256": "17c6537aa8042bb7255fbb501bf7aeb2b6db87c16766f794f9c37be3ce70c976"
+    },
+    {
+      "path": "glTF/Flower_3_Group.bin",
+      "size": 27772,
+      "sha256": "5ab387dd3d6fe181df3af4eeac4df85533e4c27e77545ae39a61e0c2aaaab248"
+    },
+    {
+      "path": "glTF/Flower_3_Group.gltf",
+      "size": 3629,
+      "sha256": "4df1612371982c543f930d6b213967372e0d459622d7eff7fc2ed1ddbfaa3b6c"
+    },
+    {
+      "path": "glTF/Flowers.png",
+      "size": 444609,
+      "sha256": "5c531f2329c241c625aafd6cb769de29f33b480ef2a16491c2489f3c68e62a6a"
+    },
+    {
+      "path": "glTF/Grass.png",
+      "size": 33605,
+      "sha256": "5d69048193b246a73c996b892607fb36c75d0c60afcb2dab8aa12de3c0b2d9bd"
+    },
+    {
+      "path": "glTF/Grass_Common_Short.bin",
+      "size": 7052,
+      "sha256": "7a0f0f7a9ac39cfa4b303bac03a6594f43e48d873b73553fa06a79e4df1271e9"
+    },
+    {
+      "path": "glTF/Grass_Common_Short.gltf",
+      "size": 2023,
+      "sha256": "6957b50622c9e26e7296c1b47ea8653bc0d957e0a547de444e2ed96f0075a21a"
+    },
+    {
+      "path": "glTF/Leaves.png",
+      "size": 2586432,
+      "sha256": "23248cebe28a24e78add32db3c2ee2f4d7b9219e9d2467279722f0197a7b6bd5"
+    },
+    {
+      "path": "glTF/Leaves_NormalTree_C.png",
+      "size": 158796,
+      "sha256": "998612bdf0b76a22f5f54d65cd7a457815d2842d89653fa4348a4ebb42933ad3"
+    },
+    {
+      "path": "glTF/Leaves_TwistedTree_C.png",
+      "size": 70353,
+      "sha256": "0e459b56b14c0e81b1b7cf3d1e8c6f0bb71790eb6c46bb02a76a922d8df646ea"
+    },
+    {
+      "path": "glTF/TwistedTree_2.bin",
+      "size": 698340,
+      "sha256": "968895bfe950e40a2a0ba82c5a7f67571a5959629ec03ad23076990280386d69"
+    },
+    {
+      "path": "glTF/TwistedTree_2.gltf",
+      "size": 3815,
+      "sha256": "7d57307e4ba817e807d84cf8020693ed31a82297593cca32e1780cfcdc6397c2"
+    }
+  ]
+}
