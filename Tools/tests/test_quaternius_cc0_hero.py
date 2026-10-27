@@ -88,7 +88,7 @@ class RealCc0BuildingsTests(unittest.TestCase):
             self.assertIn(item, editor)
         for item in ("Resources.Load<GameObject>(Prefix + modelName)",
                      "Resources.Load<Texture2D>(Prefix + atlas)",
-                     "Resources.Load<Shader>(", "original FBX",
+                     "Resources.Load<Shader>(", "True author-modeled CC0 FBX facades",
                      "sharedMesh.vertexCount", "mesh.subMeshCount",
                      "uniform", "renderer.receiveShadows = true",
                      "NONATION_QUATERNIUS_HERO_READY models=5 slots=3"):
