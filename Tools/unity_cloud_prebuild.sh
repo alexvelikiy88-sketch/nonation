@@ -8,3 +8,6 @@ python3 Tools/fetch_kenney_city.py
 # Four genuine, author-published CC0 textured FBX buildings, exact digest pinned.
 python3 Tools/fetch_quaternius_hero.py
 python3 Tools/fetch_quaternius_hero.py --verify-only
+# Pack verified original 2025 CC0 glTF leaves/flowers into WebGL StreamingAssets.
+python3 Tools/fetch_hero_nature.py
+python3 Tools/fetch_hero_nature.py --verify-only
