@@ -69,6 +69,32 @@ namespace MIR
                 normals.Add(normal);normals.Add(normal);normals.Add(normal);
                 triangles.Add(start);triangles.Add(start+1);triangles.Add(start+2);
             }
+            public void Disk(Vector3 center,float radius,int sides=36)
+            {
+                // Convex, upward-facing true ground geometry for small parks.
+                for(int k=0;k<sides;k++)
+                {
+                    float a=k*Mathf.PI*2f/sides;
+                    float b=(k+1)*Mathf.PI*2f/sides;
+                    Tri(center,center+new Vector3(Mathf.Cos(b)*radius,0,
+                        Mathf.Sin(b)*radius),
+                        center+new Vector3(Mathf.Cos(a)*radius,0,
+                        Mathf.Sin(a)*radius));
+                }
+            }
+            public void Ring(Vector3 center,float inner,float outer,int sides=48)
+            {
+                for(int k=0;k<sides;k++)
+                {
+                    float a=k*Mathf.PI*2f/sides;
+                    float b=(k+1)*Mathf.PI*2f/sides;
+                    Vector3 ia=center+new Vector3(Mathf.Cos(a)*inner,0,Mathf.Sin(a)*inner);
+                    Vector3 ib=center+new Vector3(Mathf.Cos(b)*inner,0,Mathf.Sin(b)*inner);
+                    Vector3 ob=center+new Vector3(Mathf.Cos(b)*outer,0,Mathf.Sin(b)*outer);
+                    Vector3 oa=center+new Vector3(Mathf.Cos(a)*outer,0,Mathf.Sin(a)*outer);
+                    Quad(ia,ib,ob,oa);
+                }
+            }
             public void Box(Vector3 p,Vector3 size)
             {
                 if(size.x<=.001f||size.y<=.001f||size.z<=.001f)return;
@@ -422,6 +448,55 @@ namespace MIR
                 }
             }
 
+            // One modest, walkable-looking landscape feature turns an
+            // otherwise empty 40 x 40 parcel into a believable small urban
+            // garden. Visual-only meshes: existing simulation/navigation and
+            // sidewalk colliders continue to control real gameplay.
+            public void CommunityGarden(float x,float z)
+            {
+                var center=new Vector3(x,.31f,z);
+                // Stone perimeter and three nested material bands. All pieces
+                // share the same existing material batches, not 40 GameObjects.
+                paver.Disk(center,9.4f,48);
+                planter.Ring(center+Vector3.up*.03f,8.52f,9.20f,48);
+                gardenSoil.Disk(center+Vector3.up*.035f,8.35f,48);
+                leaves.Disk(center+Vector3.up*.044f,6.90f,48);
+                stone.Ring(center+Vector3.up*.048f,4.18f,4.48f,48);
+                // Foot-friendly central natural-stone roundel for a feature
+                // bench circle. No new physics obstacle / false interaction.
+                paver.Disk(center+Vector3.up*.058f,4.10f,48);
+                for(int n=0;n<24;n++)
+                {
+                    float a=n*Mathf.PI*2f/24f;
+                    float radius=7.72f+(n%3)*.08f;
+                    float px=x+Mathf.Cos(a)*radius,pz=z+Mathf.Sin(a)*radius;
+                    var stem=new Vector3(px,.39f,pz);
+                    var top=stem+Vector3.up*(.33f+(n%4)*.06f);
+                    bark.Tube(stem,top,.023f,5);
+                    Surface petals=(n%4==0)?petalAmber:
+                        (n%4==1)?petalBlue:(n%4==2)?flowers:litLeaves;
+                    petals.Crown(top,new Vector3(.18f,.14f,.17f),10,4);
+                }
+                // Three sculpted trees frame a circular seating area.
+                Tree(x-5.05f,z-2.5f,.83f,12);
+                Tree(x+4.40f,z-2.9f,.85f,13);
+                Tree(x+1.05f,z+4.80f,.79f,14);
+                // Low, movable-style benches: original game collider never
+                // sees these until gameplay designs true seating interaction.
+                for(int i=0;i<3;i++)
+                {
+                    float a=i*2.094395f;
+                    var p=new Vector3(x+Mathf.Cos(a)*2.8f,.31f,
+                        z+Mathf.Sin(a)*2.8f);
+                    wood.Box(p+Vector3.up*.44f,new Vector3(1.75f,.12f,.53f));
+                    wood.Box(p+new Vector3(0,.87f,.21f),
+                        new Vector3(1.75f,.69f,.12f));
+                    for(int d=-1;d<=1;d+=2)
+                        iron.Tube(p+new Vector3(d*.71f,.15f,0),
+                            p+new Vector3(d*.71f,.47f,0),.043f,7);
+                }
+            }
+
             public void Furniture()
             {
                 // Original reference: tree-shaded crossroads, readable cafe
@@ -444,6 +519,7 @@ namespace MIR
                 // Deliveries stay left/right of entry on the shop sidewalk.
                 GroceryDelivery(15.0f,-31.7f,0);
                 GroceryDelivery(25.1f,-31.7f,1);
+                CommunityGarden(60.0f,-20.0f);
                 for(int i=0;i<3;i++)
                     Bike(27.2f+i*1.62f,-31.0f,i*.25f);
                 // 8 rounded-corner bollards around the focal plaza
@@ -469,7 +545,7 @@ namespace MIR
             kit.HeroCrosswalks();
             kit.Furniture();
             kit.Flush();
-            Debug.Log("NONATION_STYLIZED_STREET_READY gardens=2 deliveries=2 " +
+            Debug.Log("NONATION_STYLIZED_STREET_READY gardens=2 deliveries=2 park=1 " +
                 "(batched true 3D meshes; full art approval pending)");
         }
     }
