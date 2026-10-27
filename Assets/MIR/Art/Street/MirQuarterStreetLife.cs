@@ -369,7 +369,7 @@ namespace MIR
                     // Thin real paper label on the outward crate face.
                     labelIvory.Box(new Vector3(px,y+.05f,pz-.311f),
                         new Vector3(.31f,.18f,.012f));
-                    woodPallet.Box(new Vector3(px,y+.height*.5f-.02f,pz),
+                    woodPallet.Box(new Vector3(px,y+height*.5f-.02f,pz),
                         new Vector3(.66f,.027f,.62f));
                 }
                 // An attached two-wheel delivery handcart on the left unit.
@@ -404,14 +404,14 @@ namespace MIR
                 Tree(63f,7.7f,.83f,5);
                 Patio(50f,10.9f);
                 Patio(62f,10.9f);
-                // Deliberately separate garden positions from both retained
-                // Kenney trees (13,13) / (53,53) and the central fountain.
-                PocketGarden(11.0f,12.4f,0);
+                // Keep pocket beds outside Kenney trees at (13,13)/(53,53)
+                // and away from the fountain, route lanes and existing seating.
+                PocketGarden(8.9f,17.0f,0);
                 PocketGarden(29.1f,27.7f,7);
                 // Grocery facade is x=13.5..26.5, entrance x=20,z≈-27.
                 // Deliveries stay left/right of entry on the shop sidewalk.
-                GroceryDelivery(15.0f,-30.7f,0);
-                GroceryDelivery(25.1f,-30.7f,1);
+                GroceryDelivery(15.0f,-31.7f,0);
+                GroceryDelivery(25.1f,-31.7f,1);
                 for(int i=0;i<3;i++)
                     Bike(27.2f+i*1.62f,-31.0f,i*.25f);
                 // 8 rounded-corner bollards around the focal plaza
