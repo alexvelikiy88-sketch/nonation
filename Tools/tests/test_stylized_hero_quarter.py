@@ -72,6 +72,12 @@ class PremiumDioramaHeroContract(unittest.TestCase):
         self.assertNotIn(".height", street)  # guard against C# numeric typo
         # New props share existing by-material batches; no Unity primitives.
         self.assertNotIn("GameObject.CreatePrimitive", street)
+        # The visible tree and flower crowns now have analytic normals
+        # rather than one hard face normal per polygon.
+        self.assertIn("static Vector3 EllipsoidNormal(", street)
+        self.assertIn("void SmoothQuad(", street)
+        self.assertIn("mesh.SetNormals(normals)", street)
+        self.assertIn("normals.Add(EllipsoidNormal(a,center,radii))", street)
 
     def test_existing_gameplay_geometry_poi_and_routes_preserved(self):
         city = CITY.read_text(encoding="utf-8")
