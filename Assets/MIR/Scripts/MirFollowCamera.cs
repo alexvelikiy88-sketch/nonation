@@ -16,7 +16,7 @@ namespace MIR
         // World positions are deliberate: plaza/store/cafe in the midground,
         // daytime city focal area at street scale, avoiding empty grid lots.
         static readonly Vector3 ShowcaseFocus=new Vector3(30f,4f,3f);
-        static readonly Quaternion ShowcaseRotation=Quaternion.Euler(52f,52f,0f);
+        static readonly Quaternion ShowcaseRotation=Quaternion.Euler(40f,52f,0f);
         const float ShowcaseDistance=66f;
         const float ShowcaseFov=42f;
         static readonly Vector3 WaterfrontFocus=new Vector3(12f,1.8f,-120f);
