@@ -113,6 +113,11 @@ namespace MIR
             }
             readonly Surface white,yellow,paver,iron,wood,glass,bark,leaves,litLeaves,
                 shadowLeaves,planter,linen,stone,flowers,rubber,cycleMetal;
+            // The approved stylized 3D diorama reference uses warm flowerbeds
+            // and animated-looking shop goods, not empty featureless grid lots.
+            // These new details share the existing by-material mesh batching.
+            readonly Surface gardenSoil,petalAmber,petalBlue,paperCardboard,
+                parcelTeal,parcelCoral,labelIvory,woodPallet;
             public Kit(Transform root,Func<string,Color,float,float,Material> mat)
             {
                 this.root=root;this.mat=mat;
@@ -123,15 +128,23 @@ namespace MIR
                 wood=S("outdoor hardwood",new Color(.52f,.35f,.22f),0,.23f);
                 glass=S("smoked clear roof glass",new Color(.30f,.41f,.41f),.16f,.75f);
                 bark=S("mature tree bark",new Color(.34f,.28f,.24f));
-                leaves=S("foliage rich green",new Color(.30f,.44f,.27f));
-                litLeaves=S("foliage sun green",new Color(.43f,.54f,.31f));
-                shadowLeaves=S("foliage dark green",new Color(.22f,.34f,.23f));
+                leaves=S("foliage rich green",new Color(.35f,.51f,.28f));
+                litLeaves=S("foliage sun green",new Color(.52f,.64f,.35f));
+                shadowLeaves=S("foliage dark green",new Color(.25f,.39f,.25f));
                 planter=S("garden limestone",new Color(.73f,.71f,.65f));
                 linen=S("cafe canopy warm natural",new Color(.88f,.82f,.66f));
                 stone=S("cafe and bench stone",new Color(.68f,.67f,.63f));
                 flowers=S("flowers warm pink",new Color(.67f,.43f,.48f));
                 rubber=S("bicycle tire charcoal",new Color(.11f,.12f,.13f),0,.2f);
                 cycleMetal=S("bicycle steel",new Color(.64f,.66f,.63f),.68f,.48f);
+                gardenSoil=S("garden dark mulch",new Color(.30f,.28f,.21f));
+                petalAmber=S("small marigold flower",new Color(.91f,.68f,.23f));
+                petalBlue=S("small blue iris flower",new Color(.43f,.61f,.70f));
+                paperCardboard=S("market cartons natural craft",new Color(.77f,.59f,.41f));
+                parcelTeal=S("market reusable teal crates",new Color(.26f,.53f,.56f));
+                parcelCoral=S("market colorful produce crates",new Color(.77f,.36f,.27f));
+                labelIvory=S("market carton labels",new Color(.95f,.92f,.79f));
+                woodPallet=S("timber shipping pallets",new Color(.53f,.37f,.23f));
             }
             public void Flush()
             {
@@ -293,6 +306,90 @@ namespace MIR
                         new Vector3(.48f,.37f,.34f));
                 }
             }
+            // Two curated pocket gardens add a clearly readable mass of
+            // greenery and flowers to the empty corners of the *existing* plaza.
+            // No additional physical collider: pedestrians retain their paths.
+            public void PocketGarden(float x,float z,int seed)
+            {
+                const float w=3.10f,d=1.88f;
+                planter.Box(new Vector3(x,.41f,z),new Vector3(w,.32f,d));
+                gardenSoil.Box(new Vector3(x,.586f,z),
+                    new Vector3(w-.23f,.052f,d-.23f));
+                // Four engraved stone borders add genuine relief, avoiding
+                // z-fighting and intersecting ground/civic plaza surfaces.
+                planter.Box(new Vector3(x-w*.5f+.065f,.623f,z),
+                    new Vector3(.13f,.075f,d));
+                planter.Box(new Vector3(x+w*.5f-.065f,.623f,z),
+                    new Vector3(.13f,.075f,d));
+                planter.Box(new Vector3(x,.623f,z-d*.5f+.065f),
+                    new Vector3(w,.075f,.13f));
+                planter.Box(new Vector3(x,.623f,z+d*.5f-.065f),
+                    new Vector3(w,.075f,.13f));
+
+                for(int n=0;n<15;n++)
+                {
+                    float px=x-1.12f+(n%5)*.56f;
+                    float pz=z-.55f+(n/5)*.55f;
+                    float stemHeight=.24f+((n*7+seed)%5)*.062f;
+                    var stemBase=new Vector3(px,.63f,pz);
+                    var blossom=new Vector3(px,.63f+stemHeight,pz);
+                    bark.Tube(stemBase,blossom,.019f,5);
+                    leaves.Crown(new Vector3(px,.71f,pz),
+                        new Vector3(.17f,.11f,.14f),7,3);
+                    Surface petals=((n+seed)%3==0)?petalAmber:
+                        ((n+seed)%3==1)?flowers:petalBlue;
+                    petals.Crown(blossom,new Vector3(.125f,.085f,.115f),8,3);
+                    // Tiny golden stamen remains visible in close 3/4 view.
+                    petalAmber.Crown(blossom+Vector3.up*.06f,
+                        new Vector3(.027f,.033f,.027f),6,2);
+                }
+            }
+
+            // Stacked supplies outside the grocery shop make its original
+            // economy visually legible. Both clusters sit clear of the central
+            // store entrance and contain NO extra gameplay collider / fake NPC.
+            public void GroceryDelivery(float x,float z,int seed)
+            {
+                woodPallet.Box(new Vector3(x,.375f,z),
+                    new Vector3(1.66f,.16f,1.10f));
+                for(int i=-2;i<=2;i++)
+                    woodPallet.Box(new Vector3(x+i*.29f,.48f,z),
+                        new Vector3(.22f,.065f,1.10f));
+                for(int layer=0;layer<2;layer++)
+                for(int box=0;box<2;box++)
+                {
+                    float px=x+(box==0?-.37f:.37f);
+                    float pz=z+((box+layer)%2==0?-.18f:.18f);
+                    float height=layer==0?.62f:.49f;
+                    float y=.54f+(layer==0?height*.5f:.62f+height*.5f);
+                    Surface color=((box+seed+layer)%3==0)?parcelTeal:
+                        ((box+seed+layer)%3==1)?paperCardboard:parcelCoral;
+                    color.Box(new Vector3(px,y,pz),
+                        new Vector3(.65f,height,.61f));
+                    // Thin real paper label on the outward crate face.
+                    labelIvory.Box(new Vector3(px,y+.05f,pz-.311f),
+                        new Vector3(.31f,.18f,.012f));
+                    woodPallet.Box(new Vector3(px,y+.height*.5f-.02f,pz),
+                        new Vector3(.66f,.027f,.62f));
+                }
+                // An attached two-wheel delivery handcart on the left unit.
+                if(seed==0)
+                {
+                    Vector3 hub=new Vector3(x-.97f,.36f,z+.28f);
+                    for(int k=0;k<12;k++)
+                    {
+                        float a=k*Mathf.PI/6f,b=(k+1)*Mathf.PI/6f;
+                        Vector3 v=hub+new Vector3(.23f*Mathf.Cos(a),.23f*Mathf.Sin(a),0);
+                        Vector3 q=hub+new Vector3(.23f*Mathf.Cos(b),.23f*Mathf.Sin(b),0);
+                        rubber.Tube(v,q,.029f,5);
+                    }
+                    iron.Tube(new Vector3(x-.90f,.34f,z+.28f),
+                        new Vector3(x-.79f,1.55f,z+.28f),.040f,6);
+                    iron.Tube(new Vector3(x-.79f,1.55f,z+.28f),
+                        new Vector3(x-.79f,1.55f,z+.73f),.032f,5);
+                }
+            }
+
             public void Furniture()
             {
                 // Original reference: tree-shaded crossroads, readable cafe
@@ -307,6 +404,14 @@ namespace MIR
                 Tree(63f,7.7f,.83f,5);
                 Patio(50f,10.9f);
                 Patio(62f,10.9f);
+                // Deliberately separate garden positions from both retained
+                // Kenney trees (13,13) / (53,53) and the central fountain.
+                PocketGarden(11.0f,12.4f,0);
+                PocketGarden(29.1f,27.7f,7);
+                // Grocery facade is x=13.5..26.5, entrance x=20,z≈-27.
+                // Deliveries stay left/right of entry on the shop sidewalk.
+                GroceryDelivery(15.0f,-30.7f,0);
+                GroceryDelivery(25.1f,-30.7f,1);
                 for(int i=0;i<3;i++)
                     Bike(27.2f+i*1.62f,-31.0f,i*.25f);
                 // 8 rounded-corner bollards around the focal plaza
@@ -332,6 +437,8 @@ namespace MIR
             kit.HeroCrosswalks();
             kit.Furniture();
             kit.Flush();
+            Debug.Log("NONATION_STYLIZED_STREET_READY gardens=2 deliveries=2 " +
+                "(batched true 3D meshes; full art approval pending)");
         }
     }
 }
