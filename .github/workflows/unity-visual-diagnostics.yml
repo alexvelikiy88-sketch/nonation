@@ -1,0 +1,101 @@
+name: NONATION Unity Humanoid Build Diagnostics
+
+# Read-only evidence. This workflow never posts to Unity Build Automation.
+# An initial push audits the previous WebGL release (#17); later completions
+# audit the exact upstream main SHA without creating duplicate Cloud builds.
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/unity-visual-diagnostics.yml']
+  workflow_run:
+    workflows: ['MIR Unity WebGL']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit-humanoid:
+    if: github.event_name == 'push' || github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit verified Unity Cloud build logs (read-only)
+        env:
+          UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
+          UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
+          EVENT_NAME: ${{ github.event_name }}
+          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import sys
+          sys.path.insert(0, 'Tools')
+          import unity_cloud_ci as unity
+
+          if not os.environ.get('UNITY_SA_KEY_ID') or not os.environ.get('UNITY_SA_SECRET_KEY'):
+              print('::warning::Unity Cloud credentials unavailable. No build attempted.')
+              sys.exit(0)
+
+          event = os.environ.get('EVENT_NAME', '')
+          source = os.environ.get('UPSTREAM_SHA', '')
+          if event == 'push':
+              # Existing published release; diagnosed without rebuilding it.
+              number = 17
+              source = '5bf9f17c2fa2463d019bc0685d5b2e4f2f9411d2'
+          else:
+              status, records = unity.api('GET', unity.ROOT + '/builds?per_page=20&page=1')
+              if isinstance(records, dict):
+                  records = records.get('builds', records.get('items', []))
+              if status != 200 or not isinstance(records, list):
+                  print('::warning::Unity build history unavailable, no new build triggered')
+                  sys.exit(0)
+              matching = [
+                  item for item in records if isinstance(item, dict)
+                  and unity.matches_revision(item, source)
+              ]
+              if not matching:
+                  print('::warning::No Unity Cloud build for upstream Git SHA ' + source)
+                  sys.exit(0)
+              number = unity.build_number(matching[0])
+
+          print('UNITY_VISUAL_LOG_AUDIT cloud_build=' + str(number) +
+                ' source_sha=' + source)
+          try:
+              log = unity.read_cloud_log(number)
+          except Exception as error:
+              print('::warning::Read-only Unity log unavailable: ' +
+                    unity.redact_log(str(error))[:240])
+              sys.exit(0)
+
+          keyphrases = (
+              'nonation_rocketbox', 'nonation_real_human',
+              'nonation_visual_release', 'invalid humanoid', 'avatarmapping',
+              'humanoid avatar', 'skinnedmesh', 'm007_', 'create locomotion'
+          )
+          lines = log.splitlines()
+          matches = [(i + 1, line) for i, line in enumerate(lines)
+                     if any(token in line.casefold() for token in keyphrases)]
+          for index, item in matches[:45]:
+              print('UNITY_VISUAL_EVIDENCE line=' + str(index) +
+                    ' ' + unity.redact_log(item)[:450])
+          ready = any('NONATION_ROCKETBOX_READY' in line for _, line in matches)
+          blocked = any('NONATION_ROCKETBOX_BLOCKED' in line or
+                        'NONATION_REAL_HUMAN_PILOT_UNAVAILABLE' in line
+                        for _, line in matches)
+          result = 'ready' if ready else 'blocked' if blocked else 'unverified'
+          print('NONATION_HUMANOID_SOURCE_LOG_STATUS status=' + result +
+                ' matches=' + str(len(matches)))
+          if not ready:
+              print('::warning::Real skinned Unity player not proven. ' +
+                    'Do not approve VIS-03 from generic Unity build success.')
+          if os.environ.get('GITHUB_STEP_SUMMARY'):
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+                  out.write('Unity Cloud #' + str(number) + ' at `' + source +
+                            '`: Rocketbox build status **' + result +
+                            '** (runtime Chromium proof required).\n')
+          PY
