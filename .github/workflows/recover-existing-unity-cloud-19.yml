@@ -1,0 +1,195 @@
+name: NONATION Recover Existing Unity Cloud #19
+
+# Recovery of a completed Unity Cloud build after its original GitHub polling
+# timeout. NEVER request/compile a new Unity Build. Publish browser QA artifacts
+# only; preserve the currently working public GitHub Pages release.
+on:
+  push:
+    branches: [main, 'manager/recover-cloud19-artifact-20261027']
+    paths: ['.github/workflows/recover-existing-unity-cloud-19.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nonation-cloud19-readonly-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-and-smoke:
+    if: github.repository == 'alexvelikiy88-sketch/nonation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout EXACT game source, never current moving main
+        uses: actions/checkout@v4
+        with:
+          ref: 5a262820eeff588f70fa5ffaa9216c495f61f8b4
+          persist-credentials: false
+
+      - name: Check whether this exact Cloud build already has successful browser proof
+        id: already
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          completed="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=nonation-cloud19-browser-proof-5a262820&per_page=100" \
+            --jq '[.artifacts[] | select(.name == "nonation-cloud19-browser-proof-5a262820" and .expired == false)] | length')"
+          if [ "$completed" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Existing successful proof verified: no repeat Unity/download/browser work." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read existing Unity Cloud Build #19 and securely recover its original WebGL ZIP
+        id: recover
+        if: steps.already.outputs.skip == 'false'
+        shell: bash
+        env:
+          UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
+          UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import sys
+          import shutil
+          import tempfile
+          from pathlib import Path
+          from urllib.request import urlopen
+
+          sys.path.insert(0, "Tools")
+          import unity_cloud_ci as unity
+
+          number = 19
+          expected = "5a262820eeff588f70fa5ffaa9216c495f61f8b4"
+          if not os.getenv("UNITY_SA_KEY_ID") or not os.getenv("UNITY_SA_SECRET_KEY"):
+              raise SystemExit("Missing read-only-capable Unity service-account credentials.")
+
+          http, result = unity.api("GET", f"{unity.ROOT}/builds/{number}")
+          if http != 200 or not isinstance(result, dict):
+              raise RuntimeError("Unity Cloud #19 status unavailable; no replacement build started.")
+
+          status = str(result.get("buildStatus") or result.get("status") or "unknown").lower()
+          print("NONATION_RECOVERY_CLOUD_STATUS build=19 state=" + status +
+                " requested=" + str(result.get("requestedRevision") or "unknown"))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf8") as summary:
+              summary.write("## NONATION existing Unity Cloud #19\n\n")
+              summary.write("Build status: **" + status + "**. Source: `" + expected +
+                            "`. No new Unity compile requested.\n\n")
+
+          if status in unity.TERMINAL_BAD:
+              for reason in (result.get("failureDetails") or [])[:6]:
+                  if isinstance(reason, dict):
+                      print("NONATION_RECOVERY_CLOUD_ERROR " + unity.redact_log(
+                          str(reason.get("publicMessage") or reason.get("displayName") or reason)
+                      ))
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf8") as out:
+                  out.write("ready=false\n")
+              print("Cloud #19 failed; recover its EXISTING failure log, not another paid compile.")
+              sys.exit(0)
+
+          if status not in unity.TERMINAL_GOOD:
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf8") as out:
+                  out.write("ready=false\n")
+              print("Cloud #19 still waiting/compiling; no unnecessary downloads.")
+              sys.exit(0)
+
+          if result.get("lastBuiltRevision") != expected:
+              raise RuntimeError("Refusing unpinned WebGL ZIP: actual compiled SHA does not match source.")
+          original = (result.get("links") or {}).get("download_primary")
+          download_url = unity.signed_url(original)  # signed URL, NEVER GitHub secret forwarded
+          destination = Path("build/WebGL")
+          with tempfile.TemporaryDirectory(prefix="nonation-recover-") as folder:
+              archive = Path(folder) / "existing-cloud19.zip"
+              with urlopen(download_url, timeout=120) as response, archive.open("wb") as sink:
+                  shutil.copyfileobj(response, sink)
+              unity.unpack_webgl(archive, destination)
+          print("NONATION_RECOVERED_EXISTING_WEBGL build=19 source_sha=" + expected)
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf8") as out:
+              out.write("ready=true\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf8") as summary:
+              summary.write("Exact Unity WebGL archive recovered and structure verified; " +
+                            "Chromium QA required before visual acceptance.\n")
+          PY
+
+      - name: Install Chromium and Playwright for real WebGL runtime proof
+        if: steps.recover.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/nonation-playwright" --no-save playwright@1.56.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/nonation-playwright-browsers" \
+            "$RUNNER_TEMP/nonation-playwright/node_modules/.bin/playwright" install --with-deps chromium
+
+      - name: Screenshot and QA EXISTING Unity Cloud #19 WebGL (never a simulation)
+        if: steps.recover.outputs.ready == 'true'
+        shell: bash
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/nonation-playwright-browsers
+          NONATION_LOCAL_URL: http://127.0.0.1:8765/
+          NONATION_REQUIRE_KENNEY_ART: '1'
+          SOURCE_RUN_ID: unity-cloud-existing-19
+          SOURCE_SHA: 5a262820eeff588f70fa5ffaa9216c495f61f8b4
+          ARTIFACT_NAME: existing-unity-cloud19-recovered-webgl
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory build/WebGL \
+            > "$RUNNER_TEMP/nonation-recovered-http.log" 2>&1 &
+          http_pid=$!
+          trap 'kill "$http_pid" 2>/dev/null || true' EXIT
+          python3 - <<'PY'
+          import time, urllib.request
+          for attempt in range(50):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:8765/", timeout=2) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  time.sleep(.25)
+          else:
+              raise RuntimeError("Unity #19 recovered WebGL archive cannot be served.")
+          PY
+          node Tools/browser_smoke_preview.js
+
+      - name: Preserve recovered original WebGL without publishing over known-good Pages
+        if: always() && steps.recover.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonation-cloud19-existing-webgl-5a262820
+          path: build/WebGL/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Preserve passing raw 1280x720 scene screenshots and game QA
+        if: success() && steps.recover.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonation-cloud19-browser-proof-5a262820
+          path: |
+            nonation-browser-proof.json
+            nonation-browser-proof.png
+            nonation-browser-showcase.png
+            nonation-browser-waterfront.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve honest browser FAILURE screenshot and evidence
+        if: failure() && steps.recover.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonation-cloud19-browser-failure-5a262820
+          path: |
+            nonation-browser-proof.json
+            nonation-browser-failure.png
+            nonation-browser-proof.png
+            nonation-browser-showcase.png
+            nonation-browser-waterfront.png
+          if-no-files-found: ignore
+          retention-days: 30
