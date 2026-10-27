@@ -1,0 +1,43 @@
+name: NONATION Unity Cloud Build #18 Read-Only Audit
+
+on:
+  push:
+    branches: ['manager/cc0-textured-buildings-probe-20261027']
+    paths: ['.github/workflows/unity-cloud-status-audit.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Query existing UBA build 18 without creating another build
+        shell: bash
+        env:
+          UNITY_SA_KEY_ID: ${{ secrets.UNITY_SA_KEY_ID }}
+          UNITY_SA_SECRET_KEY: ${{ secrets.UNITY_SA_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,sys
+          sys.path.insert(0,"Tools")
+          from unity_cloud_ci import api, ROOT
+          if not os.getenv("UNITY_SA_KEY_ID") or not os.getenv("UNITY_SA_SECRET_KEY"):
+              print("::warning::Cloud read-only credentials unavailable")
+              sys.exit(0)
+          status, data = api("GET", ROOT + "/builds/18")
+          print("UBA_READ_ONLY_HTTP",status)
+          if status!=200 or not isinstance(data,dict):
+              raise RuntimeError("No existing Cloud Build #18 status")
+          for name in ("build", "buildStatus", "status", "lastBuiltRevision",
+                       "requestedRevision", "createdAt","queuedAt",
+                       "startedAt","finishedAt","failureDetails"):
+              if name in data:
+                  value = data[name]
+                  if name=="failureDetails":
+                      value=str(value)[:350]
+                  print("UBA_READ_ONLY_STATUS",name,str(value)[:250])
+          PY
