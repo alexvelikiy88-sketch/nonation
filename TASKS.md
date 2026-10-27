@@ -1,9 +1,23 @@
 # NONATION — центральные задачи, доказательства и приёмка
 
-**Актуализация CHAT 04: 25.10.26**  
+**Актуализация CHAT 04: 27.10.26**  
 **Каноническая ветка:** `main`, защищённая GitHub Ruleset №25749583.  
 **Все три направления объединены в `main`:** [PR #19](https://github.com/alexvelikiy88-sketch/nonation/pull/19) MERGED, merge SHA `a75602df4ef56e95709a8472eba62d879795c977`. История и исходные SHA трёх агентов сохранены.  
 **Предыдущая полная история:** [архив реестра](Documentation/STATUS_HISTORY_23_10_26.md). Для новых решений использовать этот файл и актуальный GitHub, а не устаревшие строки архива.
+
+## Приоритет VIS / 27.10.26 — компактный, детальный stylized 3D hero-block
+
+**Одобренная художественная планка:** [Behance — 3D illustration for an interactive table](https://www.behance.net/gallery/142989785/3D-illustration-for-an-interactive-table). Это *уточнение доступной стилистики*, а не новое право использовать оригинальные 3D-ассеты/материалы. Главная композиционная тема остаётся «Солнечный городской квартал у набережной» ([VISUAL_CANON_RU.md](Documentation/VISUAL_CANON_RU.md)).
+
+**Подтверждённый игровой baseline** — `main@5bf9f17c2fa2463d019bc0685d5b2e4f2f9411d2`, [GitHub Actions #40521592293](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40521592293): Unity Cloud WebGL **SUCCESS**, GitHub Pages **SUCCESS**, Chromium **SUCCESS**. [Исходный browser proof #12742039803](https://github.com/alexvelikiy88-sketch/nonation/actions/runs/40521592293/artifacts/12742039803) содержит необработанные игровые V/B скриншоты, JSON и 1280×720 fullscreen proof. В консоли `NONATION_MODULAR_CITY_READY buildings=12 meshes=17 vertices=86000`, `NONATION_HERO_QUARTER_READY plaza=1 waterfront=1 streets=1`, 39 NPC, 13 Kenney деревьев, 3 машины, 2 светофора. Движение W, сохранение и reload PASS. `NONATION_SHADER_FALLBACK` сохраняется, но не фатален.
+
+**Выявленные действительные пробелы по raw screenshot и JSON:** большая доля кадра — пустая дорожная сетка, малый размер основного района и низкая контрастность окружения. `realHumanPilot: null` на initial **и** reload: первый Rocketbox Avatar/Animator **не доказан**; людей не принимать как готовые skinned Humanoid, капсульные fallback не выдавать за финал. Ни 30 FPS, ни качество лица/одежды не подтверждены.
+
+**Следующий узкий графический PR:** менеджерская ветка `manager/stylized-city-diorama-20261027`: концентрированный hero V-ракурс на площади/магазине/кафе, отдельно приближённый B-ракурс набережной; согласованная зелёно-каменная палитра; две **настоящие 3D-клумбы с цветами**, две материальные группы товара/поддонов у магазина (без нового gameplay collider и ложных NPC); для всех уличных материалов переход с упрощённого vertex Lambert шейдера на Built-in Standard Surface Shader с тенями/metallic/roughness. Chromium должен подтвердить `NONATION_STYLIZED_STREET_READY gardens=2 deliveries=2` при первичной загрузке и после reload. Это **предлагаемые правки**, не подтверждённое Unity/WebGL изображение; **VISUAL GATE остаётся OPEN**.
+
+**Следующий художественный блокер после нового кадра:** источник 3–6 неповторяющихся анимированных skinned людей и полноценная проверка Avatar/LOD/skin в WebGL. Предпочитать разрешённые MIT/CC0 модели (Microsoft Rocketbox и Quaternius CC0), исходники платных Asset Store/Fbx с неизвестными правами не публиковать. Только затем расширять мир; PBR фасады из [PR #46](https://github.com/alexvelikiy88-sketch/nonation/pull/46) включены в текущую рабочую сборку.
+
+**Правило:** меньше игровая hero-зона, но завершённый уровень качества; full 5×5 simulation/grid может оставаться для экономики и QA, однако художественный 3/4 кадр не должен показывать большинство пустых кварталов. Экономику, home/business IDs, native colliders, серверный API, движение и сохранения сохранять. Один исходный PR + один Unity Cloud build + реальные Chromium screenshots, без двух параллельных оплачиваемых сборок.
 
 ## P0 / 25.10.26 — Unity Cloud #12 PASS, Kenney Runtime FAIL (подтверждено)
 
