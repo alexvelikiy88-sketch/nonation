@@ -85,6 +85,7 @@ namespace MIR.Rocketbox.Editor
         const string Base="Assets/MIR/Art/Rocketbox";
         const string Model=Base+"/Male_Adult_12.fbx";
         const string License=Base+"/LICENSE.md";
+        const string BundledLicense=Base+"/Resources/MIR/RocketboxMITNotice.txt";
         const string Textures=Base+"/Textures/";
         const string Output=Base+"/Resources/MIR/RocketboxPilot01.prefab";
         const string Materials=Base+"/Generated";
@@ -137,6 +138,20 @@ namespace MIR.Rocketbox.Editor
             Buffer.BlockCopy(raw,0,all,header.Length,raw.Length);
             using(var sha=SHA1.Create())return Hex(sha.ComputeHash(all));
         }
+        // Unity Cloud's Windows checkout may use CRLF for source .md/.txt.
+        // Normalize ONLY line endings before comparing the exact Microsoft
+        // MIT notice to the upstream Git blob; never waive/change copyright.
+        static string GitBlobNormalizedMIT(string path)
+        {
+            byte[] raw=File.ReadAllBytes(path);
+            string text=new UTF8Encoding(false,true).GetString(raw);
+            raw=Encoding.UTF8.GetBytes(text.Replace("\r\n","\n"));
+            byte[] header=Encoding.ASCII.GetBytes("blob "+raw.Length+"\0");
+            byte[] all=new byte[header.Length+raw.Length];
+            Buffer.BlockCopy(header,0,all,0,header.Length);
+            Buffer.BlockCopy(raw,0,all,header.Length,raw.Length);
+            using(var sha=SHA1.Create())return Hex(sha.ComputeHash(all));
+        }
         static string Sha256(string path)
         {
             using(var sha=SHA256.Create())
@@ -151,8 +166,21 @@ namespace MIR.Rocketbox.Editor
         {
             Require(File.Exists(Model),"original MIT FBX missing");
             Require(GitBlob(Model)==SourceModelGitBlob,"FBX differs from pinned Microsoft original");
-            Require(File.Exists(License)&&GitBlob(License)==SourceLicenseGitBlob,
-                "required Microsoft MIT copyright/license modified or missing");
+            // The original root LICENSE.md remains in Git and must always be
+            // exact if present. Some Unity Cloud source staging configurations
+            // omit editor-irrelevant Markdown; embed identical MIT source bytes
+            // in a pinned Resources TextAsset for both build and distribution.
+            bool mainLicensePresent=File.Exists(License);
+            Require(!mainLicensePresent ||
+                GitBlobNormalizedMIT(License)==SourceLicenseGitBlob,
+                "Microsoft MIT copyright/license differs from pinned upstream");
+            Require(File.Exists(BundledLicense) &&
+                GitBlobNormalizedMIT(BundledLicense)==SourceLicenseGitBlob,
+                "pinned Microsoft MIT Resources notice missing or altered");
+            if(!mainLicensePresent)
+                Debug.LogWarning("NONATION_ROCKETBOX_SOURCE_LICENSE_STAGED_OUT: " +
+                    "original root LICENSE.md absent from Unity Builder, " +
+                    "exact Microsoft MIT notice verified in Resources instead");
             foreach(var entry in TextureHashes)
             {
                 string path=Textures+entry.Key;
