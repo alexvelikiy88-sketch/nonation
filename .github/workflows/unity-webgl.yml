@@ -100,6 +100,12 @@ jobs:
           set -euo pipefail
           python3 Tools/fetch_hero_nature.py
           python3 Tools/fetch_hero_nature.py --verify-only
+      - name: Verify real male/female Microsoft MIT Humanoid model and texture assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Tools/fetch_rocketbox_cast.py
+          python3 Tools/fetch_rocketbox_cast.py --verify-only
       - name: Check whether GameCI activation is configured
         id: check_activation
         shell: bash
