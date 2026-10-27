@@ -36,4 +36,15 @@ jobs:
                   if path.lower().endswith((".gltf",".glb",".fbx",".png",".jpg",".jpeg",".bin",".obj")):
                       if len(path)<230:
                           print("NATURE_FILE",i.file_size,hashlib.sha256(archive.read(i.filename)).hexdigest(),path)
+          for item in ["CommonTree_1","CommonTree_3","TwistedTree_2",
+                       "Bush_Common_Flowers","Flower_3_Group","Grass_Common_Short"]:
+              p="glTF/"+item+".gltf"
+              with ZipFile("/tmp/quaternius-nature.zip") as ar:
+                  import json
+                  d=json.loads(ar.read(p).decode("utf8"))
+                  print("NATURE_GLTF_DEPENDENCIES",item,
+                        "buffers", [b.get("uri") for b in d.get("buffers",[])],
+                        "images",[i.get("uri") for i in d.get("images",[])],
+                        "materials",[m.get("name") for m in d.get("materials",[])],
+                        "meshPrimitives", sum(len(m.get("primitives",[])) for m in d.get("meshes",[])))
           PY
