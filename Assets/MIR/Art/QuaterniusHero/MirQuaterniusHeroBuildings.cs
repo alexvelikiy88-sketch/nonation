@@ -153,6 +153,10 @@ namespace MIR
                 if (count != 5 || vertices < 1200)
                     throw new InvalidOperationException(
                         "Incomplete real CC0 FBX hero quarter");
+                // CHAT 05 independent waterfront art: keep the existing five
+                // downtown FBX and all POI/collision logic authoritative.
+                // A missing residence module must not disable grocery/cafe.
+                MirWaterfrontResidenceArt.TryBuild(parent);
                 Debug.Log("NONATION_QUATERNIUS_HERO_READY models=5 slots=3 " +
                     "atlas=4 vertices=" + vertices +
                     " (licensed FBX game meshes, no primitive facades)");
