@@ -97,10 +97,14 @@ namespace MIR.Rocketbox.Editor
         }
         static Material Material(string model,string part,string prefix)
         {
-            Shader shader=Shader.Find("Standard");
+            // Use an actual Resources-referenced, WebGL-retained textured
+            // Built-in PBR shader. A flat color runtime fallback must NEVER
+            // be accepted as genuine skin/face/garment rendering.
+            Shader shader=Resources.Load<Shader>("Nonation/Architecture/ArchitecturalLit");
             if(shader==null || !shader.isSupported)
-                shader=Resources.Load<Shader>("MIR/MirRuntimeFallback");
-            Require(shader!=null&&shader.isSupported,"no supported built-in source texture shader");
+                shader=Shader.Find("Standard");
+            Require(shader!=null&&shader.isSupported,
+                "no supported WebGL PBR skin material shader");
             // Female_Adult_16 has one original f204_color/normal/specular
             // slot; m019 has separate original body/head material slots.
             string stem=prefix+(part=="single"?"":part+"_");
@@ -110,8 +114,16 @@ namespace MIR.Rocketbox.Editor
             var material=new Material(shader);
             material.name="Microsoft MIT / "+model+" / "+part;
             material.SetColor("_Color",Color.white);
+            Require(material.HasProperty("_MainTex") || material.HasProperty("_BaseMap"),
+                "face/garment texture support absent: refusing untextured proxy");
             if(material.HasProperty("_MainTex"))material.SetTexture("_MainTex",color);
+            if(material.HasProperty("_BaseColor"))material.SetColor("_BaseColor",Color.white);
             if(material.HasProperty("_BaseMap"))material.SetTexture("_BaseMap",color);
+            if(material.HasProperty("_NormalMap"))
+            {
+                material.SetTexture("_NormalMap",normal);
+                if(material.HasProperty("_UseNormal"))material.SetFloat("_UseNormal",1f);
+            }
             if(material.HasProperty("_BumpMap"))
             {
                 material.SetTexture("_BumpMap",normal);
