@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Experimental.Rendering;
 
 namespace MIR
 {
@@ -261,9 +260,10 @@ namespace MIR
                 if(found.HasProperty("_BaseMap"))found.SetTextureScale("_BaseMap",new Vector2(.62f,.62f));
                 if(found.HasProperty("_MainTex"))found.SetTextureScale("_MainTex",new Vector2(.62f,.62f));
 
-                // Verified ambientCG scans bring actual OpenGL tangent normals
-                // and roughness into the custom URP material. They remain inert
-                // on the existing untextured emergency fallback shader.
+                // Authentic ambientCG CC0 OpenGL tangent normals and linear
+                // roughness now drive the Built-in RP Surface shader. Texture
+                // importer explicitly marks maps as NormalMap/non-sRGB.
+                // Fallback remains a colored material when scans are absent.
                 string prefix=pattern=="brick"?"Bricks097_":
                     pattern=="plaster"?"Plaster007_":
                     pattern=="wood"?"Planks023A_":null;
@@ -277,17 +277,15 @@ namespace MIR
                     {
                         normal.wrapMode=TextureWrapMode.Repeat;
                         found.SetTexture("_NormalMap",normal);
+                        found.SetTextureScale("_NormalMap",new Vector2(.62f,.62f));
                         found.SetFloat("_UseNormal",1f);
-                        found.SetFloat("_NormalSRGB",
-                            GraphicsFormatUtility.IsSRGBFormat(normal.graphicsFormat)?1f:0f);
                     }
                     if(rough!=null)
                     {
                         rough.wrapMode=TextureWrapMode.Repeat;
                         found.SetTexture("_RoughnessMap",rough);
+                        found.SetTextureScale("_RoughnessMap",new Vector2(.62f,.62f));
                         found.SetFloat("_UseRoughness",1f);
-                        found.SetFloat("_RoughnessSRGB",
-                            GraphicsFormatUtility.IsSRGBFormat(rough.graphicsFormat)?1f:0f);
                     }
                 }
             }

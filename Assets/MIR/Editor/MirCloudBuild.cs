@@ -20,6 +20,13 @@ namespace MIR.Editor
             // GitHub Pages does not allow custom Content-Encoding response headers.
             // Build uncompressed Unity Web assets to avoid a broken loading screen.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+            // The stock Unity template centers a 960x600 canvas inside a white
+            // page and overlays its logo. Production gameplay uses a full
+            // viewport, 16:9-safe interactive canvas instead.
+            const string webTemplate = "Assets/WebGLTemplates/Nonation/index.html";
+            if (!File.Exists(webTemplate))
+                throw new IOException("NONATION_WEBGL_TEMPLATE_MISSING: " + webTemplate);
+            PlayerSettings.WebGL.template = "PROJECT:Nonation";
             // Unity cannot reliably switch compilation targets inside -batchmode
             // -executeMethod: the required script/domain reload cannot run mid-call.
             // GameCI / UBA must start the Editor with WebGL already selected.

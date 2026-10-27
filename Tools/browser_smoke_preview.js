@@ -18,6 +18,7 @@ const meta = {
   ready: false,
   npcCount: null,
   canvas: false,
+  fullscreenCanvas: false,
   moved: false,
   saved: false,
   restored: false,
@@ -146,6 +147,20 @@ async function check() {
     if (!rect || rect.width < 200 || rect.height < 200)
       throw new Error('Unity WebGL canvas is too small or not rendered');
     meta.canvas = true;
+    // A passing Canvas element does not prove a useful game viewport.
+    // Release template must fill the 1280x720 live Chromium screenshot.
+    if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      const viewport = page.viewportSize();
+      if (!viewport || Math.abs(rect.width - viewport.width) > 4 ||
+          Math.abs(rect.height - viewport.height) > 4)
+        throw new Error('WebGL canvas does not fill browser viewport: ' +
+          JSON.stringify({ rect, viewport }));
+      if (await page.locator('#unity-footer').count() !== 0)
+        throw new Error('Old Unity footer still present in released page');
+      meta.fullscreenCanvas = true;
+      console.log('NONATION_WEBGL_FULLSCREEN_CANVAS_VERIFIED ' +
+        Math.round(rect.width) + 'x' + Math.round(rect.height));
+    }
 
     await canvas.click({ position: { x: Math.floor(rect.width * 0.75),
                                      y: Math.floor(rect.height * 0.6) } });
