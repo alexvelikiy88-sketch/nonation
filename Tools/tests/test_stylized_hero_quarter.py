@@ -16,7 +16,7 @@ SHADER = ROOT / "Assets/MIR/Resources/MIR/MirRuntimeFallback.shader"
 BROWSER = ROOT / "Tools/browser_smoke_preview.js"
 
 
-def project(world, focus=(18, 4, 0), yaw=50, pitch=36, distance=62, fov=44):
+def project(world, focus=(30, 4, 3), yaw=52, pitch=40, distance=66, fov=42):
     """Source-coordinate geometry check, not a rendered screen measurement."""
     y, t = math.radians(yaw), math.radians(pitch)
     sy, cy, st, ct = math.sin(y), math.cos(y), math.sin(t), math.cos(t)
@@ -38,10 +38,10 @@ class PremiumDioramaHeroContract(unittest.TestCase):
     def test_plaza_store_and_cafe_fit_live_closeup_frame(self):
         camera = CAMERA.read_text(encoding="utf-8")
         for expected in (
-            "ShowcaseFocus=new Vector3(18f,4f,0f)",
-            "ShowcaseRotation=Quaternion.Euler(36f,50f,0f)",
-            "ShowcaseDistance=62f",
-            "ShowcaseFov=44f",
+            "ShowcaseFocus=new Vector3(30f,4f,3f)",
+            "ShowcaseRotation=Quaternion.Euler(40f,52f,0f)",
+            "ShowcaseDistance=66f",
+            "ShowcaseFov=42f",
             "WaterfrontFocus=new Vector3(12f,1.8f,-120f)",
             "WaterfrontDistance=43f",
         ):
@@ -99,7 +99,9 @@ class PremiumDioramaHeroContract(unittest.TestCase):
         self.assertIn('new Color(.41f,.55f,.34f)', city)
         self.assertIn('new Color(.77f,.755f,.70f)', city)
         self.assertIn('new Color(.235f,.265f,.270f)', city)
-        self.assertIn('RenderSettings.fogDensity=night?0.006f:.0017f;', city)
+        self.assertIn('RenderSettings.fogDensity=night?.006f:.0009f;', city)
+        self.assertIn('RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;', city)
+        self.assertIn('nature.AddComponent<MirPremiumNature>();', city)
 
     def test_surroundings_receive_real_per_pixel_light_shadows_and_roughness(self):
         s = SHADER.read_text(encoding="utf-8")
