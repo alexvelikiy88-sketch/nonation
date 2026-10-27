@@ -5,3 +5,6 @@ set -eu
 # Neither the old scene nor its game logic is removed if the visuals fail.
 python3 Tools/fetch_quaternius.py
 python3 Tools/fetch_kenney_city.py
+# Four genuine, author-published CC0 textured FBX buildings, exact digest pinned.
+python3 Tools/fetch_quaternius_hero.py
+python3 Tools/fetch_quaternius_hero.py --verify-only
