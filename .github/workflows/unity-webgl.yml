@@ -90,6 +90,10 @@ jobs:
         run: |
           python3 Tools/fetch_kenney_city.py
           python3 Tools/fetch_kenney_city.py --verify-only
+      - name: Download and verify original Quaternius CC0 FBX architectural sources
+        run: |
+          python3 Tools/fetch_quaternius_hero.py
+          python3 Tools/fetch_quaternius_hero.py --verify-only
       - name: Check whether GameCI activation is configured
         id: check_activation
         shell: bash

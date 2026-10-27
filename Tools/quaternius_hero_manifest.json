@@ -1,0 +1,70 @@
+{
+  "schema": "nonation/quaternius-hero-cc0/1",
+  "artist": "Quaternius",
+  "source_url": "https://opengameart.org/content/lowpoly-buildings-pack",
+  "publication": "2021-06-18",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "archive_url": "https://opengameart.org/sites/default/files/ultimate_textured_building_pack_by_quaternius.zip",
+  "archive_sha256": "ff876502f53f6d4c35104378e8322ec8253fd0ee45c8ec28d9dc81df54b80e85",
+  "archive_size": 29961262,
+  "notes": "Selected immutable CC0 2019 Quaternius Textured Buildings from 2021 author-uploaded OpenGameArt archive. Original entire archive not redistributed; only four finished FBX and four small palette textures. No GTA or Unity Asset Store files.",
+  "assets": [
+    {
+      "name": "2Story_Wide_2Doors.fbx",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Finished Textured Buildings/FBX/2Story_Wide_2Doors.fbx",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/2Story_Wide_2Doors.fbx",
+      "size": 223932,
+      "sha256": "3f6589fe46e9074283af505d1decf4886f43f0f9bcd83556c81a5a02d5e0a08e"
+    },
+    {
+      "name": "2Story_Balcony.fbx",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Finished Textured Buildings/FBX/2Story_Balcony.fbx",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/2Story_Balcony.fbx",
+      "size": 127116,
+      "sha256": "ef6b6bb610c41a4d1495c038d604b4a9a5f2212da9e85ff668ff81293d01afa4"
+    },
+    {
+      "name": "2Story_Sign.fbx",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Finished Textured Buildings/FBX/2Story_Sign.fbx",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/2Story_Sign.fbx",
+      "size": 107180,
+      "sha256": "dcc663401ac7e7a7c8903f07aa50c49c12ea75a25aa8c494484c688c8228e129"
+    },
+    {
+      "name": "3Story_Small.fbx",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Finished Textured Buildings/FBX/3Story_Small.fbx",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/3Story_Small.fbx",
+      "size": 101916,
+      "sha256": "2f7e8125ce66eda004faba7747e12a45e249f460e30c29a7a00a476767ca7bd9"
+    },
+    {
+      "name": "Texture_Light.png",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Textures/Texture_Light.png",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/Texture_Light.png",
+      "size": 3212,
+      "sha256": "ed8c7eea22f37be7ea98af3ed31078470e4cbb94a9724c0ce0f51ba5475899e8"
+    },
+    {
+      "name": "Texture_Red.png",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Textures/Texture_Red.png",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/Texture_Red.png",
+      "size": 3212,
+      "sha256": "7dd79085044dbe8c96d7a290447d01dd27859cc4cedcbdaa3b501e7260df4226"
+    },
+    {
+      "name": "Texture_Grey.png",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Textures/Texture_Grey.png",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/Texture_Grey.png",
+      "size": 3212,
+      "sha256": "183fd0711eb6a475e5f5eac93e184aab96fac5f8acd029f914e1da5657cc38d5"
+    },
+    {
+      "name": "Texture_Blue.png",
+      "source_path": "Ultimate Textured Building Pack - Dec 2019/Textured Models/Textures/Texture_Blue.png",
+      "destination": "Assets/MIR/Art/QuaterniusHero/Resources/MIR/QuaterniusHero/Texture_Blue.png",
+      "size": 3212,
+      "sha256": "2000b15f574f2b4202921fb8d88ba0343a9cdd5630632a823aa8eff378b52963"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.RUNNER_TEMP + '/nonation-playwright/node_modules/playwright');
 const { criticalRuntimeMessages } = require('./webgl_runtime_guard');
-const { requireKenneyCityReady, requireModernQuarterReady } = require('./kenney_runtime_counts');
+const { requireKenneyCityReady, requireModernQuarterReady, requireCc0HeroReady } = require('./kenney_runtime_counts');
 
 const target = process.env.NONATION_LOCAL_URL || 'http://127.0.0.1:8765/';
 const meta = {
@@ -27,6 +27,8 @@ const meta = {
   kenneyArtReloaded: null,
   modernFacades: null,
   modernFacadesReloaded: null,
+  cc0HeroBuildings: null,
+  cc0HeroBuildingsReloaded: null,
   realHumanPilot: null,
   realHumanPilotReloaded: null,
   heroQuarter: false,
@@ -127,6 +129,10 @@ async function check() {
     if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
       const modern = await marker('NONATION_MODULAR_CITY_READY', 30000);
       meta.modernFacades = requireModernQuarterReady(modern);
+      const model = await marker('NONATION_QUATERNIUS_HERO_READY', 30000);
+      meta.cc0HeroBuildings = requireCc0HeroReady(model);
+      if (!modern.includes('cc0Hero=models'))
+        throw new Error('Modular procedural facades still overlap real CC0 buildings');
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
       meta.kenneyArt = requireKenneyCityReady(line, true);
       console.log('NONATION_MODERN_FACADES_VERIFIED phase=initial ' +
@@ -213,6 +219,10 @@ async function check() {
     if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
       const modern = await marker('NONATION_MODULAR_CITY_READY', 30000);
       meta.modernFacadesReloaded = requireModernQuarterReady(modern);
+      const model = await marker('NONATION_QUATERNIUS_HERO_READY', 30000);
+      meta.cc0HeroBuildingsReloaded = requireCc0HeroReady(model);
+      if (!modern.includes('cc0Hero=models'))
+        throw new Error('Restored CC0 FBX source is missing or overlapped');
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
       meta.kenneyArtReloaded = requireKenneyCityReady(line, true);
       console.log('NONATION_MODERN_FACADES_VERIFIED phase=reload ' +

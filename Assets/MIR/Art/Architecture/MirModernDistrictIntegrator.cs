@@ -45,8 +45,16 @@ namespace MIR
                 holder = new GameObject("NONATION / Twelve Modern Facades");
                 holder.transform.SetParent(city, false);
 
+                // True pre-authored CC0 FBX models for the 3 focus buildings.
+                // If any asset/import/shader fails, ALL three stay in the
+                // existing modular art source rather than mixed partial cubes.
+                // Original MirCity BoxColliders remain the only physics source.
+                bool realHero=MirQuaterniusHeroBuildings.TryBuild(holder.transform);
                 // The existing legacy BoxColliders must remain authoritative.
-                MirArchitectureQuarter.Build(holder.transform, false);
+                if(realHero)
+                    MirArchitectureQuarter.Build(holder.transform, false, true);
+                else
+                    MirArchitectureQuarter.Build(holder.transform, false);
 
                 int meshes = 0, vertices = 0;
                 foreach (var filter in holder.GetComponentsInChildren<MeshFilter>(true))
@@ -75,7 +83,8 @@ namespace MIR
 
                 Debug.Log("NONATION_MODULAR_CITY_READY buildings=12 meshes=" +
                     meshes + " vertices=" + vertices +
-                    " (3D articulated facades, original gameplay colliders retained)");
+                    " cc0Hero=" + (realHero ? "models" : "fallback") +
+                    " (true FBX + articulated modular facades; original colliders retained)");
                 return true;
             }
             catch (Exception error)
