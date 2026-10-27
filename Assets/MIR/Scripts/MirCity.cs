@@ -273,6 +273,12 @@ namespace MIR
             art.transform.SetParent(root,false);
             var kenney=art.AddComponent<MirKenneyCityArt>();
             kenney.SkipBuildings=modularBuildings;
+            // Independent quality gate for the actual authored foliage and
+            // flower meshes. The game economy, resident routes and existing
+            // native gameplay colliders remain exactly as before.
+            var nature=new GameObject("NONATION / Authored CC0 green waterfront diorama");
+            nature.transform.SetParent(root,false);
+            nature.AddComponent<MirPremiumNature>();
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
@@ -284,9 +290,21 @@ namespace MIR
         public void UpdateLighting(float hour)
         {
             bool night=hour<6||hour>=19;
-            RenderSettings.ambientLight=night?new Color(.25f,.30f,.36f):new Color(.72f,.73f,.69f);
-            RenderSettings.fog=true;RenderSettings.fogColor=night?new Color(.13f,.17f,.22f):new Color(.72f,.78f,.75f);
-            RenderSettings.fogDensity=night?0.006f:.0017f;
+            // Three-band ambient is real environment bounce in Unity Built-in
+            // rendering, rather than uniformly flattening every model with a
+            // single grey ambient value. Retains existing day/night economy.
+            RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor=night?
+                new Color(.19f,.24f,.35f):new Color(.72f,.81f,.86f);
+            RenderSettings.ambientEquatorColor=night?
+                new Color(.17f,.20f,.25f):new Color(.64f,.72f,.65f);
+            RenderSettings.ambientGroundColor=night?
+                new Color(.10f,.12f,.14f):new Color(.39f,.39f,.33f);
+            RenderSettings.ambientIntensity=night?.64f:1.02f;
+            RenderSettings.fog=true;
+            RenderSettings.fogColor=night?
+                new Color(.13f,.17f,.22f):new Color(.78f,.84f,.82f);
+            RenderSettings.fogDensity=night?.006f:.0009f;
             for(int i=0;i<lamps.Count;i++)if(lamps[i]!=null)lamps[i].intensity=night?1.65f:0;
         }
     }

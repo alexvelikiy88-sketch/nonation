@@ -1,0 +1,50 @@
+name: NONATION Probe CC0 Detailed Tree Meshes
+on:
+  push:
+    branches: ['manager/one-block-art-overhaul-20261027']
+    paths: ['.github/workflows/probe-cc0-nature-2026.yml']
+
+permissions:
+  contents: read
+jobs:
+  inspect-authored-nature:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Inspect real creator-published CC0 2025 Standard nature archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://opengameart.org/sites/default/files/stylized_nature_megakitstandard.zip'
+          curl -L --fail --retry 3 --connect-timeout 25 --max-time 240 \
+            --user-agent 'NONATION-CC0-CreatorArchiveAudit/1.0' \
+            -o /tmp/quaternius-nature.zip "$url"
+          echo "ARCHIVE_SIZE=$(stat -c%s /tmp/quaternius-nature.zip)"
+          echo "ARCHIVE_SHA256=$(sha256sum /tmp/quaternius-nature.zip | cut -d' ' -f1)"
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          from collections import Counter
+          import hashlib
+          with ZipFile("/tmp/quaternius-nature.zip") as archive:
+              bad=archive.testzip()
+              if bad: raise ValueError("CRC failed: "+bad)
+              files=[i for i in archive.infolist() if not i.is_dir()]
+              print("FILE_COUNT",len(files))
+              print("EXTENSIONS",dict(Counter(i.filename.split(".")[-1].lower() for i in files)))
+              for i in files:
+                  path=i.filename
+                  if path.lower().endswith((".gltf",".glb",".fbx",".png",".jpg",".jpeg",".bin",".obj")):
+                      if len(path)<230:
+                          print("NATURE_FILE",i.file_size,hashlib.sha256(archive.read(i.filename)).hexdigest(),path)
+          for item in ["CommonTree_1","CommonTree_3","TwistedTree_2",
+                       "Bush_Common_Flowers","Flower_3_Group","Grass_Common_Short"]:
+              p="glTF/"+item+".gltf"
+              with ZipFile("/tmp/quaternius-nature.zip") as ar:
+                  import json
+                  d=json.loads(ar.read(p).decode("utf8"))
+                  print("NATURE_GLTF_DEPENDENCIES",item,
+                        "buffers", [b.get("uri") for b in d.get("buffers",[])],
+                        "images",[i.get("uri") for i in d.get("images",[])],
+                        "materials",[m.get("name") for m in d.get("materials",[])],
+                        "meshPrimitives", sum(len(m.get("primitives",[])) for m in d.get("meshes",[])))
+          PY

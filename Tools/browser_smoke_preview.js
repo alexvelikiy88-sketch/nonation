@@ -29,8 +29,13 @@ const meta = {
   modernFacadesReloaded: null,
   cc0HeroBuildings: null,
   cc0HeroBuildingsReloaded: null,
+  premiumNature: null,
+  premiumNatureReloaded: null,
   realHumanPilot: null,
   realHumanPilotReloaded: null,
+  realCast: null,
+  realCastReloaded: null,
+  premiumLighting: false,
   heroQuarter: false,
   heroQuarterReloaded: false,
   stylizedStreet: false,
@@ -80,6 +85,7 @@ async function check() {
           fatal.slice(0, 3).join(' | '));
       const visualFailure = allMessages.find(line =>
         line.includes('NONATION_HERO_QUARTER_ERROR') ||
+        line.includes('NONATION_PREMIUM_NATURE_ERROR') ||
         line.includes('NONATION_MODULAR_CITY_ERROR'));
       if (visualFailure)
         throw new Error('Real 3D quarter construction failed: ' + visualFailure);
@@ -89,6 +95,23 @@ async function check() {
     }
     throw new Error('No real Unity console marker ' + word +
       '. Recent messages: ' + messages.slice(-14).join(' | ').slice(0, 3000));
+  }
+
+  function verifiedRealCast() {
+    // Only actual resident NPCs with Unity Avatar+SkinnedMeshRenderer
+    // count. A static crowd prop, proxy, or source-only FBX never passes.
+    const names = ['Female16', 'Male16'];
+    const result = {};
+    for (const name of names) {
+      const line = messages.find(text =>
+        text.includes('NONATION_REAL_HUMAN_CAST_OK asset=MIR/RocketboxCast/' + name));
+      if (!line) return null;
+      const match = /humanAvatar=(True|true)\s+skinnedVertices=(\d+)\s+bones=(\d+)/.exec(line);
+      if (!match || Number(match[2]) < 1000 || Number(match[3]) < 40)
+        throw new Error('Invalid real cast skeletal/animated Unity rig: ' + line);
+      result[name] = { vertices: Number(match[2]), bones: Number(match[3]) };
+    }
+    return result;
   }
 
   function optionalRealHumanPilot() {
@@ -120,6 +143,13 @@ async function check() {
     meta.ready = true;
     meta.npcCount = Number(match[1]);
     meta.realHumanPilot = optionalRealHumanPilot();
+    meta.realCast = verifiedRealCast();
+    if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      const light = await marker('NONATION_PREMIUM_LIGHT_READY', 30000);
+      if (!/msaa=4/.test(light) || !/shadowCascades=2/.test(light))
+        throw new Error('Premium authored city lighting absent: ' + light);
+      meta.premiumLighting = true;
+    }
     if (meta.realHumanPilot)
       console.log('NONATION_REAL_HUMAN_CHROMIUM_VERIFIED phase=initial ' +
         JSON.stringify(meta.realHumanPilot));
@@ -135,6 +165,16 @@ async function check() {
         throw new Error('Modular procedural facades still overlap real CC0 buildings');
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
       meta.kenneyArt = requireKenneyCityReady(line, true);
+      // Must be a real animated WebGL 3D scene using the original CC0
+      // leaves/bark/flowers glTF and not default Unity spheres/capsules.
+      const nature = await marker('NONATION_PREMIUM_NATURE_READY', 150000);
+      if (!/\bmodels=6\b/.test(nature) || !/\btrees=7\b/.test(nature) ||
+          !/\bbushes=12\b/.test(nature) || !/\bflowers=18\b/.test(nature) ||
+          !/\bgrass=12\b/.test(nature) ||
+          !/source=Quaternius-2025-CC0/.test(nature))
+        throw new Error('Original authored CC0 tree and flower assets failed: ' + nature);
+      meta.premiumNature = nature;
+      console.log('NONATION_PREMIUM_NATURE_VERIFIED phase=initial');
       console.log('NONATION_MODERN_FACADES_VERIFIED phase=initial ' +
         JSON.stringify(meta.modernFacades) + ' kenney=' +
         JSON.stringify(meta.kenneyArt));
@@ -212,6 +252,7 @@ async function check() {
     await marker('NONATION_SAVE_RESTORED', 90000);
     await marker('NONATION_RUNTIME_READY', 90000);
     meta.realHumanPilotReloaded = optionalRealHumanPilot();
+    meta.realCastReloaded = verifiedRealCast();
     if (meta.realHumanPilotReloaded)
       console.log('NONATION_REAL_HUMAN_CHROMIUM_VERIFIED phase=reload ' +
         JSON.stringify(meta.realHumanPilotReloaded));
@@ -225,6 +266,14 @@ async function check() {
         throw new Error('Restored CC0 FBX source is missing or overlapped');
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
       meta.kenneyArtReloaded = requireKenneyCityReady(line, true);
+      const nature = await marker('NONATION_PREMIUM_NATURE_READY', 150000);
+      if (!/\bmodels=6\b/.test(nature) || !/\btrees=7\b/.test(nature) ||
+          !/\bbushes=12\b/.test(nature) || !/\bflowers=18\b/.test(nature) ||
+          !/\bgrass=12\b/.test(nature) ||
+          !/source=Quaternius-2025-CC0/.test(nature))
+        throw new Error('Original CC0 garden meshes disappeared on reload: ' + nature);
+      meta.premiumNatureReloaded = nature;
+      console.log('NONATION_PREMIUM_NATURE_VERIFIED phase=reload');
       console.log('NONATION_MODERN_FACADES_VERIFIED phase=reload ' +
         JSON.stringify(meta.modernFacadesReloaded) + ' kenney=' +
         JSON.stringify(meta.kenneyArtReloaded));
@@ -243,6 +292,16 @@ async function check() {
       console.log('NONATION_STYLIZED_STREET_VERIFIED phase=reload');
     }
     meta.restored = true;
+    // Save both ACTUAL raw showcase/waterfront screenshots first, even if
+    // the rig check fails; this creates honest visual-failure evidence.
+    if (process.env.NONATION_REQUIRE_KENNEY_ART === '1') {
+      if (!meta.realHumanPilot || !meta.realHumanPilotReloaded ||
+          !meta.realCast || !meta.realCastReloaded)
+        throw new Error('VISUAL_GATE_BLOCKED: three distinct real skinned ' +
+          'Humanoids with CC0 locomotion were NOT proven in Chromium');
+      console.log('NONATION_PREMIUM_HUMANOIDS_VERIFIED uniqueAdults=3 ' +
+        'pilot=MicrosoftMale12 cast=MicrosoftMale16,MicrosoftFemale16');
+    }
 
     const fatal = criticalRuntimeMessages([...errors, ...allMessages]);
     if (fatal.length) throw new Error('Fatal Unity browser error: ' + fatal.slice(0, 3).join(' | '));

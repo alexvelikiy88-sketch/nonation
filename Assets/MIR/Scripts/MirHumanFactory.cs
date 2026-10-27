@@ -18,6 +18,8 @@ namespace MIR
         // weights, texture quality, LODs or actual animation transitions.
         static readonly System.Collections.Generic.HashSet<string> ReportedRigFailures=
             new System.Collections.Generic.HashSet<string>();
+        static readonly System.Collections.Generic.HashSet<string> ReportedCastSuccess=
+            new System.Collections.Generic.HashSet<string>();
         static void WarnOnce(string prefab,string reason)
         {
             string key=prefab+"|"+reason;
@@ -103,6 +105,18 @@ namespace MIR
                 candidates.Add("MIR/"+requested);
             if(person.player)
                 candidates.Add("MIR/RocketboxPilot01");
+            else
+            {
+                // An actual resident approaching the authored plaza/market
+                // gets one of two DIFFERENT real Microsoft MIT humanoids.
+                // The rest of the simulation remains active; do not invent
+                // static fake crowd meshes for a promotional screenshot.
+                float dx=person.x-20f,dz=person.z-8f;
+                if(dx*dx+dz*dz<75f*75f)
+                    candidates.Add((variant&1)==0 ?
+                        "MIR/RocketboxCast/Female16" :
+                        "MIR/RocketboxCast/Male16");
+            }
             candidates.Add("MIR/PlayableHuman");
 
             var attempted=new System.Collections.Generic.HashSet<string>();
@@ -139,6 +153,20 @@ namespace MIR
 
                     var driver=instance.AddComponent<MirMotionDriver>();
                     driver.Configure(person.gaitSeed);
+                    if(candidate.StartsWith("MIR/RocketboxCast/",System.StringComparison.Ordinal) &&
+                       ReportedCastSuccess.Add(candidate))
+                    {
+                        int vertexCount=0,boneCount=0;
+                        foreach(var skin in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                        {
+                            if(skin.sharedMesh!=null)vertexCount+=skin.sharedMesh.vertexCount;
+                            if(skin.bones!=null)boneCount+=skin.bones.Length;
+                        }
+                        Debug.Log("NONATION_REAL_HUMAN_CAST_OK asset="+candidate+
+                            " humanAvatar="+animator.avatar.isHuman+
+                            " skinnedVertices="+vertexCount+" bones="+boneCount+
+                            " locomotion="+animator.runtimeAnimatorController.name);
+                    }
                     if(candidate=="MIR/RocketboxPilot01")
                     {
                         int vertices=0,bones=0;
