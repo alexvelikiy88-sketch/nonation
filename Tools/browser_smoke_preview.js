@@ -29,6 +29,8 @@ const meta = {
   modernFacadesReloaded: null,
   cc0HeroBuildings: null,
   cc0HeroBuildingsReloaded: null,
+  premiumNature: null,
+  premiumNatureReloaded: null,
   realHumanPilot: null,
   realHumanPilotReloaded: null,
   heroQuarter: false,
@@ -80,6 +82,7 @@ async function check() {
           fatal.slice(0, 3).join(' | '));
       const visualFailure = allMessages.find(line =>
         line.includes('NONATION_HERO_QUARTER_ERROR') ||
+        line.includes('NONATION_PREMIUM_NATURE_ERROR') ||
         line.includes('NONATION_MODULAR_CITY_ERROR'));
       if (visualFailure)
         throw new Error('Real 3D quarter construction failed: ' + visualFailure);
@@ -135,6 +138,16 @@ async function check() {
         throw new Error('Modular procedural facades still overlap real CC0 buildings');
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
       meta.kenneyArt = requireKenneyCityReady(line, true);
+      // Must be a real animated WebGL 3D scene using the original CC0
+      // leaves/bark/flowers glTF and not default Unity spheres/capsules.
+      const nature = await marker('NONATION_PREMIUM_NATURE_READY', 150000);
+      if (!/\bmodels=6\b/.test(nature) || !/\btrees=7\b/.test(nature) ||
+          !/\bbushes=12\b/.test(nature) || !/\bflowers=18\b/.test(nature) ||
+          !/\bgrass=12\b/.test(nature) ||
+          !/source=Quaternius-2025-CC0/.test(nature))
+        throw new Error('Original authored CC0 tree and flower assets failed: ' + nature);
+      meta.premiumNature = nature;
+      console.log('NONATION_PREMIUM_NATURE_VERIFIED phase=initial');
       console.log('NONATION_MODERN_FACADES_VERIFIED phase=initial ' +
         JSON.stringify(meta.modernFacades) + ' kenney=' +
         JSON.stringify(meta.kenneyArt));
@@ -225,6 +238,14 @@ async function check() {
         throw new Error('Restored CC0 FBX source is missing or overlapped');
       const line = await marker('NONATION_KENNEY_CITY_READY', 120000);
       meta.kenneyArtReloaded = requireKenneyCityReady(line, true);
+      const nature = await marker('NONATION_PREMIUM_NATURE_READY', 150000);
+      if (!/\bmodels=6\b/.test(nature) || !/\btrees=7\b/.test(nature) ||
+          !/\bbushes=12\b/.test(nature) || !/\bflowers=18\b/.test(nature) ||
+          !/\bgrass=12\b/.test(nature) ||
+          !/source=Quaternius-2025-CC0/.test(nature))
+        throw new Error('Original CC0 garden meshes disappeared on reload: ' + nature);
+      meta.premiumNatureReloaded = nature;
+      console.log('NONATION_PREMIUM_NATURE_VERIFIED phase=reload');
       console.log('NONATION_MODERN_FACADES_VERIFIED phase=reload ' +
         JSON.stringify(meta.modernFacadesReloaded) + ' kenney=' +
         JSON.stringify(meta.kenneyArtReloaded));
