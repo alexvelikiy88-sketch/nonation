@@ -17,6 +17,7 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "Tools/rocketbox_cast_manifest.json"
