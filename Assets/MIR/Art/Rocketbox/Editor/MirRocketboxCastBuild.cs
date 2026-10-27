@@ -158,7 +158,8 @@ namespace MIR.Rocketbox.Editor
                 avatar=AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<Avatar>()
                     .FirstOrDefault(a=>a!=null&&a.isValid&&a.isHuman);
             }
-            Require(avatar!=null,"Microsoft Humanoid Avatar mapping invalid: "+model);
+            Require(avatar!=null && avatar.isValid&&avatar.isHuman,
+                "Microsoft Humanoid Avatar mapping invalid: "+model);
             return avatar;
         }
 
