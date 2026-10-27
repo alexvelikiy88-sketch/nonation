@@ -16,6 +16,7 @@ FETCH = ROOT / "Tools/fetch_quaternius_hero.py"
 CLOUD_HOOK = ROOT / "Tools/unity_cloud_prebuild.sh"
 MAIN_CI = ROOT / ".github/workflows/unity-webgl.yml"
 IMPORT = ROOT / "Assets/MIR/Art/QuaterniusHero/Editor/MirQuaterniusHeroImport.cs"
+BUILD_GATE = ROOT / "Assets/MIR/Art/QuaterniusHero/Editor/MirQuaterniusHeroBuildGate.cs"
 RUNTIME = ROOT / "Assets/MIR/Art/QuaterniusHero/MirQuaterniusHeroBuildings.cs"
 ARCH = ROOT / "Assets/MIR/Art/Architecture/MirArchitectureQuarter.cs"
 INTEGRATOR = ROOT / "Assets/MIR/Art/Architecture/MirModernDistrictIntegrator.cs"
@@ -95,6 +96,22 @@ class RealCc0BuildingsTests(unittest.TestCase):
             self.assertIn(item, runtime)
         self.assertNotIn("GameObject.CreatePrimitive", runtime)
         self.assertNotIn("Texture2D.LoadImage", runtime)
+
+    def test_unity_editor_rejects_fake_fbx_rollback_for_visual_release(self):
+        code = BUILD_GATE.read_text(encoding="utf-8")
+        for token in (
+            "IPreprocessBuildWithReport",
+            "OnPreprocessBuild(BuildReport report)",
+            "BuildTarget.WebGL",
+            "AssetDatabase.LoadAssetAtPath<GameObject>(path)",
+            "AssetDatabase.LoadAssetAtPath<Texture2D>(path)",
+            "mesh.HasVertexAttribute(",
+            "BuildFailedException",
+            "NONATION_CC0_HERO_BUILD_BLOCKED",
+            "NONATION_CC0_HERO_SOURCE_IMPORT_READY fbxs=4 atlases=4",
+        ):
+            self.assertIn(token, code)
+        self.assertNotIn("GameObject.CreatePrimitive", code)
 
     def test_selected_real_art_never_duplicates_gameplay_colliders(self):
         importer = RUNTIME.read_text(encoding="utf-8")
