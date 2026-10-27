@@ -1,0 +1,47 @@
+name: NONATION CC0 Textured Buildings Probe
+
+# One-shot source-file inspection, separate from paid Unity Cloud builds.
+on:
+  push:
+    branches: ['manager/cc0-textured-buildings-probe-20261027']
+    paths:
+      - '.github/workflows/cc0-buildings-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch 2021 Quaternius CC0 buildings archive from OpenGameArt
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE="https://opengameart.org/sites/default/files/ultimate_textured_building_pack_by_quaternius.zip"
+          echo "CC0_SOURCE_PAGE=https://opengameart.org/content/lowpoly-buildings-pack"
+          echo "CC0_ARCHIVE_URL=${SOURCE}"
+          curl --location --fail --retry 3 --retry-delay 4 --connect-timeout 20 --max-time 140 \
+            --user-agent 'Mozilla/5.0 NONATION-asset-license-audit' \
+            --output /tmp/quaternius-2019.zip "${SOURCE}"
+          test "$(stat -c%s /tmp/quaternius-2019.zip)" -gt 1000000
+          test "$(stat -c%s /tmp/quaternius-2019.zip)" -lt 100000000
+          echo "ASSET_ZIP_SHA256=$(sha256sum /tmp/quaternius-2019.zip | cut -d ' ' -f 1)"
+          echo "ASSET_ZIP_BYTES=$(stat -c%s /tmp/quaternius-2019.zip)"
+          python3 - <<'PY'
+          import zipfile
+          from collections import Counter
+          path = "/tmp/quaternius-2019.zip"
+          with zipfile.ZipFile(path) as z:
+              bad = z.testzip()
+              if bad:
+                  raise RuntimeError("Bad CRC in " + bad)
+              files = [i for i in z.infolist() if not i.is_dir()]
+              print("ASSET_ZIP_ENTRIES", len(files), "UNCOMPRESSED_BYTES", sum(i.file_size for i in files))
+              print("ASSET_EXTENSIONS", dict(Counter(i.filename.rsplit(".", 1)[-1].lower() for i in files)))
+              for i in files:
+                  if i.filename.lower().endswith((".fbx",".obj",".png",".jpg",".jpeg",".mtl",".txt")):
+                      print("ASSET_CONTENT", i.file_size, i.filename[:220])
+          PY
