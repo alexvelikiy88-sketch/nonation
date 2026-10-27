@@ -273,6 +273,12 @@ namespace MIR
             art.transform.SetParent(root,false);
             var kenney=art.AddComponent<MirKenneyCityArt>();
             kenney.SkipBuildings=modularBuildings;
+            // Independent quality gate for the actual authored foliage and
+            // flower meshes. The game economy, resident routes and existing
+            // native gameplay colliders remain exactly as before.
+            var nature=new GameObject("NONATION / Authored CC0 green waterfront diorama");
+            nature.transform.SetParent(root,false);
+            nature.AddComponent<MirPremiumNature>();
         }
         public List<Vector3> SidewalkRoute(Vector3 origin, Vector3 destination)
         {
