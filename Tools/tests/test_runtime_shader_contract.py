@@ -19,14 +19,21 @@ class WebGLShaderRetentionTests(unittest.TestCase):
         self.assertRegex(META.read_text(encoding="utf-8"),
                          r"(?m)^guid: [0-9a-f]{32}$")
 
-    def test_shader_is_supported_webgl_colored_vertex_fragment(self):
+    def test_shader_is_supported_builtin_webgl_shadowed_surface(self):
         source = SHADER.read_text(encoding="utf-8")
         self.assertIn('Shader "MIR/RuntimeFallback"', source)
         self.assertIn('_Color ("Base Color", Color)', source)
-        self.assertIn("#pragma vertex vert", source)
-        self.assertIn("#pragma fragment frag", source)
-        self.assertIn("UnityObjectToClipPos", source)
-        self.assertIn("SV_Target", source)
+        self.assertIn('_Metallic ("Metallic", Range(0,1))', source)
+        self.assertIn('_Smoothness ("Smoothness", Range(0,1))', source)
+        self.assertIn("#pragma target 3.0", source)
+        self.assertIn("#pragma surface surf Standard", source)
+        self.assertIn("fullforwardshadows addshadow", source)
+        self.assertIn("SurfaceOutputStandard", source)
+        self.assertIn("o.Albedo = _Color.rgb", source)
+        self.assertIn("o.Metallic = saturate(_Metallic)", source)
+        self.assertIn("o.Smoothness = saturate(_Smoothness)", source)
+        self.assertNotIn("#pragma vertex vert", source)
+        self.assertNotIn("output.brightness =", source)
 
     def test_material_resolver_uses_real_resources_shader_if_stripped(self):
         code = RESOLVER.read_text(encoding="utf-8")
