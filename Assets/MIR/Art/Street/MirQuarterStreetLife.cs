@@ -13,6 +13,7 @@ namespace MIR
         sealed class Surface
         {
             readonly List<Vector3> vertices=new List<Vector3>();
+            readonly List<Vector3> normals=new List<Vector3>();
             readonly List<Vector2> uv=new List<Vector2>();
             readonly List<int> triangles=new List<int>();
             static Vector2 Map(Vector3 p,Vector3 n)
@@ -28,6 +29,34 @@ namespace MIR
                 vertices.Add(a);vertices.Add(b);vertices.Add(c);vertices.Add(d);
                 uv.Add(Map(a,normal));uv.Add(Map(b,normal));
                 uv.Add(Map(c,normal));uv.Add(Map(d,normal));
+                for(int k=0;k<4;k++)normals.Add(normal);
+                triangles.Add(start);triangles.Add(start+1);triangles.Add(start+2);
+                triangles.Add(start);triangles.Add(start+2);triangles.Add(start+3);
+            }
+            static Vector3 EllipsoidNormal(Vector3 p,Vector3 center,Vector3 radii)
+            {
+                var d=p-center;
+                return new Vector3(
+                    d.x/Mathf.Max(.01f,radii.x*radii.x),
+                    d.y/Mathf.Max(.01f,radii.y*radii.y),
+                    d.z/Mathf.Max(.01f,radii.z*radii.z)).normalized;
+            }
+            // Smooth real mesh leaf/petal ellipsoids instead of the faceted
+            // hard-normal geometry that previously looked like blocky rocks.
+            void SmoothQuad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,
+                Vector3 center,Vector3 radii)
+            {
+                int start=vertices.Count;
+                vertices.Add(a);vertices.Add(b);vertices.Add(c);vertices.Add(d);
+                Vector3 n=(EllipsoidNormal(a,center,radii)+
+                    EllipsoidNormal(b,center,radii)+
+                    EllipsoidNormal(c,center,radii)+
+                    EllipsoidNormal(d,center,radii)).normalized;
+                uv.Add(Map(a,n));uv.Add(Map(b,n));uv.Add(Map(c,n));uv.Add(Map(d,n));
+                normals.Add(EllipsoidNormal(a,center,radii));
+                normals.Add(EllipsoidNormal(b,center,radii));
+                normals.Add(EllipsoidNormal(c,center,radii));
+                normals.Add(EllipsoidNormal(d,center,radii));
                 triangles.Add(start);triangles.Add(start+1);triangles.Add(start+2);
                 triangles.Add(start);triangles.Add(start+2);triangles.Add(start+3);
             }
@@ -37,6 +66,7 @@ namespace MIR
                 int start=vertices.Count;
                 vertices.Add(a);vertices.Add(b);vertices.Add(c);
                 uv.Add(Map(a,normal));uv.Add(Map(b,normal));uv.Add(Map(c,normal));
+                normals.Add(normal);normals.Add(normal);normals.Add(normal);
                 triangles.Add(start);triangles.Add(start+1);triangles.Add(start+2);
             }
             public void Box(Vector3 p,Vector3 size)
@@ -72,7 +102,8 @@ namespace MIR
                 {
                     float a=Mathf.PI*j/rings,b=Mathf.PI*(j+1)/rings;
                     float c=2*Mathf.PI*i/sides,d=2*Mathf.PI*(i+1)/sides;
-                    Quad(Sphere(a,c),Sphere(a,d),Sphere(b,d),Sphere(b,c));
+                    SmoothQuad(Sphere(a,c),Sphere(a,d),Sphere(b,d),Sphere(b,c),
+                        center,radius);
                 }
                 Vector3 Sphere(float a,float b)
                 {
@@ -88,8 +119,9 @@ namespace MIR
                 mesh.name="NONATION street / "+m.name;
                 if(vertices.Count>65535)mesh.indexFormat=IndexFormat.UInt32;
                 mesh.SetVertices(vertices);mesh.SetUVs(0,uv);
+                mesh.SetNormals(normals);
                 mesh.SetTriangles(triangles,0);
-                mesh.RecalculateNormals();mesh.RecalculateBounds();
+                mesh.RecalculateBounds();
                 var go=new GameObject("Street Mesh / "+m.name);
                 go.transform.SetParent(parent,false);
                 go.AddComponent<MeshFilter>().sharedMesh=mesh;
