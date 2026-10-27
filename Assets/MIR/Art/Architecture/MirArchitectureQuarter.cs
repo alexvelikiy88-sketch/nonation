@@ -641,7 +641,8 @@ namespace MIR
                 pair.Value.Emit(parent,pair.Key,root.gameObject.layer);
         }
 
-        public static void Build(Transform root,bool createGameplayColliders=true)
+        public static void Build(Transform root,bool createGameplayColliders=true,
+            bool useRealQuaterniusHero=false)
         {
             if(root==null)throw new ArgumentNullException("root");
             var district=new MirArchitectureQuarter(root,createGameplayColliders);
@@ -660,7 +661,21 @@ namespace MIR
                     -66+col*36,56+row*38,14,13,3+i%3,i%4,i+4,
                     false,i==2||i==5));
             }
-            foreach(Building plan in plans)district.BuildBuilding(plan);
+            if(useRealQuaterniusHero)
+            {
+                // Three real modeled hero business facades replace their
+                // modular counterparts atomically; original physics/POIs
+                // exist in MirCity and stay unchanged.
+                foreach(Building plan in plans)
+                    if(plan.index!=0 && plan.index!=1 && plan.index!=3)
+                        district.BuildBuilding(plan);
+            }
+            else
+            {
+                // The original fully playable visual fallback, for missing
+                // CC0 FBX import / shader / Atlas or preview rollback.
+                foreach(Building plan in plans)district.BuildBuilding(plan);
+            }
             district.Emit();
         }
     }
