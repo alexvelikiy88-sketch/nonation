@@ -61,9 +61,12 @@ class PremiumDioramaHeroContract(unittest.TestCase):
         self.assertIn("public void GroceryDelivery(float x,float z,int seed)", street)
         self.assertIn("PocketGarden(8.9f,17.0f,0);", street)
         self.assertIn("PocketGarden(29.1f,27.7f,7);", street)
+        self.assertIn("CommunityGarden(60.0f,-20.0f);", street)
+        self.assertIn("paver.Disk(center,9.4f,48)", street)
+        self.assertIn("planter.Ring(center+Vector3.up*.03f,8.52f,9.20f,48)", street)
         self.assertIn("GroceryDelivery(15.0f,-31.7f,0);", street)
         self.assertIn("GroceryDelivery(25.1f,-31.7f,1);", street)
-        self.assertIn("NONATION_STYLIZED_STREET_READY gardens=2 deliveries=2", street)
+        self.assertIn("NONATION_STYLIZED_STREET_READY gardens=2 deliveries=2 park=1", street)
         for token in ("new Mesh()", "MeshRenderer", "mesh.SetTriangles",
                       "petals.Crown(", "bark.Tube(", "woodPallet.Box("):
             self.assertIn(token, street)
@@ -116,6 +119,7 @@ class PremiumDioramaHeroContract(unittest.TestCase):
         self.assertIn("meta.stylizedStreetReloaded = true", s)
         self.assertIn("/\\bgardens=2\\b/", s)
         self.assertIn("/\\bdeliveries=2\\b/", s)
+        self.assertIn("/\\bpark=1\\b/", s)
         self.assertIn("nonation-browser-showcase.png", s)
 
 
