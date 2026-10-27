@@ -31,6 +31,8 @@ const meta = {
   realHumanPilotReloaded: null,
   heroQuarter: false,
   heroQuarterReloaded: false,
+  stylizedStreet: false,
+  stylizedStreetReloaded: false,
   showcaseScreenshot: false,
   waterfrontScreenshot: false,
   browserViewport: '1280x720',
@@ -139,6 +141,11 @@ async function check() {
         throw new Error('Incomplete real hero quarter: ' + detail);
       meta.heroQuarter = true;
       console.log('NONATION_HERO_QUARTER_VERIFIED phase=initial');
+      const details = await marker('NONATION_STYLIZED_STREET_READY', 30000);
+      if (!/\\bgardens=2\\b/.test(details) || !/\\bdeliveries=2\\b/.test(details))
+        throw new Error('Stylized 3D diorama detail integration incomplete: ' + details);
+      meta.stylizedStreet = true;
+      console.log('NONATION_STYLIZED_STREET_VERIFIED phase=initial');
     }
 
     const canvas = page.locator('canvas').first();
@@ -219,6 +226,11 @@ async function check() {
         throw new Error('Hero quarter not restored: ' + detail);
       meta.heroQuarterReloaded = true;
       console.log('NONATION_HERO_QUARTER_VERIFIED phase=reload');
+      const details = await marker('NONATION_STYLIZED_STREET_READY', 30000);
+      if (!/\\bgardens=2\\b/.test(details) || !/\\bdeliveries=2\\b/.test(details))
+        throw new Error('Stylized 3D diorama not restored after reload: ' + details);
+      meta.stylizedStreetReloaded = true;
+      console.log('NONATION_STYLIZED_STREET_VERIFIED phase=reload');
     }
     meta.restored = true;
 
