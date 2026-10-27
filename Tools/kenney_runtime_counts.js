@@ -39,7 +39,26 @@ function requireModernQuarterReady(line) {
   return counts;
 }
 
+function requireCc0HeroReady(line) {
+  if (typeof line !== 'string' || !line.includes('NONATION_QUATERNIUS_HERO_READY'))
+    throw new Error('Missing original CC0 FBX architecture readiness marker');
+  const expected = Object.freeze({ models: 5, slots: 3, atlas: 4 });
+  const actual = {};
+  for (const [name, value] of Object.entries(expected)) {
+    const match = new RegExp('(?:^|\\s)' + name + '=(\\d+)(?=\\s|$)').exec(line);
+    if (!match || Number(match[1]) !== value)
+      throw new Error('Author modeled CC0 architecture incomplete: ' + name +
+        ' expected=' + value + ' source=' + line);
+    actual[name] = Number(match[1]);
+  }
+  const verts = /(?:^|\s)vertices=(\d+)(?=\s|$)/.exec(line);
+  if (!verts || Number(verts[1]) < 1200)
+    throw new Error('CC0 original building meshes have too few vertices: ' + line);
+  actual.vertices = Number(verts[1]);
+  return actual;
+}
+
 module.exports = {
-  requireKenneyCityReady, requireModernQuarterReady,
+  requireKenneyCityReady, requireModernQuarterReady, requireCc0HeroReady,
   EXPECTED, MODULAR_KENNEY_EXPECTED
 };
