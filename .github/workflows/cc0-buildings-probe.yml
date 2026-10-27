@@ -45,3 +45,49 @@ jobs:
                   if i.filename.lower().endswith((".fbx",".obj",".png",".jpg",".jpeg",".mtl",".txt")):
                       print("ASSET_CONTENT", i.file_size, i.filename[:220])
           PY
+
+      - name: Inspect selected prebuilt shop/cafe/civic/house FBX, materials and dimensions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          import hashlib
+          import struct
+          import math
+          names=["2Story_Wide_2Doors","2Story_Balcony","3Story_Small",
+                 "3Story_Balcony","2Story_Sign","2Story_Columns"]
+          root="Ultimate Textured Building Pack - Dec 2019/"
+          with ZipFile("/tmp/quaternius-2019.zip") as z:
+              for name in names:
+                  paths=[
+                     root+"Textured Models/Finished Textured Buildings/FBX/"+name+".fbx",
+                     root+"Textured Models/Finished Textured Buildings/OBJ/"+name+".obj",
+                     root+"Textured Models/Finished Textured Buildings/OBJ/"+name+".mtl",
+                  ]
+                  for p in paths:
+                      raw=z.read(p)
+                      print("SELECTED_FILE",name,len(raw),hashlib.sha256(raw).hexdigest(),p)
+                      if p.endswith(".mtl"):
+                          print("MATERIAL_MTL",name,raw.decode("utf-8",errors="replace")[:250])
+                      if p.endswith(".obj"):
+                          mins=[1e6]*3
+                          maxs=[-1e6]*3
+                          count=0
+                          for line in raw.splitlines():
+                              if line.startswith(b"v "):
+                                  _,x,y,zv=line.split()[:4]
+                                  xyz=[float(x),float(y),float(zv)]
+                                  count+=1
+                                  for i,v in enumerate(xyz):
+                                      mins[i]=min(mins[i],v)
+                                      maxs[i]=max(maxs[i],v)
+                          print("ASSET_BOUNDS",name,"vertices",count,"min",mins,"max",maxs,
+                              "extents",[round(maxs[i]-mins[i],4) for i in range(3)])
+              for tex in ["Texture_Light.png","Texture_Red.png","Texture_Grey.png",
+                          "Texture_Blue.png","Texture_Light2.png","Texture_Signs.png"]:
+                  p=root+"Textured Models/Textures/"+tex
+                  raw=z.read(p)
+                  print("ASSET_TEXTURE",tex,len(raw),hashlib.sha256(raw).hexdigest(),
+                        "pixel_size",struct.unpack(">II",raw[16:24]))
+          PY
