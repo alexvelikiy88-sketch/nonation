@@ -101,9 +101,12 @@ namespace MIR.Rocketbox.Editor
             if(shader==null || !shader.isSupported)
                 shader=Resources.Load<Shader>("MIR/MirRuntimeFallback");
             Require(shader!=null&&shader.isSupported,"no supported built-in source texture shader");
-            var color=Texture(model,prefix+part+"_color.tga");
-            var normal=Texture(model,prefix+part+"_normal.tga");
-            var spec=Texture(model,prefix+part+"_specular.tga");
+            // Female_Adult_16 has one original f204_color/normal/specular
+            // slot; m019 has separate original body/head material slots.
+            string stem=prefix+(part=="single"?"":part+"_");
+            var color=Texture(model,stem+"color.tga");
+            var normal=Texture(model,stem+"normal.tga");
+            var spec=Texture(model,stem+"specular.tga");
             var material=new Material(shader);
             material.name="Microsoft MIT / "+model+" / "+part;
             material.SetColor("_Color",Color.white);
