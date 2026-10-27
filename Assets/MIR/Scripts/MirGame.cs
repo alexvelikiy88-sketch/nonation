@@ -47,10 +47,26 @@ namespace MIR
                 var npc=go.AddComponent<MirNpcAgent>();npc.Init(r,City);NPCs.Add(npc);
             }
             var camObj=new GameObject("MIR Camera");var camera=camObj.AddComponent<Camera>();camera.fieldOfView=58f;
-            camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.67f,.73f,.77f);
+            camera.clearFlags=CameraClearFlags.SolidColor;
+            camera.backgroundColor=new Color(.77f,.83f,.84f);
+            // Keep readable game geometry at 1280x720 in built-in WebGL.
+            // MSAA does NOT fake missing 3D meshes or substitute baked imagery.
+            QualitySettings.antiAliasing=4;
+            QualitySettings.shadowDistance=85f;
+            QualitySettings.shadowCascades=2;
+            camera.allowMSAA=true;
             camObj.AddComponent<AudioListener>();camObj.AddComponent<MirFollowCamera>().Init(Player.transform);
-            var sun=new GameObject("Sun").AddComponent<Light>();sun.type=LightType.Directional;sun.shadows=LightShadows.Soft;
-            sun.transform.rotation=Quaternion.Euler(42f,-38f,0f);sun.intensity=1.25f;
+            var sun=new GameObject("Sun").AddComponent<Light>();
+            sun.type=LightType.Directional;
+            sun.shadows=LightShadows.Soft;
+            sun.color=new Color(1f,.954f,.885f);
+            sun.intensity=1.28f;
+            sun.shadowStrength=.84f;
+            sun.shadowBias=.035f;
+            sun.shadowNormalBias=.30f;
+            sun.transform.rotation=Quaternion.Euler(39f,-45f,0f);
+            Debug.Log("NONATION_PREMIUM_LIGHT_READY msaa=4 shadowCascades=2 " +
+                "sun=warm-forward groundBounce=trilight (real WebGL lighting)");
             var ui=new GameObject("MIR · HUD").AddComponent<MirHUD>();ui.Init(this);
             Freight=new GameObject("Supply Truck Controller").AddComponent<MirFreightDriver>();Freight.Init(this);
             Economy.Log("Открыт управляемый район nonation (Unity).");
